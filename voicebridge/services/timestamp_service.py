@@ -1,7 +1,7 @@
 import re
 
-from domain.models import TimestampMode, TranscriptionSegment
-from ports.interfaces import TimestampService
+from voicebridge.domain.models import TimestampMode, TranscriptionSegment
+from voicebridge.ports.interfaces import TimestampService
 
 
 class DefaultTimestampService(TimestampService):
@@ -76,7 +76,6 @@ class DefaultTimestampService(TimestampService):
                 self._is_paragraph_break(segment, next_segment)
                 or len(current_paragraph) >= 5
             ):  # Max 5 sentences per paragraph
-
                 if current_paragraph:
                     paragraph_segment = self._merge_segments(
                         current_paragraph, current_text.strip()

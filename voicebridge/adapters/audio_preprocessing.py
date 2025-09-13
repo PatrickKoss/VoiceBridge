@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 
-from ports.interfaces import AudioPreprocessingService
+from voicebridge.ports.interfaces import AudioPreprocessingService
 
 
 class FFmpegAudioPreprocessingAdapter(AudioPreprocessingService):

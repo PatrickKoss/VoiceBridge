@@ -7,31 +7,31 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Adapters
-from adapters.audio import FFmpegAudioRecorder
-from adapters.audio_formats import FFmpegAudioFormatAdapter
-from adapters.audio_playback import create_audio_playback_service
-from adapters.audio_preprocessing import FFmpegAudioPreprocessingAdapter
-from adapters.audio_splitting import FFmpegAudioSplittingAdapter
-from adapters.config import FileConfigRepository, FileProfileRepository
-from adapters.logging import FileLogger
-from adapters.session import FileSessionService
-from adapters.system import PlatformClipboardService, StandardSystemService
-from adapters.text_input import create_text_input_service
-from adapters.transcription import WhisperTranscriptionService
-from adapters.vibevoice_tts import VibeVoiceTTSAdapter
-from cli.app import create_app
-from cli.commands import CLICommands
+from voicebridge.adapters.audio import FFmpegAudioRecorder
+from voicebridge.adapters.audio_formats import FFmpegAudioFormatAdapter
+from voicebridge.adapters.audio_playback import create_audio_playback_service
+from voicebridge.adapters.audio_preprocessing import FFmpegAudioPreprocessingAdapter
+from voicebridge.adapters.audio_splitting import FFmpegAudioSplittingAdapter
+from voicebridge.adapters.config import FileConfigRepository, FileProfileRepository
+from voicebridge.adapters.logging import FileLogger
+from voicebridge.adapters.session import FileSessionService
+from voicebridge.adapters.system import PlatformClipboardService, StandardSystemService
+from voicebridge.adapters.text_input import create_text_input_service
+from voicebridge.adapters.transcription import WhisperTranscriptionService
+from voicebridge.adapters.vibevoice_tts import VibeVoiceTTSAdapter
+from voicebridge.cli.app import create_app
+from voicebridge.cli.commands import CLICommands
 
 # Services
-from services.batch_service import WhisperBatchProcessingService
-from services.confidence_service import ConfidenceAnalyzer
-from services.daemon_service import WhisperDaemonService
-from services.export_service import DefaultExportService
-from services.performance_service import WhisperPerformanceService
-from services.resume_service import TranscriptionResumeService
-from services.timestamp_service import DefaultTimestampService
-from services.transcription_service import WhisperTranscriptionOrchestrator
-from services.tts_service import TTSDaemonService, TTSOrchestrator
+from voicebridge.services.batch_service import WhisperBatchProcessingService
+from voicebridge.services.confidence_service import ConfidenceAnalyzer
+from voicebridge.services.daemon_service import WhisperDaemonService
+from voicebridge.services.export_service import DefaultExportService
+from voicebridge.services.performance_service import WhisperPerformanceService
+from voicebridge.services.resume_service import TranscriptionResumeService
+from voicebridge.services.timestamp_service import DefaultTimestampService
+from voicebridge.services.transcription_service import WhisperTranscriptionOrchestrator
+from voicebridge.services.tts_service import TTSDaemonService, TTSOrchestrator
 
 
 def setup_dependencies(config_dir=None):

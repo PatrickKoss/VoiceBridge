@@ -3,8 +3,8 @@ import uuid
 from datetime import datetime, timedelta
 from pathlib import Path
 
-from domain.models import SessionInfo
-from ports.interfaces import SessionService
+from voicebridge.domain.models import SessionInfo
+from voicebridge.ports.interfaces import SessionService
 
 
 class FileSessionService(SessionService):

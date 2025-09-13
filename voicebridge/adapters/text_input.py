@@ -26,7 +26,7 @@ except ImportError:
     Button = None
     PYNPUT_AVAILABLE = False
 
-from ports.interfaces import TextInputService
+from voicebridge.ports.interfaces import TextInputService
 
 
 class PlatformTextInputAdapter(TextInputService):
@@ -198,7 +198,6 @@ class PlatformTextInputAdapter(TextInputService):
                     and current_content != self.last_clipboard_content
                     and len(current_content.strip()) > 0
                 ):
-
                     self.last_clipboard_content = current_content
 
                     # Call callback with new text

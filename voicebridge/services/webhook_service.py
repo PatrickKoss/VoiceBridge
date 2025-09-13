@@ -2,8 +2,9 @@ import asyncio
 from datetime import datetime
 
 import aiohttp
-from domain.models import EventType, IntegrationConfig, WebhookEvent
-from ports.interfaces import WebhookService
+
+from voicebridge.domain.models import EventType, IntegrationConfig, WebhookEvent
+from voicebridge.ports.interfaces import WebhookService
 
 
 class WhisperWebhookService(WebhookService):
@@ -90,7 +91,7 @@ class WhisperWebhookService(WebhookService):
                 event = await asyncio.wait_for(self._event_queue.get(), timeout=1.0)
                 await self._process_event_async(event)
                 self._event_queue.task_done()
-            except asyncio.TimeoutError:
+            except TimeoutError:
                 continue
             except Exception:
                 continue

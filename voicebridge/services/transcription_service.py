@@ -1,8 +1,8 @@
 import time
 from collections.abc import Iterator
 
-from domain.models import PerformanceMetrics, WhisperConfig
-from ports.interfaces import (
+from voicebridge.domain.models import PerformanceMetrics, WhisperConfig
+from voicebridge.ports.interfaces import (
     AudioRecorder,
     ClipboardService,
     Logger,

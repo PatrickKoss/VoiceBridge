@@ -11,14 +11,15 @@ from unittest.mock import Mock, patch
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 # Import main components
-from domain.models import PlatformType, SystemInfo, WhisperConfig
 from main import setup_dependencies
+
+from voicebridge.domain.models import PlatformType, SystemInfo, WhisperConfig
 
 
 class TestDependencyInjection(unittest.TestCase):
     """Test dependency injection setup."""
 
-    @patch("adapters.transcription.whisper")
+    @patch("voicebridge.adapters.transcription.whisper")
     def test_setup_dependencies(self, mock_whisper):
         """Test that all dependencies are properly injected."""
         # Mock whisper to avoid import errors
@@ -45,7 +46,7 @@ class TestEndToEndWorkflow(unittest.TestCase):
         """Set up test fixtures."""
         self.temp_dir = Path(tempfile.mkdtemp())
 
-    @patch("adapters.transcription.whisper")
+    @patch("voicebridge.adapters.transcription.whisper")
     @patch("subprocess.run")
     @patch("subprocess.Popen")
     def test_config_save_load_workflow(self, mock_popen, mock_run, mock_whisper):
@@ -76,7 +77,7 @@ class TestEndToEndWorkflow(unittest.TestCase):
         self.assertEqual(loaded_config.model_name, "large")
         self.assertTrue(loaded_config.debug)
 
-    @patch("adapters.transcription.whisper")
+    @patch("voicebridge.adapters.transcription.whisper")
     def test_profile_workflow(self, mock_whisper):
         """Test profile save/load/delete workflow."""
         mock_whisper.load_model.return_value = Mock()
@@ -108,7 +109,7 @@ class TestEndToEndWorkflow(unittest.TestCase):
         profiles = commands.profile_repo.list_profiles()
         self.assertNotIn("spanish", profiles)
 
-    @patch("adapters.transcription.whisper")
+    @patch("voicebridge.adapters.transcription.whisper")
     @patch("subprocess.run")
     def test_daemon_lifecycle(self, mock_run, mock_whisper):
         """Test daemon start/stop/status lifecycle."""
@@ -128,7 +129,7 @@ class TestEndToEndWorkflow(unittest.TestCase):
             commands.daemon_service.start(config)
             mock_start.assert_called_once()
 
-    @patch("adapters.transcription.whisper")
+    @patch("voicebridge.adapters.transcription.whisper")
     def test_transcription_orchestrator_integration(self, mock_whisper):
         """Test transcription orchestrator with mocked dependencies."""
         # Setup mock whisper
@@ -194,7 +195,7 @@ class TestSystemIntegration(unittest.TestCase):
     @patch("shutil.which")
     def test_system_dependency_checking(self, mock_which):
         """Test system dependency checking."""
-        from adapters.system import StandardSystemService
+        from voicebridge.adapters.system import StandardSystemService
 
         service = StandardSystemService()
 
@@ -216,7 +217,7 @@ class TestErrorHandling(unittest.TestCase):
 
     def test_config_error_handling(self):
         """Test configuration error handling."""
-        from adapters.config import FileConfigRepository
+        from voicebridge.adapters.config import FileConfigRepository
 
         # Test with invalid directory
         invalid_path = Path("/invalid/path/that/does/not/exist")
@@ -227,10 +228,10 @@ class TestErrorHandling(unittest.TestCase):
             config = repo.load()
             self.assertEqual(config.model_name, "medium")
 
-    @patch("adapters.transcription.whisper", None)
+    @patch("voicebridge.adapters.transcription.whisper", None)
     def test_missing_whisper_library(self):
         """Test handling of missing whisper library."""
-        from adapters.transcription import WhisperTranscriptionService
+        from voicebridge.adapters.transcription import WhisperTranscriptionService
 
         with self.assertRaises(RuntimeError) as context:
             WhisperTranscriptionService()
@@ -239,7 +240,7 @@ class TestErrorHandling(unittest.TestCase):
 
     def test_audio_device_error_handling(self):
         """Test audio device detection error handling."""
-        from adapters.audio import FFmpegAudioRecorder
+        from voicebridge.adapters.audio import FFmpegAudioRecorder
 
         recorder = FFmpegAudioRecorder()
 

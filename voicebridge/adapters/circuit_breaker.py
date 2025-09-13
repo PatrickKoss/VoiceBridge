@@ -2,8 +2,8 @@ from collections.abc import Callable
 from datetime import datetime, timedelta
 from typing import Any
 
-from domain.models import CircuitBreakerState
-from ports.interfaces import CircuitBreakerService
+from voicebridge.domain.models import CircuitBreakerState
+from voicebridge.ports.interfaces import CircuitBreakerService
 
 
 class CircuitBreakerError(Exception):

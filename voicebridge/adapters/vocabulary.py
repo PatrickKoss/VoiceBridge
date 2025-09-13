@@ -1,7 +1,7 @@
 import json
 from pathlib import Path
 
-from domain.models import VocabularyConfig
+from voicebridge.domain.models import VocabularyConfig
 
 
 class VocabularyAdapter:

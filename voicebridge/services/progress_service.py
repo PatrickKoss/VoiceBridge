@@ -1,16 +1,16 @@
 from datetime import datetime
 
-from domain.models import ProgressTracker
-from ports.interfaces import ProgressService
+from voicebridge.domain.models import ProgressTracker
+from voicebridge.ports.interfaces import ProgressService
 
 
 class WhisperProgressService(ProgressService):
     def __init__(self, max_trackers: int = 1000):
         self._trackers: dict[str, ProgressTracker] = {}
         self._max_trackers = max_trackers
-        self._callbacks: dict[str, list] = (
-            {}
-        )  # operation_id -> list of callback functions
+        self._callbacks: dict[
+            str, list
+        ] = {}  # operation_id -> list of callback functions
 
     def create_tracker(
         self, operation_id: str, operation_type: str, total_steps: int = 0

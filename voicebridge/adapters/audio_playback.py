@@ -22,7 +22,7 @@ except ImportError:
     pyaudio = None
     PYAUDIO_AVAILABLE = False
 
-from ports.interfaces import AudioPlaybackService
+from voicebridge.ports.interfaces import AudioPlaybackService
 
 
 class PygameAudioPlaybackAdapter(AudioPlaybackService):

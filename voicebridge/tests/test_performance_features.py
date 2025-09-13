@@ -4,21 +4,22 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-from adapters.session import FileSessionService
-from domain.models import (
+
+from voicebridge.adapters.session import FileSessionService
+from voicebridge.domain.models import (
     GPUInfo,
     GPUType,
     WhisperConfig,
 )
-from services.performance_service import WhisperPerformanceService
-from services.resume_service import TranscriptionResumeService
+from voicebridge.services.performance_service import WhisperPerformanceService
+from voicebridge.services.resume_service import TranscriptionResumeService
 
 
 class TestGPUDetection:
     @patch("subprocess.run")
     def test_cuda_detection_with_nvidia_smi(self, mock_run):
         """Test CUDA GPU detection using nvidia-smi fallback."""
-        from adapters.system import StandardSystemService
+        from voicebridge.adapters.system import StandardSystemService
 
         # Mock nvidia-smi output
         mock_run.return_value.returncode = 0
@@ -45,7 +46,7 @@ class TestGPUDetection:
     @patch("subprocess.run")
     def test_metal_detection_on_macos(self, mock_run, mock_platform):
         """Test Metal GPU detection on Apple Silicon."""
-        from adapters.system import StandardSystemService
+        from voicebridge.adapters.system import StandardSystemService
 
         mock_platform.return_value = "Darwin"
         mock_run.side_effect = [
@@ -65,7 +66,7 @@ class TestGPUDetection:
 
     def test_cpu_fallback_when_no_gpu(self):
         """Test CPU fallback when no GPU is detected."""
-        from adapters.system import StandardSystemService
+        from voicebridge.adapters.system import StandardSystemService
 
         with patch.object(
             StandardSystemService, "_detect_cuda_devices", return_value=[]
@@ -300,13 +301,13 @@ class TestResumeService:
 class TestMemoryOptimization:
     def test_memory_limit_enforcement(self):
         """Test memory limit enforcement in transcription service."""
-        from adapters.transcription import WhisperTranscriptionService
+        from voicebridge.adapters.transcription import WhisperTranscriptionService
 
         # Mock system service with high memory usage
         system_service = Mock()
         system_service.get_memory_usage.return_value = {"used_mb": 2000}
 
-        with patch("adapters.transcription.whisper"):
+        with patch("voicebridge.adapters.transcription.whisper"):
             transcription_service = WhisperTranscriptionService(
                 system_service=system_service
             )
@@ -320,7 +321,7 @@ class TestMemoryOptimization:
 
     def test_memory_cleanup_on_limit(self):
         """Test memory cleanup when approaching limits."""
-        from adapters.transcription import WhisperTranscriptionService
+        from voicebridge.adapters.transcription import WhisperTranscriptionService
 
         system_service = Mock()
         # First call: high usage, second call (after cleanup): lower usage
@@ -329,7 +330,7 @@ class TestMemoryOptimization:
             {"used_mb": 1200},  # After cleanup
         ]
 
-        with patch("adapters.transcription.whisper"):
+        with patch("voicebridge.adapters.transcription.whisper"):
             with patch("gc.collect") as mock_gc:
                 transcription_service = WhisperTranscriptionService(
                     system_service=system_service
@@ -357,7 +358,7 @@ class TestConfigurationExtensions:
 
         # Test memory settings
         assert config.chunk_size == 30
-        assert config.max_memory_mb == 1024
+        assert config.max_memory_mb == 4096
 
         # Test resume settings
         assert config.enable_resume is True

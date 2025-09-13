@@ -12,8 +12,8 @@ from unittest.mock import Mock, patch
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from adapters.vibevoice_tts import VibeVoiceTTSAdapter
-from domain.models import TTSConfig, TTSResult
+from voicebridge.adapters.vibevoice_tts import VibeVoiceTTSAdapter
+from voicebridge.domain.models import TTSConfig, TTSResult
 
 
 class TestVibeVoiceTTSAdapter(unittest.TestCase):
@@ -29,7 +29,7 @@ class TestVibeVoiceTTSAdapter(unittest.TestCase):
 
         # Create patcher for vibevoice imports
         self.import_patcher = patch.multiple(
-            "adapters.vibevoice_tts",
+            "voicebridge.adapters.vibevoice_tts",
             VibeVoiceForConditionalGenerationInference=self.model_mock,
             VibeVoiceProcessor=self.processor_mock,
             AudioStreamer=self.streamer_mock,
@@ -38,21 +38,21 @@ class TestVibeVoiceTTSAdapter(unittest.TestCase):
         self.import_patcher.start()
 
         # Mock torch
-        self.torch_patcher = patch("adapters.vibevoice_tts.torch")
+        self.torch_patcher = patch("voicebridge.adapters.vibevoice_tts.torch")
         self.torch_mock = self.torch_patcher.start()
         self.torch_mock.cuda.is_available.return_value = False
         self.torch_mock.bfloat16 = "bfloat16"
 
         # Mock soundfile
-        self.sf_patcher = patch("adapters.vibevoice_tts.sf")
+        self.sf_patcher = patch("voicebridge.adapters.vibevoice_tts.sf")
         self.sf_mock = self.sf_patcher.start()
 
         # Mock librosa
-        self.librosa_patcher = patch("adapters.vibevoice_tts.librosa")
+        self.librosa_patcher = patch("voicebridge.adapters.vibevoice_tts.librosa")
         self.librosa_mock = self.librosa_patcher.start()
 
         # Mock numpy
-        self.np_patcher = patch("adapters.vibevoice_tts.np")
+        self.np_patcher = patch("voicebridge.adapters.vibevoice_tts.np")
         self.np_mock = self.np_patcher.start()
         # Mock numpy array creation and methods
         mock_array = Mock()
@@ -90,13 +90,13 @@ class TestVibeVoiceTTSAdapter(unittest.TestCase):
 
     def test_adapter_initialization_no_vibevoice(self):
         """Test TTS adapter initialization when VibeVoice is not available."""
-        with patch("adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", False):
+        with patch("voicebridge.adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", False):
             with self.assertRaises(RuntimeError) as context:
                 VibeVoiceTTSAdapter()
 
             self.assertIn("VibeVoice is not available", str(context.exception))
 
-    @patch("adapters.vibevoice_tts.os.path.exists")
+    @patch("voicebridge.adapters.vibevoice_tts.os.path.exists")
     def test_load_audio_success(self, mock_exists):
         """Test successful audio loading."""
         mock_exists.return_value = True
@@ -113,7 +113,7 @@ class TestVibeVoiceTTSAdapter(unittest.TestCase):
         self.assertIsNotNone(result)
         self.sf_mock.read.assert_called_once_with("test.wav")
 
-    @patch("adapters.vibevoice_tts.os.path.exists")
+    @patch("voicebridge.adapters.vibevoice_tts.os.path.exists")
     def test_load_audio_stereo_to_mono(self, mock_exists):
         """Test audio loading converts stereo to mono."""
         mock_exists.return_value = True
@@ -137,7 +137,7 @@ class TestVibeVoiceTTSAdapter(unittest.TestCase):
         # Just verify the method returns something (not None)
         self.assertIsNotNone(result)
 
-    @patch("adapters.vibevoice_tts.os.path.exists")
+    @patch("voicebridge.adapters.vibevoice_tts.os.path.exists")
     def test_load_audio_resampling(self, mock_exists):
         """Test audio loading with resampling."""
         mock_exists.return_value = True
@@ -205,7 +205,7 @@ class TestVibeVoiceTTSAdapter(unittest.TestCase):
         self.assertEqual(calls[0][1]["attn_implementation"], "flash_attention_2")
         self.assertEqual(calls[1][1]["attn_implementation"], "sdpa")
 
-    @patch("adapters.vibevoice_tts.os.path.exists")
+    @patch("voicebridge.adapters.vibevoice_tts.os.path.exists")
     def test_generate_speech_success(self, mock_exists):
         """Test successful speech generation."""
         mock_exists.return_value = True
@@ -274,7 +274,7 @@ class TestVibeVoiceTTSAdapter(unittest.TestCase):
 
         self.assertIn("Text cannot be empty", str(context.exception))
 
-    @patch("adapters.vibevoice_tts.os.path.exists")
+    @patch("voicebridge.adapters.vibevoice_tts.os.path.exists")
     def test_generate_speech_missing_voice_sample(self, mock_exists):
         """Test speech generation with missing voice sample."""
         mock_exists.return_value = False
@@ -341,8 +341,8 @@ class TestVibeVoiceTTSAdapter(unittest.TestCase):
         adapter.is_generating_flag = True
         self.assertTrue(adapter.is_generating())
 
-    @patch("adapters.vibevoice_tts.os.path.exists")
-    @patch("adapters.vibevoice_tts.threading.Thread")
+    @patch("voicebridge.adapters.vibevoice_tts.os.path.exists")
+    @patch("voicebridge.adapters.vibevoice_tts.threading.Thread")
     def test_generate_speech_streaming(self, mock_thread, mock_exists):
         """Test streaming speech generation."""
         mock_exists.return_value = True

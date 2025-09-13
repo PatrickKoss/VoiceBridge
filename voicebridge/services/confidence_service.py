@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from enum import Enum
 
-from domain.models import TranscriptionResult, TranscriptionSegment
+from voicebridge.domain.models import TranscriptionResult, TranscriptionSegment
 
 
 class ConfidenceLevel(Enum):

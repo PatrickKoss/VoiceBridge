@@ -10,8 +10,8 @@ from unittest.mock import Mock, patch
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from adapters.audio import FFmpegAudioRecorder
-from domain.models import AudioDeviceInfo, PlatformType, SystemInfo
+from voicebridge.adapters.audio import FFmpegAudioRecorder
+from voicebridge.domain.models import AudioDeviceInfo, PlatformType, SystemInfo
 
 
 class TestFFmpegAudioRecorder(unittest.TestCase):
@@ -69,8 +69,8 @@ class TestFFmpegAudioRecorder(unittest.TestCase):
 [dshow @ 0x123]  "Stereo Mix (Realtek High Definition Audio)"
 """
 
-        with patch.object(self.recorder.system_info, "platform", PlatformType.WINDOWS):
-            devices = self.recorder._list_dshow_devices()
+        self.recorder.system_info.platform = PlatformType.WINDOWS
+        devices = self.recorder._list_dshow_devices()
 
         self.assertEqual(len(devices), 2)
         self.assertEqual(devices[0].name, "Microphone (Realtek High Definition Audio)")
@@ -88,8 +88,8 @@ class TestFFmpegAudioRecorder(unittest.TestCase):
 [AVFoundation indev @ 0x123] [1] External Microphone
 """
 
-        with patch.object(self.recorder.system_info, "platform", PlatformType.MACOS):
-            devices = self.recorder._list_macos_devices()
+        self.recorder.system_info.platform = PlatformType.MACOS
+        devices = self.recorder._list_macos_devices()
 
         self.assertEqual(len(devices), 2)
         self.assertEqual(devices[0].name, "Built-in Microphone")
@@ -104,8 +104,8 @@ class TestFFmpegAudioRecorder(unittest.TestCase):
 1	alsa_input.usb-Blue_Microphones_Yeti_Stereo.analog-stereo	module-alsa-card.c	s16le 2ch 44100Hz	RUNNING
 """
 
-        with patch.object(self.recorder.system_info, "platform", PlatformType.LINUX):
-            devices = self.recorder._list_linux_devices()
+        self.recorder.system_info.platform = PlatformType.LINUX
+        devices = self.recorder._list_linux_devices()
 
         self.assertEqual(len(devices), 2)
         self.assertEqual(
@@ -119,8 +119,8 @@ class TestFFmpegAudioRecorder(unittest.TestCase):
 
     def test_build_ffmpeg_command_windows(self):
         """Test FFmpeg command building for Windows."""
-        with patch.object(self.recorder.system_info, "platform", PlatformType.WINDOWS):
-            cmd = self.recorder._build_ffmpeg_command("Microphone", 16000)
+        self.recorder.system_info.platform = PlatformType.WINDOWS
+        cmd = self.recorder._build_ffmpeg_command("Microphone", 16000)
 
         expected = [
             "ffmpeg",
@@ -140,8 +140,8 @@ class TestFFmpegAudioRecorder(unittest.TestCase):
 
     def test_build_ffmpeg_command_macos(self):
         """Test FFmpeg command building for macOS."""
-        with patch.object(self.recorder.system_info, "platform", PlatformType.MACOS):
-            cmd = self.recorder._build_ffmpeg_command("0", 22050)
+        self.recorder.system_info.platform = PlatformType.MACOS
+        cmd = self.recorder._build_ffmpeg_command("0", 22050)
 
         expected = [
             "ffmpeg",
@@ -161,8 +161,8 @@ class TestFFmpegAudioRecorder(unittest.TestCase):
 
     def test_build_ffmpeg_command_linux(self):
         """Test FFmpeg command building for Linux."""
-        with patch.object(self.recorder.system_info, "platform", PlatformType.LINUX):
-            cmd = self.recorder._build_ffmpeg_command("default", 16000)
+        self.recorder.system_info.platform = PlatformType.LINUX
+        cmd = self.recorder._build_ffmpeg_command("default", 16000)
 
         expected = [
             "ffmpeg",
@@ -225,10 +225,8 @@ class TestFFmpegAudioRecorder(unittest.TestCase):
     def test_list_devices_error_handling(self):
         """Test error handling in device listing."""
         with patch("subprocess.run", side_effect=Exception("Command failed")):
-            with patch.object(
-                self.recorder.system_info, "platform", PlatformType.WINDOWS
-            ):
-                devices = self.recorder._list_dshow_devices()
+            self.recorder.system_info.platform = PlatformType.WINDOWS
+            devices = self.recorder._list_dshow_devices()
 
         self.assertEqual(devices, [])
 
@@ -237,28 +235,22 @@ class TestFFmpegAudioRecorder(unittest.TestCase):
         with patch.object(
             self.recorder, "_list_dshow_devices", return_value=[]
         ) as mock_dshow:
-            with patch.object(
-                self.recorder.system_info, "platform", PlatformType.WINDOWS
-            ):
-                self.recorder.list_devices()
+            self.recorder.system_info.platform = PlatformType.WINDOWS
+            self.recorder.list_devices()
             mock_dshow.assert_called_once()
 
         with patch.object(
             self.recorder, "_list_macos_devices", return_value=[]
         ) as mock_macos:
-            with patch.object(
-                self.recorder.system_info, "platform", PlatformType.MACOS
-            ):
-                self.recorder.list_devices()
+            self.recorder.system_info.platform = PlatformType.MACOS
+            self.recorder.list_devices()
             mock_macos.assert_called_once()
 
         with patch.object(
             self.recorder, "_list_linux_devices", return_value=[]
         ) as mock_linux:
-            with patch.object(
-                self.recorder.system_info, "platform", PlatformType.LINUX
-            ):
-                self.recorder.list_devices()
+            self.recorder.system_info.platform = PlatformType.LINUX
+            self.recorder.list_devices()
             mock_linux.assert_called_once()
 
 

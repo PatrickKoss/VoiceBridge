@@ -1,8 +1,8 @@
 import logging
 from pathlib import Path
 
-from domain.models import PerformanceMetrics
-from ports.interfaces import Logger
+from voicebridge.domain.models import PerformanceMetrics
+from voicebridge.ports.interfaces import Logger
 
 
 class FileLogger(Logger):

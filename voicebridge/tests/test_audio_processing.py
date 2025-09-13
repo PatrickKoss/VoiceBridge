@@ -3,14 +3,14 @@ from pathlib import Path
 from unittest.mock import Mock, patch
 
 import pytest
-from adapters.audio_formats import FFmpegAudioFormatAdapter
-from adapters.audio_preprocessing import FFmpegAudioPreprocessingAdapter
-from adapters.audio_splitting import FFmpegAudioSplittingAdapter
-from services.batch_service import WhisperBatchProcessingService
+
+from voicebridge.adapters.audio_formats import FFmpegAudioFormatAdapter
+from voicebridge.adapters.audio_preprocessing import FFmpegAudioPreprocessingAdapter
+from voicebridge.adapters.audio_splitting import FFmpegAudioSplittingAdapter
+from voicebridge.services.batch_service import WhisperBatchProcessingService
 
 
 class TestFFmpegAudioFormatAdapter:
-
     @pytest.fixture
     def adapter(self):
         with patch.object(FFmpegAudioFormatAdapter, "_ensure_ffmpeg_available"):
@@ -109,7 +109,6 @@ class TestFFmpegAudioFormatAdapter:
 
 
 class TestFFmpegAudioSplittingAdapter:
-
     @pytest.fixture
     def mock_audio_format_service(self):
         service = Mock()
@@ -157,7 +156,6 @@ class TestFFmpegAudioSplittingAdapter:
 
 
 class TestFFmpegAudioPreprocessingAdapter:
-
     @pytest.fixture
     def adapter(self):
         return FFmpegAudioPreprocessingAdapter()
@@ -208,7 +206,6 @@ class TestFFmpegAudioPreprocessingAdapter:
 
 
 class TestWhisperBatchProcessingService:
-
     @pytest.fixture
     def mock_transcription_service(self):
         service = Mock()

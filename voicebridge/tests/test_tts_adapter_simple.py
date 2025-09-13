@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from domain.models import TTSConfig
+from voicebridge.domain.models import TTSConfig
 
 
 class TestVibeVoiceTTSAdapterInterface(unittest.TestCase):
@@ -17,24 +17,24 @@ class TestVibeVoiceTTSAdapterInterface(unittest.TestCase):
 
     def test_adapter_unavailable_initialization(self):
         """Test TTS adapter initialization when VibeVoice is not available."""
-        with patch("adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", False):
-            from adapters.vibevoice_tts import VibeVoiceTTSAdapter
+        with patch("voicebridge.adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", False):
+            from voicebridge.adapters.vibevoice_tts import VibeVoiceTTSAdapter
 
             with self.assertRaises(RuntimeError) as context:
                 VibeVoiceTTSAdapter()
 
             self.assertIn("VibeVoice is not available", str(context.exception))
 
-    @patch("adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", True)
+    @patch("voicebridge.adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", True)
     def test_adapter_available_initialization(self):
         """Test TTS adapter when VibeVoice is available."""
         with patch.multiple(
-            "adapters.vibevoice_tts",
+            "voicebridge.adapters.vibevoice_tts",
             VibeVoiceForConditionalGenerationInference=Mock(),
             VibeVoiceProcessor=Mock(),
             AudioStreamer=Mock(),
         ):
-            from adapters.vibevoice_tts import VibeVoiceTTSAdapter
+            from voicebridge.adapters.vibevoice_tts import VibeVoiceTTSAdapter
 
             adapter = VibeVoiceTTSAdapter()
 
@@ -42,16 +42,16 @@ class TestVibeVoiceTTSAdapterInterface(unittest.TestCase):
             self.assertIsNone(adapter.processor)
             self.assertFalse(adapter.is_generating_flag)
 
-    @patch("adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", True)
+    @patch("voicebridge.adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", True)
     def test_stop_generation_interface(self):
         """Test stop generation interface."""
         with patch.multiple(
-            "adapters.vibevoice_tts",
+            "voicebridge.adapters.vibevoice_tts",
             VibeVoiceForConditionalGenerationInference=Mock(),
             VibeVoiceProcessor=Mock(),
             AudioStreamer=Mock(),
         ):
-            from adapters.vibevoice_tts import VibeVoiceTTSAdapter
+            from voicebridge.adapters.vibevoice_tts import VibeVoiceTTSAdapter
 
             adapter = VibeVoiceTTSAdapter()
             adapter.current_streamer = Mock()
@@ -61,16 +61,16 @@ class TestVibeVoiceTTSAdapterInterface(unittest.TestCase):
 
             self.assertTrue(adapter.stop_requested)
 
-    @patch("adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", True)
+    @patch("voicebridge.adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", True)
     def test_is_generating_interface(self):
         """Test is_generating interface."""
         with patch.multiple(
-            "adapters.vibevoice_tts",
+            "voicebridge.adapters.vibevoice_tts",
             VibeVoiceForConditionalGenerationInference=Mock(),
             VibeVoiceProcessor=Mock(),
             AudioStreamer=Mock(),
         ):
-            from adapters.vibevoice_tts import VibeVoiceTTSAdapter
+            from voicebridge.adapters.vibevoice_tts import VibeVoiceTTSAdapter
 
             adapter = VibeVoiceTTSAdapter()
 
@@ -81,19 +81,19 @@ class TestVibeVoiceTTSAdapterInterface(unittest.TestCase):
             adapter.is_generating_flag = True
             self.assertTrue(adapter.is_generating())
 
-    @patch("adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", True)
+    @patch("voicebridge.adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", True)
     def test_load_voice_samples_empty_directory(self):
         """Test loading voice samples from empty directory."""
         with (
             patch.multiple(
-                "adapters.vibevoice_tts",
+                "voicebridge.adapters.vibevoice_tts",
                 VibeVoiceForConditionalGenerationInference=Mock(),
                 VibeVoiceProcessor=Mock(),
                 AudioStreamer=Mock(),
             ),
-            patch("adapters.vibevoice_tts.Path") as mock_path,
+            patch("voicebridge.adapters.vibevoice_tts.Path") as mock_path,
         ):
-            from adapters.vibevoice_tts import VibeVoiceTTSAdapter
+            from voicebridge.adapters.vibevoice_tts import VibeVoiceTTSAdapter
 
             # Mock empty directory
             mock_path_instance = Mock()
@@ -105,16 +105,16 @@ class TestVibeVoiceTTSAdapterInterface(unittest.TestCase):
 
             self.assertEqual(len(voices), 0)
 
-    @patch("adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", True)
+    @patch("voicebridge.adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", True)
     def test_generate_speech_empty_text(self):
         """Test generate speech with empty text."""
         with patch.multiple(
-            "adapters.vibevoice_tts",
+            "voicebridge.adapters.vibevoice_tts",
             VibeVoiceForConditionalGenerationInference=Mock(),
             VibeVoiceProcessor=Mock(),
             AudioStreamer=Mock(),
         ):
-            from adapters.vibevoice_tts import VibeVoiceTTSAdapter
+            from voicebridge.adapters.vibevoice_tts import VibeVoiceTTSAdapter
 
             adapter = VibeVoiceTTSAdapter()
             config = TTSConfig()
@@ -124,16 +124,16 @@ class TestVibeVoiceTTSAdapterInterface(unittest.TestCase):
 
             self.assertIn("Text cannot be empty", str(context.exception))
 
-    @patch("adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", True)
+    @patch("voicebridge.adapters.vibevoice_tts.VIBEVOICE_AVAILABLE", True)
     def test_generate_speech_streaming_empty_text(self):
         """Test streaming generate speech with empty text."""
         with patch.multiple(
-            "adapters.vibevoice_tts",
+            "voicebridge.adapters.vibevoice_tts",
             VibeVoiceForConditionalGenerationInference=Mock(),
             VibeVoiceProcessor=Mock(),
             AudioStreamer=Mock(),
         ):
-            from adapters.vibevoice_tts import VibeVoiceTTSAdapter
+            from voicebridge.adapters.vibevoice_tts import VibeVoiceTTSAdapter
 
             adapter = VibeVoiceTTSAdapter()
             config = TTSConfig()

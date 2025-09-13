@@ -1,7 +1,7 @@
 import subprocess
 from pathlib import Path
 
-from ports.interfaces import AudioFormatService, AudioSplittingService
+from voicebridge.ports.interfaces import AudioFormatService, AudioSplittingService
 
 
 class FFmpegAudioSplittingAdapter(AudioSplittingService):

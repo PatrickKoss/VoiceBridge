@@ -22,38 +22,44 @@ VoiceBridge is a comprehensive bidirectional voice-text CLI tool that bridges sp
 
 ### Virtual Environment & Dependencies
 
-**IMPORTANT**: This project uses a local virtual environment at `venv/`. Always use the Makefile commands or the venv Python/pip directly.
+**IMPORTANT**: This project uses `uv` for fast Python package management and a virtual environment at `.venv/`. Always use the Makefile commands or `uv run` for operations.
 
 ```bash
 # Initialize environment and install all dependencies
 make prepare
 
-# Manual venv setup (if needed)
-python3 -m venv venv
-venv/bin/pip install --upgrade pip
-venv/bin/pip install -r requirements.txt
-venv/bin/pip install -r test_requirements.txt
+# CUDA support (for GPU acceleration)
+make prepare-cuda
+
+# System tray support (optional)
+make prepare-tray
+
+# Manual uv setup (if needed)
+uv venv .venv
+uv pip install --editable ".[dev]"
 ```
 
 ### Key Commands
 
 ```bash
 make help         # Show all available commands
-make prepare      # Initialize venv and install dependencies
+make prepare      # Initialize .venv with uv and install dependencies
+make prepare-cuda # Initialize .venv with CUDA support
+make prepare-tray # Initialize .venv with system tray support
 make lint         # Run ruff linting and auto-fix issues
 make test         # Run all tests with coverage report
 make test-fast    # Run tests without coverage
-make clean        # Clean up cache files and venv
+make clean        # Clean up cache files and .venv
 ```
 
-### Manual Commands (using venv directly)
+### Manual Commands (using uv directly)
 
 ```bash
-# Always use venv python/pip for any manual commands
-venv/bin/python -m ruff check --fix .    # Linting
-venv/bin/python -m pytest                # Testing  
-venv/bin/python main.py --help           # Run CLI
-venv/bin/pip install package-name        # Install packages
+# Always use uv run for any manual commands
+uv run ruff check --fix .          # Linting
+uv run pytest                      # Testing  
+uv run python -m voicebridge --help # Run CLI
+uv pip install package-name        # Install packages
 ```
 
 ## Architecture
@@ -128,96 +134,96 @@ voicebridge/
 
 ```bash
 # Real-time transcription with hotkeys
-venv/bin/python main.py listen
-venv/bin/python main.py hotkey --key f9 --mode toggle
+uv run python -m voicebridge listen
+uv run python -m voicebridge hotkey --key f9 --mode toggle
 
 # File transcription
-venv/bin/python main.py transcribe audio.mp3 --output transcript.txt
-venv/bin/python main.py batch-transcribe /path/to/audio/ --workers 4
+uv run python -m voicebridge transcribe audio.mp3 --output transcript.txt
+uv run python -m voicebridge batch-transcribe /path/to/audio/ --workers 4
 
 # Resumable transcription for long files
-venv/bin/python main.py listen-resumable audio.wav --session-name "my-session"
+uv run python -m voicebridge listen-resumable audio.wav --session-name "my-session"
 
 # Real-time streaming transcription
-venv/bin/python main.py realtime --chunk-duration 2.0 --output-format live
+uv run python -m voicebridge realtime --chunk-duration 2.0 --output-format live
 ```
 
 ### Text-to-Speech Commands
 
 ```bash
 # Generate speech from text
-venv/bin/python main.py tts generate "Hello, this is VoiceBridge!"
-venv/bin/python main.py tts generate "Text here" --voice en-Alice_woman --output audio.wav
+uv run python -m voicebridge tts generate "Hello, this is VoiceBridge!"
+uv run python -m voicebridge tts generate "Text here" --voice en-Alice_woman --output audio.wav
 
 # Clipboard and selection monitoring
-venv/bin/python main.py tts listen-clipboard --streaming
-venv/bin/python main.py tts listen-selection
+uv run python -m voicebridge tts listen-clipboard --streaming
+uv run python -m voicebridge tts listen-selection
 
 # TTS daemon mode
-venv/bin/python main.py tts daemon start --mode clipboard
-venv/bin/python main.py tts daemon status
-venv/bin/python main.py tts daemon stop
+uv run python -m voicebridge tts daemon start --mode clipboard
+uv run python -m voicebridge tts daemon status
+uv run python -m voicebridge tts daemon stop
 
 # Voice management
-venv/bin/python main.py tts voices
-venv/bin/python main.py tts config show
+uv run python -m voicebridge tts voices
+uv run python -m voicebridge tts config show
 ```
 
 ### Audio Processing Commands
 
 ```bash
 # Audio information and formats
-venv/bin/python main.py audio info audio.mp3
-venv/bin/python main.py audio formats
+uv run python -m voicebridge audio info audio.mp3
+uv run python -m voicebridge audio formats
 
 # Audio enhancement and splitting
-venv/bin/python main.py audio preprocess input.wav output.wav --noise-reduction 0.8
-venv/bin/python main.py audio split large_file.mp3 --method duration --chunk-duration 300
+uv run python -m voicebridge audio preprocess input.wav output.wav --noise-reduction 0.8
+uv run python -m voicebridge audio split large_file.mp3 --method duration --chunk-duration 300
 ```
 
 ### System and Performance Commands
 
 ```bash
 # GPU status and benchmarking
-venv/bin/python main.py gpu status
-venv/bin/python main.py gpu benchmark --model base
+uv run python -m voicebridge gpu status
+uv run python -m voicebridge gpu benchmark --model base
 
 # Performance monitoring
-venv/bin/python main.py performance stats
+uv run python -m voicebridge performance stats
 
 # Session management
-venv/bin/python main.py sessions list
-venv/bin/python main.py sessions resume --session-id <id>
-venv/bin/python main.py sessions cleanup
+uv run python -m voicebridge sessions list
+uv run python -m voicebridge sessions resume --session-id <id>
+uv run python -m voicebridge sessions cleanup
 ```
 
 ### Export and Analysis Commands
 
 ```bash
 # Export transcriptions
-venv/bin/python main.py export session <session-id> --format srt
-venv/bin/python main.py export batch --format json --output-dir results/
+uv run python -m voicebridge export session <session-id> --format srt
+uv run python -m voicebridge export batch --format json --output-dir results/
 
 # Confidence analysis
-venv/bin/python main.py confidence analyze <session-id> --detailed
-venv/bin/python main.py confidence analyze-all --threshold 0.7
+uv run python -m voicebridge confidence analyze <session-id> --detailed
+uv run python -m voicebridge confidence analyze-all --threshold 0.7
 ```
 
 ### Configuration Commands
 
 ```bash
 # General configuration
-venv/bin/python main.py config --show
-venv/bin/python main.py config --set-key use_gpu --value true
+uv run python -m voicebridge config --show
+uv run python -m voicebridge config --set-key use_gpu --value true
 
 # Profile management
-venv/bin/python main.py profile save my-profile
-venv/bin/python main.py profile load my-profile
-venv/bin/python main.py profile list
+uv run python -m voicebridge profile save my-profile
+uv run python -m voicebridge profile load my-profile
+uv run python -m voicebridge profile list
 
 # TTS configuration
-venv/bin/python main.py tts config set --default-voice en-Alice_woman
-venv/bin/python main.py tts config set --cfg-scale 1.5
+uv run python -m voicebridge tts config set --default-voice en-Alice_woman
+uv run python -m voicebridge tts config set --cfg-scale 1.5
 ```
 
 ## Development Workflow
@@ -230,7 +236,7 @@ venv/bin/python main.py tts config set --cfg-scale 1.5
 ## Important Notes
 
 ### Development
-- Always use `venv/bin/python` and `venv/bin/pip` for Python commands
+- Always use `uv run` or `.venv/bin/python` for Python commands
 - Use `make lint` to auto-fix most style issues
 - Use `make test` to run full test suite with coverage
 - Follow hexagonal architecture patterns for new features

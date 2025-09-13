@@ -3,8 +3,8 @@ import subprocess
 import threading
 from collections.abc import Iterator
 
-from domain.models import AudioDeviceInfo, PlatformType, SystemInfo
-from ports.interfaces import AudioRecorder
+from voicebridge.domain.models import AudioDeviceInfo, PlatformType, SystemInfo
+from voicebridge.ports.interfaces import AudioRecorder
 
 
 class FFmpegAudioRecorder(AudioRecorder):

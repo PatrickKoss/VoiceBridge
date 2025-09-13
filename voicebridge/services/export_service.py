@@ -4,12 +4,12 @@ from datetime import datetime, timedelta
 from io import StringIO
 from pathlib import Path
 
-from domain.models import (
+from voicebridge.domain.models import (
     ExportConfig,
     OutputFormat,
     TranscriptionResult,
 )
-from ports.interfaces import ExportService
+from voicebridge.ports.interfaces import ExportService
 
 
 class DefaultExportService(ExportService):

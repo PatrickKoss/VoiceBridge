@@ -1,5 +1,6 @@
 import typer
-from cli.commands import CLICommands
+
+from voicebridge.cli.commands import CLICommands
 
 
 def create_app(commands: CLICommands) -> typer.Typer:

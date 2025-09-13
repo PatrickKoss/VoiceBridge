@@ -9,12 +9,15 @@ from unittest.mock import Mock, patch
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from adapters.audio_playback import (
+from voicebridge.adapters.audio_playback import (
     PyAudioPlaybackAdapter,
     PygameAudioPlaybackAdapter,
     create_audio_playback_service,
 )
-from adapters.text_input import PlatformTextInputAdapter, create_text_input_service
+from voicebridge.adapters.text_input import (
+    PlatformTextInputAdapter,
+    create_text_input_service,
+)
 
 
 class TestPlatformTextInputAdapter(unittest.TestCase):
@@ -23,12 +26,12 @@ class TestPlatformTextInputAdapter(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         # Mock pyperclip
-        self.pyperclip_patcher = patch("adapters.text_input.pyperclip")
+        self.pyperclip_patcher = patch("voicebridge.adapters.text_input.pyperclip")
         self.pyperclip_mock = self.pyperclip_patcher.start()
 
         # Mock pynput
         self.pynput_patcher = patch.multiple(
-            "adapters.text_input",
+            "voicebridge.adapters.text_input",
             mouse=Mock(),
             keyboard=Mock(),
             Listener=Mock(),
@@ -88,7 +91,7 @@ class TestPlatformTextInputAdapter(unittest.TestCase):
 
         self.assertEqual(text, "")  # Default implementation
 
-    @patch("adapters.text_input.threading.Thread")
+    @patch("voicebridge.adapters.text_input.threading.Thread")
     def test_start_clipboard_monitoring(self, mock_thread):
         """Test starting clipboard monitoring."""
         mock_callback = Mock()
@@ -103,7 +106,7 @@ class TestPlatformTextInputAdapter(unittest.TestCase):
         thread_instance = mock_thread.return_value
         thread_instance.start.assert_called_once()
 
-    @patch("adapters.text_input.threading.Thread")
+    @patch("voicebridge.adapters.text_input.threading.Thread")
     def test_stop_clipboard_monitoring(self, mock_thread):
         """Test stopping clipboard monitoring."""
         mock_callback = Mock()
@@ -115,21 +118,20 @@ class TestPlatformTextInputAdapter(unittest.TestCase):
 
         self.assertFalse(adapter.is_monitoring_clipboard)
 
-    def test_start_selection_monitoring(self):
+    @patch("voicebridge.adapters.text_input.Listener")
+    def test_start_selection_monitoring(self, mock_listener_class):
         """Test starting selection monitoring."""
         mock_callback = Mock()
         adapter = PlatformTextInputAdapter()
 
-        # Mock keyboard listener - access from module directly since patch.multiple modifies module
-        import adapters.text_input
-
+        # Configure the mock listener instance
         mock_listener = Mock()
-        adapters.text_input.Listener.return_value = mock_listener
+        mock_listener_class.return_value = mock_listener
 
         adapter.start_selection_monitoring(mock_callback)
 
         self.assertTrue(adapter.is_monitoring_selection)
-        adapters.text_input.Listener.assert_called_once()
+        mock_listener_class.assert_called_once()
         mock_listener.start.assert_called_once()
 
     def test_stop_selection_monitoring(self):
@@ -158,11 +160,11 @@ class TestAudioPlaybackAdapters(unittest.TestCase):
     def setUp(self):
         """Set up test fixtures."""
         # Mock pygame
-        self.pygame_patcher = patch("adapters.audio_playback.pygame")
+        self.pygame_patcher = patch("voicebridge.adapters.audio_playback.pygame")
         self.pygame_mock = self.pygame_patcher.start()
 
         # Mock pyaudio
-        self.pyaudio_patcher = patch("adapters.audio_playback.pyaudio")
+        self.pyaudio_patcher = patch("voicebridge.adapters.audio_playback.pyaudio")
         self.pyaudio_mock = self.pyaudio_patcher.start()
 
     def tearDown(self):
@@ -249,7 +251,7 @@ class TestAudioPlaybackAdapters(unittest.TestCase):
         self.pyaudio_mock.PyAudio.return_value = mock_pyaudio_instance
 
         # Mock numpy functions
-        with patch("adapters.audio_playback.np") as mock_np:
+        with patch("voicebridge.adapters.audio_playback.np") as mock_np:
             mock_array = Mock()
             mock_array.__len__ = Mock(return_value=4)  # Simulate 4 bytes / 2 samples
             mock_array.tobytes.return_value = b"test"
@@ -286,15 +288,18 @@ class TestAudioPlaybackAdapters(unittest.TestCase):
 class TestAudioPlaybackFactory(unittest.TestCase):
     """Test audio playback service factory."""
 
-    @patch("adapters.audio_playback.pygame")
+    @patch("voicebridge.adapters.audio_playback.pygame")
     def test_create_audio_playback_service_pygame_available(self, mock_pygame):
         """Test creating audio playback service when pygame is available."""
         service = create_audio_playback_service()
 
         self.assertIsInstance(service, PygameAudioPlaybackAdapter)
 
-    @patch("adapters.audio_playback.pygame", side_effect=ImportError("No pygame"))
-    @patch("adapters.audio_playback.pyaudio")
+    @patch(
+        "voicebridge.adapters.audio_playback.pygame",
+        side_effect=ImportError("No pygame"),
+    )
+    @patch("voicebridge.adapters.audio_playback.pyaudio")
     def test_create_audio_playback_service_pyaudio_fallback(
         self, mock_pyaudio, mock_pygame
     ):
@@ -306,8 +311,14 @@ class TestAudioPlaybackFactory(unittest.TestCase):
 
         self.assertIsInstance(service, PyAudioPlaybackAdapter)
 
-    @patch("adapters.audio_playback.pygame", side_effect=ImportError("No pygame"))
-    @patch("adapters.audio_playback.pyaudio", side_effect=ImportError("No pyaudio"))
+    @patch(
+        "voicebridge.adapters.audio_playback.pygame",
+        side_effect=ImportError("No pygame"),
+    )
+    @patch(
+        "voicebridge.adapters.audio_playback.pyaudio",
+        side_effect=ImportError("No pyaudio"),
+    )
     def test_create_audio_playback_service_no_backend(self, mock_pyaudio, mock_pygame):
         """Test when no audio backend is available."""
         with self.assertRaises(RuntimeError) as context:
@@ -319,8 +330,8 @@ class TestAudioPlaybackFactory(unittest.TestCase):
 class TestTextInputFactory(unittest.TestCase):
     """Test text input service factory."""
 
-    @patch("adapters.text_input.pyperclip")
-    @patch("adapters.text_input.pynput")
+    @patch("voicebridge.adapters.text_input.pyperclip")
+    @patch("voicebridge.adapters.text_input.pynput")
     def test_create_text_input_service(self, mock_pynput, mock_pyperclip):
         """Test creating text input service."""
         service = create_text_input_service()

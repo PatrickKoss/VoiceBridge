@@ -11,8 +11,8 @@ from unittest.mock import patch
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from adapters.config import FileConfigRepository, FileProfileRepository
-from domain.models import OperationMode, WhisperConfig
+from voicebridge.adapters.config import FileConfigRepository, FileProfileRepository
+from voicebridge.domain.models import OperationMode, WhisperConfig
 
 
 class TestFileConfigRepository(unittest.TestCase):

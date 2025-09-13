@@ -3,7 +3,7 @@ from collections.abc import Iterator
 from pathlib import Path
 from typing import Any
 
-from domain.models import (
+from voicebridge.domain.models import (
     AudioDeviceInfo,
     CircuitBreakerState,
     EventType,

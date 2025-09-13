@@ -1,7 +1,7 @@
 import re
 
-from domain.models import PostProcessingConfig
-from ports.interfaces import PostProcessingService
+from voicebridge.domain.models import PostProcessingConfig
+from voicebridge.ports.interfaces import PostProcessingService
 
 
 class WhisperPostProcessingService(PostProcessingService):

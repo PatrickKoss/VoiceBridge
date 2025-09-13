@@ -1,104 +1,98 @@
 #!/usr/bin/env python3
 
 import sys
+import tempfile
 from pathlib import Path
 
-# Add parent directory to path to import whisper_cli
-sys.path.insert(0, str(Path(__file__).parent))
-
-from whisper_cli import (
-    PROFILES_DIR,
-    check_for_updates,
-    delete_profile,
-    list_profiles,
-    load_profile,
-    log_performance,
-    save_profile,
-)
+from voicebridge.adapters.config import FileProfileRepository
+from voicebridge.adapters.logging import FileLogger
+from voicebridge.domain.models import PerformanceMetrics, WhisperConfig
 
 
 def test_profile_management():
     """Test profile save/load/delete functionality."""
     print("Testing profile management...")
 
-    # Test profile operations
-    test_profile = {
-        "model_name": "small",
-        "language": "en",
-        "temperature": 0.2,
-        "interactive": True,
-    }
+    # Create temporary directory for testing
+    with tempfile.TemporaryDirectory() as temp_dir:
+        profiles_dir = Path(temp_dir) / "profiles"
+        profile_repo = FileProfileRepository(profiles_dir)
 
-    # Save profile
-    result = save_profile("test-profile", test_profile)
-    assert result, "Failed to save profile"
-    print("✓ Profile saved successfully")
+        # Create test config
+        test_config = WhisperConfig(
+            model_name="small",
+            language="en",
+            temperature=0.2,
+        )
 
-    # Load profile
-    loaded = load_profile("test-profile")
-    # Only check the fields that were in the original test profile (excluding 'interactive' which was filtered out)
-    expected_fields = {"model_name": "small", "language": "en", "temperature": 0.2}
-    for key, expected_value in expected_fields.items():
-        assert key in loaded, f"Missing key {key} in loaded profile"
-        assert (
-            loaded[key] == expected_value
-        ), f"Value mismatch for {key}: {loaded[key]} != {expected_value}"
-    print("✓ Profile loaded successfully")
+        # Save profile
+        profile_repo.save_profile("test-profile", test_config)
+        print("✓ Profile saved successfully")
 
-    # List profiles
-    profiles = list_profiles()
-    assert "test-profile" in profiles, f"Profile not found in list: {profiles}"
-    print("✓ Profile found in list")
+        # Load profile
+        loaded_config = profile_repo.load_profile("test-profile")
 
-    # Delete profile
-    result = delete_profile("test-profile")
-    assert result, "Failed to delete profile"
+        # Check the loaded config
+        assert loaded_config.model_name == "small", (
+            f"Expected 'small', got '{loaded_config.model_name}'"
+        )
+        assert loaded_config.language == "en", (
+            f"Expected 'en', got '{loaded_config.language}'"
+        )
+        assert loaded_config.temperature == 0.2, (
+            f"Expected 0.2, got {loaded_config.temperature}"
+        )
+        print("✓ Profile loaded successfully")
 
-    # Verify deletion
-    profiles = list_profiles()
-    assert (
-        "test-profile" not in profiles
-    ), f"Profile still exists after deletion: {profiles}"
-    print("✓ Profile deleted successfully")
+        # List profiles
+        profiles = profile_repo.list_profiles()
+        assert "test-profile" in profiles, f"Profile not found in list: {profiles}"
+        print("✓ Profile found in list")
 
+        # Delete profile
+        result = profile_repo.delete_profile("test-profile")
+        assert result, "Failed to delete profile"
 
-def test_update_check():
-    """Test update checking functionality."""
-    print("Testing update check...")
-
-    try:
-        check_for_updates()
-        print("✓ Update check completed (no errors)")
-    except Exception as e:
-        print(f"⚠ Update check had issues (expected in CI): {e}")
+        # Verify deletion
+        profiles = profile_repo.list_profiles()
+        assert "test-profile" not in profiles, (
+            f"Profile still exists after deletion: {profiles}"
+        )
+        print("✓ Profile deleted successfully")
 
 
 def test_performance_logging():
     """Test performance logging functionality."""
     print("Testing performance logging...")
 
-    # Test logging function doesn't crash
-    try:
-        log_performance("test_operation", 1.234, {"param": "value"})
-        print("✓ Performance logging works")
-    except Exception as e:
-        print(f"✗ Performance logging failed: {e}")
+    # Create temporary directory for testing
+    with tempfile.TemporaryDirectory() as temp_dir:
+        log_file = Path(temp_dir) / "test.log"
+        performance_log = Path(temp_dir) / "performance.log"
+        logger = FileLogger(log_file, performance_log)
+
+        # Test logging function doesn't crash
+        try:
+            test_metrics = PerformanceMetrics(
+                operation="test_operation",
+                duration=1.234,
+                model_load_time=0.5,
+                details={"param": "value"},
+            )
+            logger.log_performance(test_metrics)
+            print("✓ Performance logging works")
+        except Exception as e:
+            print(f"✗ Performance logging failed: {e}")
+            raise
 
 
 def main():
     """Run all UX feature tests."""
-    print("Testing Whisper CLI User Experience Features")
+    print("Testing VoiceBridge User Experience Features")
     print("=" * 50)
-
-    # Ensure clean test environment
-    if PROFILES_DIR.exists():
-        import shutil
-
-        shutil.rmtree(PROFILES_DIR)
 
     try:
         test_profile_management()
-        test_update_check()
         test_performance_logging()
 
         print("\n" + "=" * 50)

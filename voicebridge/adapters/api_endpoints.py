@@ -10,7 +10,7 @@ try:
 except ImportError:
     FASTAPI_AVAILABLE = False
 
-from domain.models import (
+from voicebridge.domain.models import (
     EventType,
     PostProcessingConfig,
     VocabularyConfig,
@@ -217,7 +217,6 @@ class WhisperAPIService:
         post_proc_config: PostProcessingConfig = None,
         webhook_url: str = None,
     ):
-
         # Initialize operation
         self._active_operations[operation_id] = {
             "operation_id": operation_id,

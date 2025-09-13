@@ -13,7 +13,8 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from cli.app import create_app
 from cli.commands import CLICommands
-from domain.models import WhisperConfig
+
+from voicebridge.domain.models import WhisperConfig
 
 
 class TestCLICommands(unittest.TestCase):
@@ -44,9 +45,7 @@ class TestCLICommands(unittest.TestCase):
         self.mock_config_repo.load.return_value = config
 
         # Mock transcription result
-        self.mock_transcription_orchestrator.transcribe_single_recording.return_value = (
-            "Hello world"
-        )
+        self.mock_transcription_orchestrator.transcribe_single_recording.return_value = "Hello world"
 
         with patch("typer.echo") as mock_echo:
             self.commands.listen()
@@ -62,9 +61,7 @@ class TestCLICommands(unittest.TestCase):
         """Test listen command with custom parameters."""
         config = WhisperConfig()
         self.mock_config_repo.load.return_value = config
-        self.mock_transcription_orchestrator.transcribe_single_recording.return_value = (
-            "Bonjour"
-        )
+        self.mock_transcription_orchestrator.transcribe_single_recording.return_value = "Bonjour"
 
         with patch("typer.echo"):
             self.commands.listen(
@@ -86,9 +83,7 @@ class TestCLICommands(unittest.TestCase):
         """Test listen command with profile."""
         profile_config = WhisperConfig(model_name="small", language="es")
         self.mock_profile_repo.load_profile.return_value = profile_config
-        self.mock_transcription_orchestrator.transcribe_single_recording.return_value = (
-            "Hola"
-        )
+        self.mock_transcription_orchestrator.transcribe_single_recording.return_value = "Hola"
 
         with patch("typer.echo"):
             self.commands.listen(profile="spanish")
@@ -101,9 +96,7 @@ class TestCLICommands(unittest.TestCase):
             "Profile not found"
         )
         self.mock_config_repo.load.return_value = WhisperConfig()
-        self.mock_transcription_orchestrator.transcribe_single_recording.return_value = (
-            "Hello"
-        )
+        self.mock_transcription_orchestrator.transcribe_single_recording.return_value = "Hello"
 
         with patch("typer.echo") as mock_echo:
             self.commands.listen(profile="nonexistent")
@@ -116,9 +109,7 @@ class TestCLICommands(unittest.TestCase):
         """Test listen command with no speech detected."""
         config = WhisperConfig()
         self.mock_config_repo.load.return_value = config
-        self.mock_transcription_orchestrator.transcribe_single_recording.return_value = (
-            ""
-        )
+        self.mock_transcription_orchestrator.transcribe_single_recording.return_value = ""
 
         with patch("typer.echo") as mock_echo:
             self.commands.listen()

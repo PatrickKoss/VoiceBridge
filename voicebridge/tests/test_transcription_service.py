@@ -9,9 +9,9 @@ from unittest.mock import MagicMock, Mock, patch
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from adapters.transcription import WhisperTranscriptionService
-from domain.models import TranscriptionResult, WhisperConfig
-from services.transcription_service import WhisperTranscriptionOrchestrator
+from voicebridge.adapters.transcription import WhisperTranscriptionService
+from voicebridge.domain.models import TranscriptionResult, WhisperConfig
+from voicebridge.services.transcription_service import WhisperTranscriptionOrchestrator
 
 
 class TestWhisperTranscriptionService(unittest.TestCase):
@@ -26,7 +26,7 @@ class TestWhisperTranscriptionService(unittest.TestCase):
 
         # Create service with patched whisper
         self.whisper_patcher = patch(
-            "adapters.transcription.whisper", self.mock_whisper
+            "voicebridge.adapters.transcription.whisper", self.mock_whisper
         )
         self.whisper_patcher.start()
 
@@ -36,9 +36,7 @@ class TestWhisperTranscriptionService(unittest.TestCase):
             "used_mb": 500,
             "total_mb": 8000,
         }
-        self.mock_system_service.detect_gpu_devices.return_value = (
-            []
-        )  # Return empty list for GPU devices
+        self.mock_system_service.detect_gpu_devices.return_value = []  # Return empty list for GPU devices
 
         self.service = WhisperTranscriptionService(
             system_service=self.mock_system_service
@@ -50,7 +48,7 @@ class TestWhisperTranscriptionService(unittest.TestCase):
 
     def test_initialization_no_whisper(self):
         """Test initialization when whisper is not available."""
-        with patch("adapters.transcription.whisper", None):
+        with patch("voicebridge.adapters.transcription.whisper", None):
             with self.assertRaises(RuntimeError) as context:
                 WhisperTranscriptionService()
 

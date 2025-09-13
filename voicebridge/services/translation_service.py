@@ -2,8 +2,8 @@ import json
 import urllib.request
 from urllib.error import HTTPError, URLError
 
-from domain.models import TranscriptionSegment
-from ports.interfaces import TranslationService
+from voicebridge.domain.models import TranscriptionSegment
+from voicebridge.ports.interfaces import TranslationService
 
 
 class MockTranslationService(TranslationService):

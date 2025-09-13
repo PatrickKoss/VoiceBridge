@@ -9,7 +9,7 @@ from unittest.mock import Mock, patch
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from domain.models import (
+from voicebridge.domain.models import (
     TTSConfig,
     TTSMode,
     TTSOutputMode,
@@ -17,7 +17,7 @@ from domain.models import (
     TTSStreamingMode,
     VoiceInfo,
 )
-from services.tts_service import TTSDaemonService, TTSOrchestrator
+from voicebridge.services.tts_service import TTSDaemonService, TTSOrchestrator
 
 
 class TestTTSOrchestrator(unittest.TestCase):
@@ -312,7 +312,7 @@ class TestTTSDaemonService(unittest.TestCase):
         self.assertIsNone(self.daemon.clipboard_monitor_thread)
         self.assertFalse(self.daemon.is_running)
 
-    @patch("services.tts_service.keyboard.GlobalHotKeys")
+    @patch("voicebridge.services.tts_service.keyboard.GlobalHotKeys")
     def test_start_daemon_clipboard_mode(self, mock_global_hotkeys):
         """Test starting daemon in clipboard mode."""
         config = TTSConfig(tts_mode=TTSMode.CLIPBOARD)
@@ -320,7 +320,7 @@ class TestTTSDaemonService(unittest.TestCase):
         mock_listener = Mock()
         mock_global_hotkeys.return_value = mock_listener
 
-        with patch("services.tts_service.threading.Thread") as mock_thread:
+        with patch("voicebridge.services.tts_service.threading.Thread") as mock_thread:
             self.daemon.start_daemon(config)
 
             self.assertTrue(self.daemon.is_running)
@@ -328,7 +328,7 @@ class TestTTSDaemonService(unittest.TestCase):
             mock_listener.start.assert_called_once()
             mock_thread.assert_called_once()
 
-    @patch("services.tts_service.keyboard.GlobalHotKeys")
+    @patch("voicebridge.services.tts_service.keyboard.GlobalHotKeys")
     def test_start_daemon_mouse_mode(self, mock_global_hotkeys):
         """Test starting daemon in mouse mode."""
         config = TTSConfig(tts_mode=TTSMode.MOUSE)

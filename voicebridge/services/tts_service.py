@@ -1,7 +1,7 @@
 import threading
 from typing import Optional
 
-from domain.models import (
+from voicebridge.domain.models import (
     TTSConfig,
     TTSMode,
     TTSOutputMode,
@@ -9,7 +9,12 @@ from domain.models import (
     TTSStreamingMode,
     VoiceInfo,
 )
-from ports.interfaces import AudioPlaybackService, Logger, TextInputService, TTSService
+from voicebridge.ports.interfaces import (
+    AudioPlaybackService,
+    Logger,
+    TextInputService,
+    TTSService,
+)
 
 # Import keyboard libraries for testing compatibility
 try:

@@ -1,8 +1,8 @@
 import re
 from difflib import SequenceMatcher
 
-from domain.models import VocabularyConfig
-from ports.interfaces import VocabularyService
+from voicebridge.domain.models import VocabularyConfig
+from voicebridge.ports.interfaces import VocabularyService
 
 
 class WhisperVocabularyService(VocabularyService):

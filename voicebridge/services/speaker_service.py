@@ -2,8 +2,8 @@ import tempfile
 import wave
 from pathlib import Path
 
-from domain.models import SpeakerInfo, TranscriptionSegment
-from ports.interfaces import SpeakerDiarizationService
+from voicebridge.domain.models import SpeakerInfo, TranscriptionSegment
+from voicebridge.ports.interfaces import SpeakerDiarizationService
 
 
 class MockSpeakerDiarizationService(SpeakerDiarizationService):
@@ -124,8 +124,7 @@ class PyAnnoteSpeakerDiarizationService(SpeakerDiarizationService):
 
         except ImportError as e:
             raise ImportError(
-                "pyannote.audio not installed. Install with: "
-                "pip install pyannote.audio"
+                "pyannote.audio not installed. Install with: pip install pyannote.audio"
             ) from e
         except Exception as e:
             raise RuntimeError(f"Failed to load pyannote pipeline: {e}") from e

@@ -3,8 +3,8 @@ import threading
 import time
 from collections.abc import Iterator
 
-from domain.models import TranscriptionResult, WhisperConfig
-from ports.interfaces import AudioRecorder, Logger, TranscriptionService
+from voicebridge.domain.models import TranscriptionResult, WhisperConfig
+from voicebridge.ports.interfaces import AudioRecorder, Logger, TranscriptionService
 
 
 class RealtimeTranscriptionService:
@@ -206,7 +206,7 @@ class RealtimeTranscriptionService:
             import struct
 
             # Convert bytes to 16-bit integers
-            samples = struct.unpack(f"<{len(audio_chunk)//2}h", audio_chunk)
+            samples = struct.unpack(f"<{len(audio_chunk) // 2}h", audio_chunk)
 
             # Calculate RMS energy
             rms = (sum(x * x for x in samples) / len(samples)) ** 0.5

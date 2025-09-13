@@ -4,13 +4,17 @@ import time
 from collections.abc import Iterator
 from typing import Any
 
-from domain.models import (
+from voicebridge.domain.models import (
     GPUInfo,
     GPUType,
     TranscriptionResult,
     WhisperConfig,
 )
-from ports.interfaces import PerformanceService, SystemService, TranscriptionService
+from voicebridge.ports.interfaces import (
+    PerformanceService,
+    SystemService,
+    TranscriptionService,
+)
 
 try:
     import torch
@@ -116,19 +120,30 @@ class WhisperTranscriptionService(TranscriptionService):
         # Memory check before processing
         self._check_memory_usage(config.max_memory_mb, len(audio_data))
 
-        # Convert bytes to numpy array for whisper
-        audio_io = io.BytesIO(audio_data)
+        # Convert bytes to audio array for whisper
+        import os
+        import tempfile
 
-        options = {
-            "language": config.language,
-            "initial_prompt": config.initial_prompt,
-            "temperature": config.temperature,
-        }
+        # Write audio data to temporary file that whisper can read
+        with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+            temp_file.write(audio_data)
+            temp_file_path = temp_file.name
 
-        # Remove None values
-        options = {k: v for k, v in options.items() if v is not None}
+        try:
+            options = {
+                "language": config.language,
+                "initial_prompt": config.initial_prompt,
+                "temperature": config.temperature,
+            }
 
-        result = self._model.transcribe(audio_io, **options)
+            # Remove None values
+            options = {k: v for k, v in options.items() if v is not None}
+
+            result = self._model.transcribe(temp_file_path, **options)
+        finally:
+            # Clean up temporary file
+            if os.path.exists(temp_file_path):
+                os.unlink(temp_file_path)
 
         # Calculate performance metrics
         transcription_result = TranscriptionResult(

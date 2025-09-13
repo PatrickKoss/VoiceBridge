@@ -12,7 +12,8 @@ import typer
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from cli.commands import CLICommands
-from domain.models import TTSConfig, TTSResult, VoiceInfo, WhisperConfig
+
+from voicebridge.domain.models import TTSConfig, TTSResult, VoiceInfo, WhisperConfig
 
 
 class TestTTSCLICommands(unittest.TestCase):

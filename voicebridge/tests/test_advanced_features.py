@@ -4,9 +4,13 @@ from datetime import datetime
 from pathlib import Path
 
 import pytest
-from adapters.circuit_breaker import CircuitBreakerError, WhisperCircuitBreakerService
-from adapters.vocabulary import VocabularyAdapter
-from domain.models import (
+
+from voicebridge.adapters.circuit_breaker import (
+    CircuitBreakerError,
+    WhisperCircuitBreakerService,
+)
+from voicebridge.adapters.vocabulary import VocabularyAdapter
+from voicebridge.domain.models import (
     EventType,
     PostProcessingConfig,
     RetryConfig,
@@ -14,10 +18,10 @@ from domain.models import (
     VocabularyConfig,
     WebhookEvent,
 )
-from services.post_processing_service import WhisperPostProcessingService
-from services.progress_service import WhisperProgressService
-from services.retry_service import WhisperRetryService
-from services.vocabulary_service import WhisperVocabularyService
+from voicebridge.services.post_processing_service import WhisperPostProcessingService
+from voicebridge.services.progress_service import WhisperProgressService
+from voicebridge.services.retry_service import WhisperRetryService
+from voicebridge.services.vocabulary_service import WhisperVocabularyService
 
 
 class TestVocabularyService:

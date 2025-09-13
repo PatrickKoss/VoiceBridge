@@ -7,8 +7,8 @@ import time
 from pathlib import Path
 from typing import Any
 
-from domain.models import WhisperConfig
-from ports.interfaces import DaemonService, Logger
+from voicebridge.domain.models import WhisperConfig
+from voicebridge.ports.interfaces import DaemonService, Logger
 
 
 class WhisperDaemonService(DaemonService):
@@ -18,18 +18,6 @@ class WhisperDaemonService(DaemonService):
         self.pid_file.parent.mkdir(parents=True, exist_ok=True)
 
     def is_running(self) -> bool:
-        # Try to use global is_daemon_running function for backward compatibility
-        # This allows tests to mock the global function
-        try:
-            import sys
-
-            whisper_cli_module = sys.modules.get("whisper_cli")
-            if whisper_cli_module and hasattr(whisper_cli_module, "is_daemon_running"):
-                return whisper_cli_module.is_daemon_running()
-        except Exception:
-            pass
-
-        # Fallback to direct implementation
         if not self.pid_file.exists():
             return False
 

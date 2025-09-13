@@ -78,7 +78,7 @@ class WhisperConfig:
 
     # Memory Optimization
     chunk_size: int = 30
-    max_memory_mb: int = 1024
+    max_memory_mb: int = 4096
 
     # Resume Settings
     enable_resume: bool = True

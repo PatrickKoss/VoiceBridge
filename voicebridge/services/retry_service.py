@@ -4,8 +4,8 @@ import time
 from collections.abc import Callable
 from typing import Any
 
-from domain.models import RetryConfig, RetryStrategy
-from ports.interfaces import RetryService
+from voicebridge.domain.models import RetryConfig, RetryStrategy
+from voicebridge.ports.interfaces import RetryService
 
 
 class WhisperRetryService(RetryService):

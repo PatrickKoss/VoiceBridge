@@ -1,8 +1,8 @@
 import json
 from pathlib import Path
 
-from domain.models import WhisperConfig
-from ports.interfaces import ConfigRepository, ProfileRepository
+from voicebridge.domain.models import WhisperConfig
+from voicebridge.ports.interfaces import ConfigRepository, ProfileRepository
 
 
 class FileConfigRepository(ConfigRepository):

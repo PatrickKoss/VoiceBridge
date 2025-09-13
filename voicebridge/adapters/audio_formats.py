@@ -3,7 +3,7 @@ import subprocess
 from pathlib import Path
 from typing import Any
 
-from ports.interfaces import AudioFormatService
+from voicebridge.ports.interfaces import AudioFormatService
 
 
 class FFmpegAudioFormatAdapter(AudioFormatService):
@@ -45,7 +45,10 @@ class FFmpegAudioFormatAdapter(AudioFormatService):
             ]
 
             result = subprocess.run(
-                cmd, capture_output=True, text=True, timeout=300  # 5 minute timeout
+                cmd,
+                capture_output=True,
+                text=True,
+                timeout=300,  # 5 minute timeout
             )
 
             return result.returncode == 0

@@ -20,8 +20,8 @@ try:
 except ImportError:
     librosa = None
 
-from domain.models import TTSConfig, TTSResult, VoiceInfo
-from ports.interfaces import TTSService
+from voicebridge.domain.models import TTSConfig, TTSResult, VoiceInfo
+from voicebridge.ports.interfaces import TTSService
 
 # Import VibeVoice components
 try:

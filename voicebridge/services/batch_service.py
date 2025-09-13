@@ -2,8 +2,8 @@ import concurrent.futures
 from pathlib import Path
 from typing import Any
 
-from domain.models import WhisperConfig
-from ports.interfaces import (
+from voicebridge.domain.models import WhisperConfig
+from voicebridge.ports.interfaces import (
     AudioFormatService,
     BatchProcessingService,
     Logger,

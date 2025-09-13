@@ -3,8 +3,9 @@ import shutil
 import subprocess
 
 import psutil
-from domain.models import GPUInfo, GPUType, PlatformType, SystemInfo
-from ports.interfaces import ClipboardService, SystemService
+
+from voicebridge.domain.models import GPUInfo, GPUType, PlatformType, SystemInfo
+from voicebridge.ports.interfaces import ClipboardService, SystemService
 
 
 class PlatformClipboardService(ClipboardService):

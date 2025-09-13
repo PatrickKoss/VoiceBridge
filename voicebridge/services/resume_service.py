@@ -2,8 +2,8 @@ import os
 import wave
 from collections.abc import Iterator
 
-from domain.models import TranscriptionResult, WhisperConfig
-from ports.interfaces import SessionService, TranscriptionService
+from voicebridge.domain.models import TranscriptionResult, WhisperConfig
+from voicebridge.ports.interfaces import SessionService, TranscriptionService
 
 
 class TranscriptionResumeService:

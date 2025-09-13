@@ -1,0 +1,174 @@
+[project]
+name = "voicebridge"
+version = "1.0.0"
+description = "Comprehensive bidirectional voice-text CLI tool with Whisper and VibeVoice"
+authors = [
+    {name = "Patrick"},
+]
+readme = "README.md"
+license = {text = "MIT"}
+requires-python = ">=3.11"
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "Topic :: Multimedia :: Sound/Audio :: Speech",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+]
+
+dependencies = [
+    # Core dependencies
+    "typer>=0.16.0",
+    "rich>=14.0.0",
+    "pydantic>=2.11.0",
+    "PyYAML>=6.0.2",
+    
+    # Audio processing
+    "openai-whisper>=20250625",
+    "pygame>=2.6.1",
+    "PyAudio>=0.2.14",
+    "soundfile>=0.13.1",
+    "librosa>=0.11.0",
+    "noisereduce>=3.0.3",
+    "pydub>=0.25.1",
+    "ffmpy>=0.6.1",
+    
+    # Machine Learning
+    "torch>=2.8.0",
+    "torchaudio>=2.8.0",
+    "torchmetrics>=1.0.3",
+    "transformers>=4.51.0",
+    "accelerate>=1.6.0",
+    "diffusers>=0.35.1",
+    "safetensors>=0.5.3",
+    
+    # TTS Dependencies (using VibeVoice, TTS incompatible with Python 3.12)
+    "anyascii>=0.3.2",
+    "coqpit>=0.0.17",
+    "encodec>=0.1.1",
+    
+    # System & UI
+    "pynput>=1.8.1",
+    "pyperclip>=1.9.0",
+    "psutil>=7.0.0",
+    "python-xlib>=0.33; sys_platform == 'linux'",
+    "evdev>=1.9.2; sys_platform == 'linux'",
+    
+    # Web & API
+    "fastapi>=0.116.1",
+    "uvicorn>=0.35.0",
+    "httpx>=0.28.1",
+    "aiofiles>=24.1.0",
+    "websockets>=15.0.1",
+    
+    # Data processing
+    "numpy>=1.26.4",
+    "pandas>=1.5.3",
+    "scipy>=1.16.0",
+    "scikit-learn>=1.7.0",
+    
+    # Utilities
+    "python-dateutil>=2.9.0",
+    "tqdm>=4.67.1",
+    "joblib>=1.5.1",
+    "filelock>=3.18.0",
+    "packaging>=25.0",
+    "certifi>=2025.6.15",
+    "requests>=2.32.4",
+    "beautifulsoup4>=4.13.4",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=8.4.2",
+    "pytest-cov>=6.3.0",
+    "pytest-mock>=3.15.0",
+    "ruff>=0.1.15",
+    "black>=25.1.0",
+    "coverage>=7.10.6",
+]
+
+cuda = [
+    "torch>=2.8.0",
+    "torchaudio>=2.8.0",
+    "torchvision>=0.23.0",
+]
+
+tray = [
+    "pystray>=0.19.4",
+    "Pillow>=11.2.1",
+]
+
+[project.scripts]
+voicebridge = "voicebridge.main:main"
+whisper-cli = "voicebridge.main:main"
+
+[build-system]
+requires = ["setuptools>=70.0.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["voicebridge"]
+
+[tool.ruff]
+line-length = 88
+target-version = "py311"
+
+[tool.ruff.lint]
+select = [
+    "E",  # pycodestyle errors
+    "W",  # pycodestyle warnings
+    "F",  # pyflakes
+    "I",  # isort
+    "B",  # flake8-bugbear
+    "UP", # pyupgrade
+]
+ignore = [
+    "E501",  # line too long
+    "B008",  # do not perform function calls in argument defaults
+    "B905",  # zip without an explicit strict= parameter
+]
+
+[tool.ruff.lint.per-file-ignores]
+"__init__.py" = ["F401"]
+"tests/**/*.py" = ["B", "F401"]
+
+[tool.pytest.ini_options]
+minversion = "6.0"
+addopts = "-ra -q --strict-markers"
+testpaths = [
+    "tests",
+    "voicebridge/tests",
+]
+python_files = "test_*.py"
+python_classes = "Test*"
+python_functions = "test_*"
+markers = [
+    "unit: marks tests as unit tests",
+    "integration: marks tests as integration tests",
+    "slow: marks tests as slow",
+    "requires_audio: marks tests requiring audio hardware",
+]
+
+[tool.coverage.run]
+branch = true
+source = ["voicebridge"]
+omit = [
+    "*/tests/*",
+    "*/test_*.py",
+    "*/__pycache__/*",
+    "*/venv/*",
+]
+
+[tool.coverage.report]
+exclude_lines = [
+    "pragma: no cover",
+    "def __repr__",
+    "if self.debug:",
+    "if __name__ == .__main__.:",
+    "raise NotImplementedError",
+    "pass",
+    "except ImportError:",
+]

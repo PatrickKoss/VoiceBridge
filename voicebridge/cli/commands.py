@@ -1,7 +1,8 @@
 from pathlib import Path
 
 import typer
-from domain.models import (
+
+from voicebridge.domain.models import (
     ExportConfig,
     OutputFormat,
     TimestampMode,
@@ -10,7 +11,7 @@ from domain.models import (
     TTSStreamingMode,
     WhisperConfig,
 )
-from ports.interfaces import (
+from voicebridge.ports.interfaces import (
     AudioFormatService,
     AudioPreprocessingService,
     AudioSplittingService,
@@ -31,10 +32,10 @@ from ports.interfaces import (
     VocabularyService,
     WebhookService,
 )
-from services.confidence_service import ConfidenceAnalyzer
-from services.resume_service import TranscriptionResumeService
-from services.transcription_service import WhisperTranscriptionOrchestrator
-from services.tts_service import TTSDaemonService, TTSOrchestrator
+from voicebridge.services.confidence_service import ConfidenceAnalyzer
+from voicebridge.services.resume_service import TranscriptionResumeService
+from voicebridge.services.transcription_service import WhisperTranscriptionOrchestrator
+from voicebridge.services.tts_service import TTSDaemonService, TTSOrchestrator
 
 
 class CLICommands:
@@ -975,7 +976,7 @@ class CLICommands:
         typer.echo("Active operations:")
         for tracker in active_ops:
             typer.echo(
-                f"  {tracker.operation_id}: {tracker.operation_type} ({tracker.status}) - {tracker.current_progress*100:.1f}%"
+                f"  {tracker.operation_id}: {tracker.operation_type} ({tracker.status}) - {tracker.current_progress * 100:.1f}%"
             )
 
     def operations_cancel(self, operation_id: str):
@@ -999,7 +1000,7 @@ class CLICommands:
         typer.echo(f"Operation: {operation_id}")
         typer.echo(f"  Type: {tracker.operation_type}")
         typer.echo(f"  Status: {tracker.status}")
-        typer.echo(f"  Progress: {tracker.current_progress*100:.1f}%")
+        typer.echo(f"  Progress: {tracker.current_progress * 100:.1f}%")
         typer.echo(f"  Current step: {tracker.current_step}")
         if tracker.eta_seconds:
             typer.echo(f"  ETA: {tracker.eta_seconds:.0f} seconds")
@@ -1345,7 +1346,7 @@ class CLICommands:
         # Load config and override with parameters
         config = self.config_repo.load()
         if model:
-            config.model = model
+            config.model_name = model
         if language:
             config.language = language
         config.temperature = temperature
@@ -1412,7 +1413,7 @@ class CLICommands:
         # Load config
         config = self.config_repo.load()
         if model:
-            config.model = model
+            config.model_name = model
 
         # Set file patterns
         patterns = [file_pattern] if file_pattern else None
@@ -1428,7 +1429,7 @@ class CLICommands:
         estimated_time = self.batch_processing_service.estimate_batch_time(files)
 
         typer.echo(f"Found {len(files)} files to process")
-        typer.echo(f"Estimated time: {estimated_time/60:.1f} minutes")
+        typer.echo(f"Estimated time: {estimated_time / 60:.1f} minutes")
 
         # Process files
         results = self.batch_processing_service.process_directory(
@@ -1607,7 +1608,7 @@ class CLICommands:
         typer.echo(f"Sample rate: {info.get('sample_rate', 0)} Hz")
         typer.echo(f"Channels: {info.get('channels', 0)}")
         typer.echo(f"Bitrate: {info.get('bitrate', 0)} bps")
-        typer.echo(f"Size: {info.get('size', 0) / (1024*1024):.2f} MB")
+        typer.echo(f"Size: {info.get('size', 0) / (1024 * 1024):.2f} MB")
         if info.get("codec"):
             typer.echo(f"Codec: {info.get('codec')}")
 
@@ -1636,7 +1637,7 @@ class CLICommands:
         # Load config
         config = self.config_repo.load()
         if model:
-            config.model = model
+            config.model_name = model
 
         # Create realtime service
         realtime_service = RealtimeTranscriptionService(

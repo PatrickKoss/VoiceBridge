@@ -4,8 +4,8 @@ from collections import defaultdict
 from datetime import datetime
 from typing import Any
 
-from domain.models import PerformanceMetrics
-from ports.interfaces import PerformanceService, SystemService
+from voicebridge.domain.models import PerformanceMetrics
+from voicebridge.ports.interfaces import PerformanceService, SystemService
 
 
 class WhisperPerformanceService(PerformanceService):
