@@ -419,13 +419,33 @@ class TTSOrchestrator:
 
         # Use default voice or first available
         voice_name = config.default_voice
+        
+        # Try exact match first
         if voice_name in self.voice_samples_cache:
             return [self.voice_samples_cache[voice_name].file_path]
-        elif self.voice_samples_cache:
-            # Use first available voice
+        
+        # Try partial matching (e.g., "Patrick" matches "en-Patrick")
+        if voice_name and self.voice_samples_cache:
+            for full_name, voice_info in self.voice_samples_cache.items():
+                # Check if the requested voice name is contained in the full name
+                if voice_name.lower() in full_name.lower():
+                    self.logger.info(
+                        f"Voice '{voice_name}' matched to '{full_name}'"
+                    )
+                    return [voice_info.file_path]
+                
+                # Also check if the full name ends with the requested name
+                if full_name.lower().endswith(f"-{voice_name.lower()}"):
+                    self.logger.info(
+                        f"Voice '{voice_name}' matched to '{full_name}'"
+                    )
+                    return [voice_info.file_path]
+        
+        # If no match found, use first available voice
+        if self.voice_samples_cache:
             first_voice = next(iter(self.voice_samples_cache.values()))
             self.logger.warning(
-                f"Default voice '{voice_name}' not found, using '{first_voice.name}'"
+                f"Voice '{voice_name}' not found. Available voices: {list(self.voice_samples_cache.keys())}. Using '{first_voice.name}'"
             )
             return [first_voice.file_path]
         else:

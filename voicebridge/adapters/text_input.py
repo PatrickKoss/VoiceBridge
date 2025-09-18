@@ -124,7 +124,9 @@ class PlatformTextInputAdapter(TextInputService):
                         except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
                             pass
 
-            print(f"Failed to get clipboard text: {e}")
+            # Only print error if we're not in WSL (avoid powershell.exe spam)
+            if not (os.path.exists("/proc/version") and "powershell.exe" in str(e)):
+                print(f"Failed to get clipboard text: {e}")
             return ""
 
     def get_selected_text(self) -> str:
@@ -144,7 +146,7 @@ class PlatformTextInputAdapter(TextInputService):
                             ["bash", "-c", "echo -n '' | xclip -selection clipboard"],
                             timeout=1
                         )
-                    except:
+                    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
                         pass
             time.sleep(0.05)  # Small delay
 
