@@ -629,9 +629,24 @@ def create_app(commands: CLICommands) -> typer.Typer:
         auto_play: bool = typer.Option(
             True, "--auto-play/--no-auto-play", help="Auto-play generated audio"
         ),
+        cfg_scale: float | None = typer.Option(
+            None, "--cfg-scale", help="CFG scale for generation (default: 1.3)"
+        ),
+        inference_steps: int | None = typer.Option(
+            None, "--inference-steps", help="Number of inference steps (default: 10)"
+        ),
+        sample_rate: int | None = typer.Option(
+            None, "--sample-rate", help="Audio sample rate (default: 24000)"
+        ),
+        use_gpu: bool | None = typer.Option(
+            None, "--gpu/--no-gpu", help="Use GPU acceleration"
+        ),
     ):
         """Generate TTS from provided text"""
-        commands.tts_generate_from_text(text, voice, streaming, output_file, auto_play)
+        commands.tts_generate_from_text(
+            text, voice, streaming, output_file, auto_play,
+            cfg_scale, inference_steps, sample_rate, use_gpu
+        )
 
     @tts_app.command("listen-clipboard")
     def tts_listen_clipboard(
@@ -671,9 +686,10 @@ def create_app(commands: CLICommands) -> typer.Typer:
         auto_play: bool = typer.Option(
             True, "--auto-play/--no-auto-play", help="Auto-play generated audio"
         ),
+        background: bool = typer.Option(False, "--background", "-b", help="Run daemon in background"),
     ):
         """Start TTS daemon with hotkey support"""
-        commands.tts_daemon_start(voice, mode, streaming, auto_play)
+        commands.tts_daemon_start(voice, mode, streaming, auto_play, background)
 
     @tts_daemon_app.command("stop")
     def tts_daemon_stop():
@@ -718,10 +734,20 @@ def create_app(commands: CLICommands) -> typer.Typer:
         inference_steps: int | None = typer.Option(
             None, "--inference-steps", help="Set inference steps"
         ),
+        sample_rate: int | None = typer.Option(
+            None, "--sample-rate", help="Set audio sample rate"
+        ),
+        use_gpu: bool | None = typer.Option(
+            None, "--gpu/--no-gpu", help="Enable/disable GPU acceleration"
+        ),
+        auto_play: bool | None = typer.Option(
+            None, "--auto-play/--no-auto-play", help="Enable/disable auto-play"
+        ),
     ):
         """Set TTS configuration options"""
         commands.tts_config_set(
-            model_path, voice_samples_dir, default_voice, cfg_scale, inference_steps
+            model_path, voice_samples_dir, default_voice, cfg_scale, inference_steps,
+            sample_rate, use_gpu, auto_play
         )
 
     tts_app.add_typer(tts_config_app, name="config")

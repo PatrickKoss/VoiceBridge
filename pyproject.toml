@@ -6,7 +6,7 @@ authors = [
     {name = "Patrick"},
 ]
 readme = "README.md"
-license = {text = "MIT"}
+license = {file = "LICENSE"}
 requires-python = ">=3.11"
 classifiers = [
     "Development Status :: 4 - Beta",
@@ -39,7 +39,7 @@ dependencies = [
     "torch>=2.8.0",
     "torchaudio>=2.8.0",
     "torchmetrics>=1.0.3",
-    "transformers>=4.51.0",
+    "transformers==4.51.3",
     "accelerate>=1.6.0",
     "diffusers>=0.35.1",
     "safetensors>=0.5.3",
@@ -48,6 +48,15 @@ dependencies = [
     "anyascii>=0.3.2",
     "coqpit>=0.0.17",
     "encodec>=0.1.1",
+    
+    # VibeVoice dependencies (local copy included in project)
+    "ml-collections>=0.1.1",
+    "absl-py>=2.0.0",
+    "av>=13.1.0",
+    "aiortc>=1.9.0",
+    "numba>=0.57.0",
+    "llvmlite>=0.40.0",
+    "gradio>=5.0.0",
     
     # System & UI
     "pynput>=1.8.1",
@@ -110,7 +119,7 @@ requires = ["setuptools>=70.0.0", "wheel"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-packages = ["voicebridge"]
+packages = ["voicebridge", "vibevoice"]
 
 [tool.ruff]
 line-length = 88

@@ -1,4 +1,9 @@
+import os
+import signal
+import sys
 import threading
+import time
+from pathlib import Path
 from typing import Optional
 
 from voicebridge.domain.models import (
@@ -56,6 +61,7 @@ class TTSOrchestrator:
         self.voice_samples_cache = {}
         self.monitoring_thread = None
         self.last_processed_text = ""
+        self.keyboard_listener = None
 
     def start_tts_mode(self, config: TTSConfig) -> None:
         """Start TTS mode with specified configuration"""
@@ -89,6 +95,14 @@ class TTSOrchestrator:
         self.tts_service.stop_generation()
         self.text_input_service.stop_monitoring()
         self.audio_playback_service.stop_playback()
+
+        # Stop keyboard listener if active
+        if self.keyboard_listener:
+            try:
+                self.keyboard_listener.stop()
+                self.keyboard_listener = None
+            except Exception as e:
+                self.logger.error(f"Error stopping keyboard listener: {e}")
 
         # Wait for monitoring thread to finish
         if self.monitoring_thread and self.monitoring_thread.is_alive():
@@ -271,9 +285,43 @@ class TTSOrchestrator:
 
     def _start_selection_monitoring(self, config: TTSConfig) -> None:
         """Start monitoring for text selections (manual trigger via hotkey)"""
-        # Selection monitoring is typically triggered by hotkeys rather than automatic
-        # The actual selection detection happens when hotkeys are pressed
-        self.logger.info("TTS selection mode ready (trigger with hotkeys)")
+        # Set up hotkey listener for selection mode
+        try:
+            from pynput import keyboard
+
+            def on_press(key):
+                try:
+                    # Check for generate hotkey (F12 by default)
+                    if hasattr(key, 'name') and key.name == config.tts_generate_key.lower().replace('f', 'f'):
+                        self.logger.info("Generate hotkey pressed, getting selected text")
+                        text = self.text_input_service.get_selected_text()
+                        if text:
+                            self.generate_tts_from_text(text, config)
+                        else:
+                            self.logger.warning("No text selected")
+                    # Check for stop hotkey
+                    elif key == keyboard.Key.esc or (
+                        hasattr(key, 'char') and
+                        key.char and
+                        key.char.lower() == 's' and
+                        keyboard.Controller().pressed(keyboard.Key.ctrl) and
+                        keyboard.Controller().pressed(keyboard.Key.alt)
+                    ):
+                        self.logger.info("Stop hotkey pressed")
+                        self.tts_service.stop_generation()
+                        self.audio_playback_service.stop_playback()
+                except Exception as e:
+                    self.logger.error(f"Error processing hotkey: {e}")
+
+            # Start keyboard listener in background
+            self.keyboard_listener = keyboard.Listener(on_press=on_press)
+            self.keyboard_listener.start()
+
+            self.logger.info(f"TTS selection mode ready - press {config.tts_generate_key} after selecting text")
+        except ImportError:
+            self.logger.error("pynput not available for hotkey monitoring")
+            # Fall back to simple message
+            self.logger.info("TTS selection mode ready (trigger with hotkeys)")
 
     def _handle_non_streaming_tts(
         self, text: str, voice_samples: list[str], config: TTSConfig
@@ -403,12 +451,30 @@ class TTSDaemonService:
         self.current_config = None
         self.is_monitoring_clipboard = False
 
+        # Daemon state files
+        self.pid_file = Path.home() / ".config" / "voicebridge" / "daemon.pid"
+        self.status_file = Path.home() / ".config" / "voicebridge" / "daemon.status"
+
+        # Ensure config directory exists
+        self.pid_file.parent.mkdir(parents=True, exist_ok=True)
+
+        # Setup signal handlers for daemon control
+        signal.signal(signal.SIGTERM, self._signal_handler)
+        signal.signal(signal.SIGINT, self._signal_handler)
+
     def start_daemon(self, config: TTSConfig) -> None:
         """Start TTS daemon with hotkey support"""
-        if self.is_running:
+        # Check if daemon is already running
+        if self.is_daemon_running():
             raise RuntimeError("TTS daemon is already running")
 
         try:
+            # Write PID file
+            self._write_pid_file()
+
+            # Write status file
+            self._write_status_file(config)
+
             self.current_config = config
 
             # Start TTS orchestrator
@@ -426,14 +492,12 @@ class TTSDaemonService:
             self.logger.info("TTS daemon started successfully")
 
         except Exception as e:
+            self._cleanup_daemon_files()
             self.logger.error(f"Failed to start TTS daemon: {e}")
             raise
 
     def stop_daemon(self) -> None:
         """Stop TTS daemon"""
-        if not self.is_running:
-            raise RuntimeError("TTS daemon is not running")
-
         self.logger.info("Stopping TTS daemon")
 
         # Stop monitoring
@@ -445,17 +509,90 @@ class TTSDaemonService:
         # Remove hotkey listeners
         self._cleanup_hotkeys()
 
+        # Clean up daemon files
+        self._cleanup_daemon_files()
+
         self.daemon_active = False
         self.is_running = False
         self.current_config = None
         self.logger.info("TTS daemon stopped")
 
+    def stop_daemon_by_pid(self) -> bool:
+        """Stop running daemon by sending signal to PID"""
+        if not self.pid_file.exists():
+            return False
+
+        try:
+            with open(self.pid_file) as f:
+                pid = int(f.read().strip())
+
+            # Check if process is still running
+            try:
+                os.kill(pid, 0)  # Test if process exists
+            except OSError:
+                # Process doesn't exist, clean up stale files
+                self._cleanup_daemon_files()
+                return False
+
+            # Send SIGTERM to gracefully stop the daemon
+            os.kill(pid, signal.SIGTERM)
+
+            # Wait for process to exit
+            for _ in range(10):  # Wait up to 10 seconds
+                try:
+                    os.kill(pid, 0)
+                    time.sleep(1)
+                except OSError:
+                    # Process has exited
+                    self._cleanup_daemon_files()
+                    return True
+
+            # If still running, force kill
+            try:
+                os.kill(pid, signal.SIGKILL)
+                self._cleanup_daemon_files()
+                return True
+            except OSError:
+                return False
+
+        except (ValueError, FileNotFoundError, OSError) as e:
+            self.logger.error(f"Error stopping daemon: {e}")
+            self._cleanup_daemon_files()
+            return False
+
     def get_status(self) -> dict:
         """Get daemon status"""
-        if self.is_running and self.current_config:
-            return {"status": "running", "mode": self.current_config.tts_mode.value}
+        if self.is_daemon_running():
+            try:
+                with open(self.status_file) as f:
+                    import json
+                    status_data = json.load(f)
+                return {"status": "running", **status_data}
+            except (FileNotFoundError, json.JSONDecodeError):
+                return {"status": "running", "mode": "unknown"}
         else:
             return {"status": "stopped"}
+
+    def is_daemon_running(self) -> bool:
+        """Check if daemon is currently running"""
+        if not self.pid_file.exists():
+            return False
+
+        try:
+            with open(self.pid_file) as f:
+                pid = int(f.read().strip())
+
+            # Check if process is still running
+            try:
+                os.kill(pid, 0)  # Test if process exists
+                return True
+            except OSError:
+                # Process doesn't exist, clean up stale files
+                self._cleanup_daemon_files()
+                return False
+
+        except (ValueError, FileNotFoundError):
+            return False
 
     def stop_monitoring(self) -> None:
         """Stop monitoring threads"""
@@ -493,7 +630,22 @@ class TTSDaemonService:
     def _setup_hotkeys(self, config: TTSConfig) -> None:
         """Setup hotkey listeners"""
         try:
-            # Try GlobalHotKeys first (pynput)
+            # Check if we're in WSL - be more conservative with hotkeys
+            is_wsl = False
+            if os.path.exists("/proc/version"):
+                with open("/proc/version") as f:
+                    if "microsoft" in f.read().lower():
+                        is_wsl = True
+
+            if is_wsl:
+                # In WSL, avoid GlobalHotKeys as they can interfere with clipboard
+                self.logger.warning("WSL detected - using basic hotkey support to avoid clipboard conflicts")
+                self.logger.info(
+                    f"Hotkeys configured (may require focus) - Generate: {config.tts_generate_key}, Stop: {config.tts_stop_key}"
+                )
+                return
+
+            # Try GlobalHotKeys first (pynput) - only on non-WSL systems
             if keyboard and keyboard.GlobalHotKeys:
                 hotkey_map = {
                     config.tts_generate_key: lambda: self._handle_generate_hotkey(
@@ -562,3 +714,41 @@ class TTSDaemonService:
             self.logger.info("TTS stopped via hotkey")
         except Exception as e:
             self.logger.error(f"Error handling stop hotkey: {e}")
+
+    def _write_pid_file(self) -> None:
+        """Write current process PID to file"""
+        with open(self.pid_file, 'w') as f:
+            f.write(str(os.getpid()))
+
+    def _write_status_file(self, config: TTSConfig) -> None:
+        """Write daemon status to file"""
+        import json
+        status_data = {
+            "mode": config.tts_mode.value,
+            "voice": config.default_voice,
+            "generate_key": config.tts_generate_key,
+            "stop_key": config.tts_stop_key,
+            "started_at": time.time()
+        }
+        with open(self.status_file, 'w') as f:
+            json.dump(status_data, f)
+
+    def _cleanup_daemon_files(self) -> None:
+        """Clean up PID and status files"""
+        try:
+            if self.pid_file.exists():
+                self.pid_file.unlink()
+        except OSError:
+            pass
+
+        try:
+            if self.status_file.exists():
+                self.status_file.unlink()
+        except OSError:
+            pass
+
+    def _signal_handler(self, signum, frame):
+        """Handle signals for graceful shutdown"""
+        self.logger.info(f"Received signal {signum}, shutting down...")
+        self.stop_daemon()
+        sys.exit(0)

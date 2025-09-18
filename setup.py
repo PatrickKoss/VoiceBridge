@@ -21,7 +21,7 @@ setup(
     description="Enhanced Whisper CLI with advanced user experience features",
     long_description=long_description,
     long_description_content_type="text/markdown",
-    packages=find_packages(),
+    packages=find_packages(include=["voicebridge*", "vibevoice*"]),
     classifiers=[
         "Development Status :: 4 - Beta",
         "Intended Audience :: Developers",

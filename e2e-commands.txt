@@ -1,0 +1,53 @@
+uv run python -m voicebridge tts generate "The landscape of engineering management just shifted dramatically. While most of us were debugging production issues and reviewing pull requests this week, the industry was quietly undergoing a fundamental transformation that’s making traditional management playbooks obsolete." --voice en-Patrick --output test.wav
+- working flags: voice, output, cfg-scale, inference-steps, sample-rate, 
+- non working flags: streaming, auto-play (does nothing), gpu (does nothing)
+features: add input file instead of raw text
+
+uv run python -m voicebridge tts config (works)
+
+uv run python -m voicebridge tts listen-clipboard --voice Patrick --output test.wav
+/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+APEX FusedRMSNorm not available, using native implementation
+Pygame audio initialized
+Starting TTS clipboard monitoring...
+Voice: Patrick
+Mode: Non-streaming
+Copy text to clipboard to generate TTS. Press Ctrl+C to stop.
+Failed to get clipboard text: [Errno 2] No such file or directory: 'powershell.exe'
+Error although on wsl (Linux)
+
+uv run python -m voicebridge tts listen-selection --voice Patrick 
+/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+APEX FusedRMSNorm not available, using native implementation
+Pygame audio initialized
+Starting TTS selection mode...
+Voice: Patrick
+Generate hotkey: f12
+Stop hotkey: ctrl+alt+s
+Select text and press hotkey to generate TTS. Press Ctrl+C to stop.
+Does not do anything
+
+uv run python -m voicebridge tts voices (works)
+
+uv run python -m voicebridge tts daemon start 
+/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+APEX FusedRMSNorm not available, using native implementation
+Pygame audio initialized
+Failed to get clipboard text: [Errno 2] No such file or directory: 'powershell.exe'
+Started clipboard monitoring
+TTS daemon started successfully
+Mode: clipboard
+Voice: en-Alice_woman
+Generate hotkey: f12
+Stop hotkey: ctrl+alt+s
+Failed to get clipboard text: [Errno 2] No such file or directory: 'powershell.exe'
+Failed to get clipboard text: [Errno 2] No such file or directory: 'powershell.exe'

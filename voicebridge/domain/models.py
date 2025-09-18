@@ -129,8 +129,8 @@ class WhisperConfig:
 @dataclass
 class TTSConfig:
     # Core TTS settings
-    model_path: str = "WestZhang/VibeVoice-Large-pt"
-    voice_samples_dir: str = "demo/voices"
+    model_path: str = "aoi-ot/VibeVoice-7B"
+    voice_samples_dir: str = "voices"
     default_voice: str = "en-Alice_woman"
     cfg_scale: float = 1.3
     inference_steps: int = 10
@@ -142,7 +142,7 @@ class TTSConfig:
 
     # Hotkey configuration
     tts_toggle_key: str = "f11"
-    tts_generate_key: str = "f12"
+    tts_generate_key: str = "f2"
     tts_stop_key: str = "ctrl+alt+s"
 
     # Audio settings

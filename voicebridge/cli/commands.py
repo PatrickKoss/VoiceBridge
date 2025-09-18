@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 import typer
@@ -1676,6 +1677,10 @@ class CLICommands:
         streaming: bool = False,
         output_file: str | None = None,
         auto_play: bool = True,
+        cfg_scale: float | None = None,
+        inference_steps: int | None = None,
+        sample_rate: int | None = None,
+        use_gpu: bool | None = None,
     ):
         """Generate TTS from provided text"""
         if not self.tts_orchestrator:
@@ -1693,6 +1698,14 @@ class CLICommands:
             tts_config.output_mode = (
                 TTSOutputMode.SAVE_FILE if not auto_play else TTSOutputMode.BOTH
             )
+        if cfg_scale is not None:
+            tts_config.cfg_scale = cfg_scale
+        if inference_steps is not None:
+            tts_config.inference_steps = inference_steps
+        if sample_rate is not None:
+            tts_config.sample_rate = sample_rate
+        if use_gpu is not None:
+            tts_config.use_gpu = use_gpu
         tts_config.streaming_mode = (
             TTSStreamingMode.STREAMING if streaming else TTSStreamingMode.NON_STREAMING
         )
@@ -1812,10 +1825,16 @@ class CLICommands:
         mode: str = "clipboard",
         streaming: bool = False,
         auto_play: bool = True,
+        background: bool = False,
     ):
         """Start TTS daemon with hotkey support"""
         if not self.tts_daemon_service:
             typer.echo("TTS daemon not available", err=True)
+            raise typer.Exit(1)
+
+        # Check if daemon is already running
+        if self.tts_daemon_service.is_daemon_running():
+            typer.echo("TTS daemon is already running", err=True)
             raise typer.Exit(1)
 
         config = self.config_repo.load()
@@ -1840,6 +1859,50 @@ class CLICommands:
         )
         tts_config.auto_play = auto_play
 
+        # Check if we're being called recursively in background mode
+        if background and os.environ.get("VOICEBRIDGE_NO_BACKGROUND"):
+            background = False  # Disable background mode for recursive call
+            
+        if background:
+            # For background mode, use subprocess with detachment
+            import subprocess
+            import sys
+            
+            cmd = [
+                sys.executable, "-m", "voicebridge", "tts", "daemon", "start",
+                "--mode", mode
+            ]
+            if streaming:
+                cmd.append("--streaming")
+            if not auto_play:
+                cmd.append("--no-auto-play")
+            if voice:
+                cmd.extend(["--voice", voice])
+            
+            # Start daemon in background, suppressing background flag
+            env = os.environ.copy()
+            env["VOICEBRIDGE_NO_BACKGROUND"] = "1"  # Flag to prevent recursive background calls
+            
+            process = subprocess.Popen(
+                cmd,
+                stdout=subprocess.DEVNULL,
+                stderr=subprocess.DEVNULL,
+                start_new_session=True,
+                env=env
+            )
+            
+            # Give it a moment to start
+            import time
+            time.sleep(3)
+            
+            # Check if it actually started
+            if self.tts_daemon_service.is_daemon_running():
+                typer.echo("TTS daemon started in background")
+            else:
+                typer.echo("Failed to start daemon in background", err=True)
+                raise typer.Exit(1)
+            return
+
         try:
             self.tts_daemon_service.start_daemon(tts_config)
             typer.echo("TTS daemon started successfully")
@@ -1847,6 +1910,17 @@ class CLICommands:
             typer.echo(f"Voice: {tts_config.default_voice}")
             typer.echo(f"Generate hotkey: {tts_config.tts_generate_key}")
             typer.echo(f"Stop hotkey: {tts_config.tts_stop_key}")
+            typer.echo("Press Ctrl+C to stop the daemon")
+
+            # Keep daemon running
+            import time
+            try:
+                while self.tts_daemon_service.is_running:
+                    time.sleep(1)
+            except KeyboardInterrupt:
+                typer.echo("\nStopping TTS daemon...")
+                self.tts_daemon_service.stop_daemon()
+                typer.echo("TTS daemon stopped")
 
         except Exception as e:
             typer.echo(f"Failed to start TTS daemon: {e}", err=True)
@@ -1858,11 +1932,11 @@ class CLICommands:
             typer.echo("TTS daemon not available", err=True)
             raise typer.Exit(1)
 
-        try:
-            self.tts_daemon_service.stop_daemon()
+        # Try to stop daemon using PID file
+        if self.tts_daemon_service.stop_daemon_by_pid():
             typer.echo("TTS daemon stopped")
-        except Exception as e:
-            typer.echo(f"Error stopping daemon: {e}", err=True)
+        else:
+            typer.echo("No running TTS daemon found")
 
     def tts_daemon_status(self):
         """Check TTS daemon status"""
@@ -1870,9 +1944,18 @@ class CLICommands:
             typer.echo("TTS daemon not available", err=True)
             raise typer.Exit(1)
 
-        is_running = self.tts_daemon_service.is_running()
-        status = "running" if is_running else "stopped"
-        typer.echo(f"TTS daemon status: {status}")
+        status_info = self.tts_daemon_service.get_status()
+        typer.echo(f"TTS daemon status: {status_info['status']}")
+
+        if status_info['status'] == 'running':
+            if 'mode' in status_info:
+                typer.echo(f"Mode: {status_info['mode']}")
+            if 'voice' in status_info:
+                typer.echo(f"Voice: {status_info['voice']}")
+            if 'generate_key' in status_info:
+                typer.echo(f"Generate hotkey: {status_info['generate_key']}")
+            if 'stop_key' in status_info:
+                typer.echo(f"Stop hotkey: {status_info['stop_key']}")
 
     def tts_list_voices(self):
         """List available TTS voices"""
@@ -1925,6 +2008,9 @@ class CLICommands:
         default_voice: str | None = None,
         cfg_scale: float | None = None,
         inference_steps: int | None = None,
+        sample_rate: int | None = None,
+        use_gpu: bool | None = None,
+        auto_play: bool | None = None,
     ):
         """Set TTS configuration options"""
         config = self.config_repo.load()
@@ -1956,6 +2042,21 @@ class CLICommands:
             tts_config.inference_steps = inference_steps
             updated = True
             typer.echo(f"Set inference steps: {inference_steps}")
+
+        if sample_rate is not None:
+            tts_config.sample_rate = sample_rate
+            updated = True
+            typer.echo(f"Set sample rate: {sample_rate}")
+
+        if use_gpu is not None:
+            tts_config.use_gpu = use_gpu
+            updated = True
+            typer.echo(f"Set GPU usage: {use_gpu}")
+
+        if auto_play is not None:
+            tts_config.auto_play = auto_play
+            updated = True
+            typer.echo(f"Set auto-play: {auto_play}")
 
         if updated:
             self.config_repo.save(config)

@@ -171,14 +171,93 @@ brew install ffmpeg
 choco install ffmpeg
 ```
 
-### TTS Setup (Optional)
+### TTS Setup
+
+VoiceBridge includes comprehensive text-to-speech capabilities powered by VibeVoice.
+
+#### Prerequisites
+
+1. **Install VibeVoice dependencies** (if using local model):
+
+   ```bash
+   # Clone and install VibeVoice
+   git clone https://github.com/WestZhang/VibeVoice.git
+   cd VibeVoice
+   pip install -e .
+   ```
+
+2. **Voice Samples**: Voice samples are included in `voices/` directory:
+   ```
+   voices/
+   ├── en-Alice_woman.wav
+   ├── en-Carter_man.wav
+   ├── en-Frank_man.wav
+   ├── en-Maya_woman.wav
+   ├── en-Patrick.wav
+   └── ... (additional voices)
+   ```
+
+#### Configuration
+
+VoiceBridge works out-of-the-box with sensible defaults. Configuration can be set via:
+
+1. **Config file** (`~/.config/whisper-cli/config.json`):
+
+   ```json
+   {
+     "tts_enabled": true,
+     "tts_config": {
+       "model_path": "aoi-ot/VibeVoice-7B",
+       "voice_samples_dir": "voices",
+       "default_voice": "en-Alice_woman",
+       "cfg_scale": 1.3,
+       "inference_steps": 10,
+       "tts_mode": "clipboard",
+       "streaming_mode": "non_streaming",
+       "output_mode": "play",
+       "tts_toggle_key": "f11",
+       "tts_generate_key": "f12",
+       "tts_stop_key": "ctrl+alt+s",
+       "sample_rate": 24000,
+       "auto_play": true,
+       "use_gpu": true,
+       "max_text_length": 2000,
+       "chunk_text_threshold": 500
+     }
+   }
+   ```
+
+2. **Command-line flags** (override config file):
+   ```bash
+   # Generate with custom settings
+   uv run python -m voicebridge tts generate "Hello world" \
+     --voice en-Patrick \
+     --streaming \
+     --output speech.wav \
+     --cfg-scale 1.5 \
+     --inference-steps 15
+   ```
+
+#### Voice Sample Requirements
+
+- **Format**: WAV (recommended), MP3, FLAC
+- **Sample Rate**: 24kHz (recommended), 16kHz-48kHz supported
+- **Channels**: Mono (preferred)
+- **Duration**: 3-10 seconds
+- **Quality**: Clear, single speaker, minimal background noise
+- **Naming**: `language-name_gender.wav` (e.g., `en-Alice_woman.wav`)
+
+#### Quick Test
 
 ```bash
-# Install VibeVoice for text-to-speech
-python setup_tts.py
+# Test TTS with default settings
+uv run python -m voicebridge tts generate "Hello, this is VoiceBridge text-to-speech!"
 
-# Add voice samples to demo/voices/
-# Format: language-name_gender.wav (e.g., en-Alice_woman.wav)
+# List available voices
+uv run python -m voicebridge tts voices
+
+# Show current TTS configuration
+uv run python -m voicebridge tts config show
 ```
 
 ### Development Commands

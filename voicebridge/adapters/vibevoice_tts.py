@@ -178,7 +178,9 @@ class VibeVoiceTTSAdapter(TTSService):
 
             if outputs.speech_outputs and outputs.speech_outputs[0] is not None:
                 # Convert to numpy and normalize
-                audio_np = outputs.speech_outputs[0].cpu().numpy().astype(np.float32)
+                # First convert BFloat16 to Float32 in torch, then to numpy
+                audio_tensor = outputs.speech_outputs[0].to(torch.float32).cpu()
+                audio_np = audio_tensor.numpy().astype(np.float32)
                 if len(audio_np.shape) > 1:
                     audio_np = audio_np.squeeze()
 

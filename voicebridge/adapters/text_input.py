@@ -1,6 +1,36 @@
+import os
+import subprocess
 import threading
 import time
 from collections.abc import Callable
+
+from voicebridge.ports.interfaces import TextInputService
+
+
+# Configure clipboard for WSL if needed
+def _configure_wsl_clipboard():
+    """Configure pyperclip for WSL environment"""
+    # Check if we're in WSL
+    if os.path.exists("/proc/version"):
+        with open("/proc/version") as f:
+            if "microsoft" in f.read().lower():
+                # We're in WSL, check for clipboard utilities
+                for cmd in ["xclip", "xsel", "wl-copy"]:
+                    try:
+                        subprocess.run(["which", cmd], capture_output=True, check=True)
+                        # Found a clipboard utility, pyperclip should work
+                        return
+                    except subprocess.CalledProcessError:
+                        continue
+
+                # If no Linux clipboard utility found, try to use clip.exe from Windows
+                try:
+                    subprocess.run(["which", "clip.exe"], capture_output=True, check=True)
+                    os.environ["PYPERCLIP_CMD"] = "clip.exe"
+                except subprocess.CalledProcessError:
+                    pass
+
+_configure_wsl_clipboard()
 
 try:
     import pyperclip
@@ -25,8 +55,6 @@ except ImportError:
     Key = None
     Button = None
     PYNPUT_AVAILABLE = False
-
-from voicebridge.ports.interfaces import TextInputService
 
 
 class PlatformTextInputAdapter(TextInputService):
@@ -62,8 +90,40 @@ class PlatformTextInputAdapter(TextInputService):
     def get_clipboard_text(self) -> str:
         """Get text from system clipboard"""
         try:
+            # Try pyperclip first
             return pyperclip.paste() or ""
         except Exception as e:
+            # If pyperclip fails in WSL, try direct approach
+            if os.path.exists("/proc/version"):
+                with open("/proc/version") as f:
+                    if "microsoft" in f.read().lower():
+                        # We're in WSL, try xclip directly
+                        try:
+                            result = subprocess.run(
+                                ["xclip", "-selection", "clipboard", "-o"],
+                                capture_output=True,
+                                text=True,
+                                timeout=1
+                            )
+                            if result.returncode == 0:
+                                return result.stdout
+                        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+                            pass
+
+                        # Try PowerShell through WSL interop
+                        try:
+                            result = subprocess.run(
+                                ["powershell.exe", "-command", "Get-Clipboard"],
+                                capture_output=True,
+                                text=True,
+                                timeout=1
+                            )
+                            if result.returncode == 0:
+                                # Remove Windows line endings
+                                return result.stdout.replace('\r\n', '\n').strip()
+                        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+                            pass
+
             print(f"Failed to get clipboard text: {e}")
             return ""
 
@@ -74,7 +134,18 @@ class PlatformTextInputAdapter(TextInputService):
             original_content = self.get_clipboard_text()
 
             # Clear clipboard to detect if selection was copied
-            pyperclip.copy("")
+            try:
+                pyperclip.copy("")
+            except Exception:
+                # If pyperclip fails, try direct method for WSL
+                if os.path.exists("/proc/version"):
+                    try:
+                        subprocess.run(
+                            ["bash", "-c", "echo -n '' | xclip -selection clipboard"],
+                            timeout=1
+                        )
+                    except:
+                        pass
             time.sleep(0.05)  # Small delay
 
             # Simulate Ctrl+C to copy selected text
