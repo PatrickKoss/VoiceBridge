@@ -50,6 +50,20 @@ def create_app(commands: CLICommands) -> typer.Typer:
         )
 
     @app.command()
+    def interactive(
+        model: str | None = typer.Option(
+            None, "--model", "-m", help="Whisper model to use"
+        ),
+        language: str | None = typer.Option(
+            None, "--language", "-l", help="Language code"
+        ),
+        profile: str | None = typer.Option(None, "--profile", "-p", help="Use profile"),
+        debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
+    ):
+        """Interactive mode - type commands to control recording"""
+        commands.interactive(model, language, profile, debug)
+
+    @app.command()
     def hotkey(
         model: str | None = typer.Option(
             None, "--model", "-m", help="Whisper model to use"
@@ -57,7 +71,7 @@ def create_app(commands: CLICommands) -> typer.Typer:
         language: str | None = typer.Option(
             None, "--language", "-l", help="Language code"
         ),
-        key: str = typer.Option("f9", "--key", "-k", help="Hotkey to use"),
+        key: str = typer.Option("f2", "--key", "-k", help="Hotkey to use"),
         mode: str = typer.Option(
             "toggle", "--mode", help="Mode: toggle or push_to_talk"
         ),

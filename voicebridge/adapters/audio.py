@@ -18,22 +18,33 @@ class FFmpegAudioRecorder(AudioRecorder):
 
         cmd = self._build_ffmpeg_command(device, sample_rate)
 
-        proc = subprocess.Popen(
-            cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
-        )
+        try:
+            proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
+            )
+        except FileNotFoundError:
+            raise RuntimeError("FFmpeg not found. Please install FFmpeg to record audio.")
+        except Exception as e:
+            raise RuntimeError(f"Failed to start audio recording: {e}")
 
         chunk_size = sample_rate * 2  # 1 second of 16-bit audio
         audio_queue = queue.Queue()
+        error_queue = queue.Queue()
 
         def read_audio():
             try:
                 while True:
                     data = proc.stdout.read(chunk_size)
                     if not data:
+                        # Check if process failed
+                        if proc.poll() is not None:
+                            stderr = proc.stderr.read().decode('utf-8', errors='ignore')
+                            if stderr:
+                                error_queue.put(f"FFmpeg error: {stderr}")
                         break
                     audio_queue.put(data)
-            except Exception:
-                pass
+            except Exception as e:
+                error_queue.put(f"Audio reading error: {e}")
             finally:
                 audio_queue.put(None)  # Signal end
 
@@ -41,11 +52,27 @@ class FFmpegAudioRecorder(AudioRecorder):
         thread.start()
 
         try:
+            # Wait a moment for the process to start
+            import time
+            time.sleep(0.1)
+
+            # Check for immediate errors
+            if not error_queue.empty():
+                error = error_queue.get()
+                raise RuntimeError(error)
+
             while True:
-                data = audio_queue.get()
-                if data is None:
-                    break
-                yield data
+                try:
+                    data = audio_queue.get(timeout=1.0)  # 1 second timeout
+                    if data is None:
+                        break
+                    yield data
+                except queue.Empty:
+                    # Check for errors during recording
+                    if not error_queue.empty():
+                        error = error_queue.get()
+                        raise RuntimeError(error)
+                    continue
         finally:
             self._stop_ffmpeg_gracefully(proc)
 
@@ -59,7 +86,18 @@ class FFmpegAudioRecorder(AudioRecorder):
 
     def _get_default_device(self) -> str:
         devices = self.list_devices()
-        return devices[0].device_id if devices else None
+        if not devices:
+            return None
+
+        # For Linux/PulseAudio, prefer non-monitor devices (actual input devices)
+        if self.system_info.platform == PlatformType.LINUX:
+            # Look for devices that don't have ".monitor" in their ID
+            input_devices = [d for d in devices if ".monitor" not in d.device_id.lower()]
+            if input_devices:
+                return input_devices[0].device_id
+
+        # Fallback to first device
+        return devices[0].device_id
 
     def _build_ffmpeg_command(self, device: str, sample_rate: int) -> list[str]:
         if self.system_info.platform == PlatformType.WINDOWS:
