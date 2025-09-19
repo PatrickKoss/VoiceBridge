@@ -1862,12 +1862,12 @@ class CLICommands:
         # Check if we're being called recursively in background mode
         if background and os.environ.get("VOICEBRIDGE_NO_BACKGROUND"):
             background = False  # Disable background mode for recursive call
-            
+
         if background:
             # For background mode, use subprocess with detachment
             import subprocess
             import sys
-            
+
             cmd = [
                 sys.executable, "-m", "voicebridge", "tts", "daemon", "start",
                 "--mode", mode
@@ -1878,11 +1878,11 @@ class CLICommands:
                 cmd.append("--no-auto-play")
             if voice:
                 cmd.extend(["--voice", voice])
-            
+
             # Start daemon in background, suppressing background flag
             env = os.environ.copy()
             env["VOICEBRIDGE_NO_BACKGROUND"] = "1"  # Flag to prevent recursive background calls
-            
+
             process = subprocess.Popen(
                 cmd,
                 stdout=subprocess.DEVNULL,
@@ -1890,11 +1890,11 @@ class CLICommands:
                 start_new_session=True,
                 env=env
             )
-            
+
             # Give it a moment to start
             import time
             time.sleep(3)
-            
+
             # Check if it actually started
             if self.tts_daemon_service.is_daemon_running():
                 typer.echo("TTS daemon started in background")

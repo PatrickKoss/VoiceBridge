@@ -34,6 +34,7 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
         self.current_sound = None
         self.playback_thread = None
         self.stop_requested = False
+        self.current_sample_rate = None
 
         # Check pygame availability at runtime for proper mocking support
         try:
@@ -51,18 +52,27 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
 
         self._initialize()
 
-    def _initialize(self) -> None:
-        """Initialize pygame mixer"""
+    def _initialize(self, sample_rate: int = 24000) -> None:
+        """Initialize pygame mixer with specified sample rate"""
+        # Reinitialize if sample rate changed
+        if self.is_initialized and self.current_sample_rate != sample_rate:
+            try:
+                pygame.mixer.quit()
+                self.is_initialized = False
+            except Exception:
+                pass
+        
         if not self.is_initialized:
             try:
                 pygame.mixer.init(
-                    frequency=22050,  # Standard sample rate for tests
+                    frequency=sample_rate,  # Use the actual sample rate
                     size=-16,  # 16-bit signed
                     channels=1,  # Mono
-                    buffer=512,  # Buffer size for tests
+                    buffer=2048,  # Larger buffer for better quality
                 )
                 self.is_initialized = True
-                print("Pygame audio initialized")
+                self.current_sample_rate = sample_rate
+                print(f"Pygame audio initialized at {sample_rate}Hz")
             except Exception as e:
                 print(f"Failed to initialize pygame audio: {e}")
                 raise RuntimeError(f"Failed to initialize pygame audio: {e}") from e
@@ -72,21 +82,51 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
         if not audio_data:
             return
 
+        # Ensure pygame is initialized with correct sample rate
+        self._initialize(sample_rate)
+
         try:
-            # Create temporary file for pygame to load
-            with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
-                temp_path = temp_file.name
-
-            # Save audio data as WAV file
-            self.save_audio(audio_data, sample_rate, temp_path)
-
-            # Load and play with pygame
+            # Convert bytes directly to numpy array for pygame Sound
+            # This avoids the file I/O and potential quality loss
+            if len(audio_data) % 2 != 0:
+                audio_data = audio_data + b"\x00"
+            
+            # Create numpy array from raw audio data
+            audio_np = np.frombuffer(audio_data, dtype=np.int16)
+            
+            # pygame.sndarray requires the audio in the correct shape
+            # For mono audio, we need a 1D array
+            # Create Sound object directly from array
             try:
+                import pygame.sndarray
+                # Make sure array is C-contiguous for pygame
+                audio_array = np.ascontiguousarray(audio_np)
+                self.current_sound = pygame.sndarray.make_sound(audio_array)
+                self.is_playing_flag = True
+                self.stop_requested = False
+                
+                # Play the sound
+                self.current_sound.play()
+                
+                # Monitor playback in separate thread
+                self.playback_thread = threading.Thread(
+                    target=self._monitor_playback,
+                    args=(self.current_sound,),
+                    daemon=True,
+                )
+                self.playback_thread.start()
+                
+            except (ImportError, pygame.error) as e:
+                # Fallback to file-based method if sndarray not available
+                print(f"Direct array playback failed, using file method: {e}")
+                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
+                    temp_path = temp_file.name
+                
+                self.save_audio(audio_data, sample_rate, temp_path)
                 self.current_sound = pygame.mixer.Sound(temp_path)
                 self.is_playing_flag = True
                 self.stop_requested = False
-
-                # Start playback in separate thread to avoid blocking
+                
                 self.playback_thread = threading.Thread(
                     target=self._play_sound_thread,
                     args=(self.current_sound, temp_path),
@@ -94,17 +134,20 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
                 )
                 self.playback_thread.start()
 
-            except Exception as e:
-                # Clean up temp file on error
-                try:
-                    os.unlink(temp_path)
-                except OSError:
-                    pass
-                raise e
-
         except Exception as e:
             print(f"Failed to play audio: {e}")
             raise RuntimeError(f"Failed to play audio: {e}") from e
+
+    def _monitor_playback(self, sound: pygame.mixer.Sound) -> None:
+        """Monitor sound playback without file cleanup"""
+        try:
+            # Wait for playback to complete or stop to be requested
+            while sound.get_num_channels() > 0 and not self.stop_requested:
+                time.sleep(0.1)
+        except Exception as e:
+            print(f"Error during playback: {e}")
+        finally:
+            self.is_playing_flag = False
 
     def _play_sound_thread(self, sound: pygame.mixer.Sound, temp_path: str) -> None:
         """Play sound in separate thread and clean up"""

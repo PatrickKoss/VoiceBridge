@@ -148,8 +148,13 @@ class VibeVoiceTTSAdapter(TTSService):
             logger.error(f"Failed to load voice samples: {e}")
             raise RuntimeError(f"Failed to load voice samples: {e}") from e
 
-        # Format text for single speaker
-        formatted_text = f"Speaker 1: {text}"
+        # Format text for single speaker, handling line breaks properly
+        # Replace line breaks with spaces to keep all text on one line
+        # This prevents parsing errors in the VibeVoice processor
+        cleaned_text = text.replace('\n', ' ').replace('\r', ' ')
+        # Remove multiple spaces
+        cleaned_text = ' '.join(cleaned_text.split())
+        formatted_text = f"Speaker 1: {cleaned_text}"
 
         try:
             # Process inputs
@@ -230,7 +235,10 @@ class VibeVoiceTTSAdapter(TTSService):
                     raise FileNotFoundError(f"Voice sample not found: {voice_path}")
                 voice_data.append(self._load_audio(voice_path))
 
-            formatted_text = f"Speaker 1: {text}"
+            # Format text for single speaker, handling line breaks properly
+            cleaned_text = text.replace('\n', ' ').replace('\r', ' ')
+            cleaned_text = ' '.join(cleaned_text.split())
+            formatted_text = f"Speaker 1: {cleaned_text}"
 
             # Process inputs
             inputs = self.processor(

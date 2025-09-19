@@ -243,14 +243,16 @@ class TTSOrchestrator:
         text = self.text_input_service.get_clipboard_text()
         if not text.strip():
             return None
-        return self.generate_speech(text, config)
+        # Use high-quality generation and handle output properly
+        return self.generate_and_play_speech(text, config)
 
     def process_selected_text(self, config: TTSConfig) -> Optional["TTSResult"]:
         """Process selected text"""
         text = self.text_input_service.get_selected_text()
         if not text.strip():
             return None
-        return self.generate_speech(text, config)
+        # Use high-quality generation and handle output properly
+        return self.generate_and_play_speech(text, config)
 
     def stop_generation(self) -> None:
         """Stop TTS generation and playback"""
@@ -419,11 +421,11 @@ class TTSOrchestrator:
 
         # Use default voice or first available
         voice_name = config.default_voice
-        
+
         # Try exact match first
         if voice_name in self.voice_samples_cache:
             return [self.voice_samples_cache[voice_name].file_path]
-        
+
         # Try partial matching (e.g., "Patrick" matches "en-Patrick")
         if voice_name and self.voice_samples_cache:
             for full_name, voice_info in self.voice_samples_cache.items():
@@ -433,14 +435,14 @@ class TTSOrchestrator:
                         f"Voice '{voice_name}' matched to '{full_name}'"
                     )
                     return [voice_info.file_path]
-                
+
                 # Also check if the full name ends with the requested name
                 if full_name.lower().endswith(f"-{voice_name.lower()}"):
                     self.logger.info(
                         f"Voice '{voice_name}' matched to '{full_name}'"
                     )
                     return [voice_info.file_path]
-        
+
         # If no match found, use first available voice
         if self.voice_samples_cache:
             first_voice = next(iter(self.voice_samples_cache.values()))
@@ -641,7 +643,8 @@ class TTSDaemonService:
                 current_text = self.orchestrator.text_input_service.get_clipboard_text()
                 if current_text != last_clipboard_text and current_text.strip():
                     last_clipboard_text = current_text
-                    self.orchestrator.process_clipboard_text(config)
+                    # Use high-quality TTS generation path
+                    self.orchestrator.generate_tts_from_text(current_text, config)
                 time.sleep(0.5)  # Check every 0.5 seconds
             except Exception as e:
                 self.logger.error(f"Error in clipboard monitoring: {e}")
@@ -721,9 +724,13 @@ class TTSDaemonService:
                 return
 
             if config.tts_mode == TTSMode.CLIPBOARD:
-                self.orchestrator.process_clipboard_text(config)
+                text = self.orchestrator.text_input_service.get_clipboard_text()
+                if text.strip():
+                    self.orchestrator.generate_tts_from_text(text, config)
             elif config.tts_mode == TTSMode.MOUSE:
-                self.orchestrator.process_selected_text(config)
+                text = self.orchestrator.text_input_service.get_selected_text()
+                if text.strip():
+                    self.orchestrator.generate_tts_from_text(text, config)
         except Exception as e:
             self.logger.error(f"Error handling generate hotkey: {e}")
 
