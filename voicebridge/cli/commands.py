@@ -1869,8 +1869,14 @@ class CLICommands:
             import sys
 
             cmd = [
-                sys.executable, "-m", "voicebridge", "tts", "daemon", "start",
-                "--mode", mode
+                sys.executable,
+                "-m",
+                "voicebridge",
+                "tts",
+                "daemon",
+                "start",
+                "--mode",
+                mode,
             ]
             if streaming:
                 cmd.append("--streaming")
@@ -1881,18 +1887,21 @@ class CLICommands:
 
             # Start daemon in background, suppressing background flag
             env = os.environ.copy()
-            env["VOICEBRIDGE_NO_BACKGROUND"] = "1"  # Flag to prevent recursive background calls
+            env["VOICEBRIDGE_NO_BACKGROUND"] = (
+                "1"  # Flag to prevent recursive background calls
+            )
 
-            process = subprocess.Popen(
+            subprocess.Popen(
                 cmd,
                 stdout=subprocess.DEVNULL,
                 stderr=subprocess.DEVNULL,
                 start_new_session=True,
-                env=env
+                env=env,
             )
 
             # Give it a moment to start
             import time
+
             time.sleep(3)
 
             # Check if it actually started
@@ -1914,6 +1923,7 @@ class CLICommands:
 
             # Keep daemon running
             import time
+
             try:
                 while self.tts_daemon_service.is_running:
                     time.sleep(1)
@@ -1947,14 +1957,14 @@ class CLICommands:
         status_info = self.tts_daemon_service.get_status()
         typer.echo(f"TTS daemon status: {status_info['status']}")
 
-        if status_info['status'] == 'running':
-            if 'mode' in status_info:
+        if status_info["status"] == "running":
+            if "mode" in status_info:
                 typer.echo(f"Mode: {status_info['mode']}")
-            if 'voice' in status_info:
+            if "voice" in status_info:
                 typer.echo(f"Voice: {status_info['voice']}")
-            if 'generate_key' in status_info:
+            if "generate_key" in status_info:
                 typer.echo(f"Generate hotkey: {status_info['generate_key']}")
-            if 'stop_key' in status_info:
+            if "stop_key" in status_info:
                 typer.echo(f"Stop hotkey: {status_info['stop_key']}")
 
     def tts_list_voices(self):

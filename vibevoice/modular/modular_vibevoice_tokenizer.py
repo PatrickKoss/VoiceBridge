@@ -1,5 +1,6 @@
 import copy
 import math
+import os
 import typing as tp
 from dataclasses import dataclass
 from functools import partial
@@ -20,20 +21,22 @@ from .configuration_vibevoice import (
 
 logger = logging.get_logger(__name__)
 
-import os
-
 # Try to import APEX FusedRMSNorm
 try:
     from apex.normalization.fused_layer_norm import fused_rms_norm_affine
+
     APEX_AVAILABLE = True
     logger.info("APEX FusedRMSNorm is available and will be used for optimization")
     if int(os.getenv("OPTIMIZE_FOR_SPEED", "0")) == 0:
         APEX_AVAILABLE = False
-        logger.warning("APEX FusedRMSNorm is disabled by environment variable OPTIMIZE_FOR_SPEED=0")
+        logger.warning(
+            "APEX FusedRMSNorm is disabled by environment variable OPTIMIZE_FOR_SPEED=0"
+        )
 except ImportError:
     APEX_AVAILABLE = False
     logger.warning("APEX FusedRMSNorm not available, using native implementation")
 # APEX_AVAILABLE=False
+
 
 # Normalization modules
 class ConvLayerNorm(nn.LayerNorm):
@@ -41,17 +44,27 @@ class ConvLayerNorm(nn.LayerNorm):
     Convolution-friendly LayerNorm that moves channels to last dimensions
     before running the normalization and moves them back to original position right after.
     """
+
     def __init__(self, normalized_shape: int | list[int] | torch.Size, **kwargs):
         super().__init__(normalized_shape, **kwargs)
 
     def forward(self, x):
         x = x.transpose(1, 2)  # b ... t -> b t ...
-        x = nn.functional.layer_norm(x.float(), self.normalized_shape, self.weight.float(), self.bias.float(), self.eps).type_as(x)
+        x = nn.functional.layer_norm(
+            x.float(),
+            self.normalized_shape,
+            self.weight.float(),
+            self.bias.float(),
+            self.eps,
+        ).type_as(x)
         x = x.transpose(1, 2)  # b t ... -> b ... t
         return x
 
+
 class RMSNorm(nn.Module):
-    def __init__(self, dim: int, eps: float = 1e-5, elementwise_affine=True, weight_shape=None):
+    def __init__(
+        self, dim: int, eps: float = 1e-5, elementwise_affine=True, weight_shape=None
+    ):
         super().__init__()
         self.dim = dim
         self.eps = eps
@@ -60,7 +73,7 @@ class RMSNorm(nn.Module):
             weight_shape = (dim,) if weight_shape is None else weight_shape
             self.weight = nn.Parameter(torch.ones(weight_shape))
         else:
-            self.register_parameter('weight', None)
+            self.register_parameter("weight", None)
 
     def _norm(self, x):
         return x * torch.rsqrt(x.pow(2).mean(-1, keepdim=True) + self.eps)
@@ -72,10 +85,13 @@ class RMSNorm(nn.Module):
         return output
 
     def extra_repr(self) -> str:
-        return f'dim={self.dim}, eps={self.eps}, elementwise_affine={self.elementwise_affine}'
+        return f"dim={self.dim}, eps={self.eps}, elementwise_affine={self.elementwise_affine}"
+
 
 class ConvRMSNorm(RMSNorm):
-    def __init__(self, dim: int, eps: float = 1e-5, elementwise_affine=True, weight_shape=None):
+    def __init__(
+        self, dim: int, eps: float = 1e-5, elementwise_affine=True, weight_shape=None
+    ):
         super().__init__(dim, eps, elementwise_affine, weight_shape)
 
     def forward(self, x):
@@ -90,16 +106,25 @@ class ConvRMSNorm(RMSNorm):
         output = output.transpose(1, 2)  # b t ... -> b ... t
         return output
 
+
 # Convolutional layers and utilities
-CONV_NORMALIZATIONS = frozenset(['none', 'weight_norm', 'spectral_norm',
-                                'time_layer_norm', 'layer_norm', 'time_group_norm'])
+CONV_NORMALIZATIONS = frozenset(
+    [
+        "none",
+        "weight_norm",
+        "spectral_norm",
+        "time_layer_norm",
+        "layer_norm",
+        "time_group_norm",
+    ]
+)
 
 
-def apply_parametrization_norm(module: nn.Module, norm: str = 'none') -> nn.Module:
+def apply_parametrization_norm(module: nn.Module, norm: str = "none") -> nn.Module:
     assert norm in CONV_NORMALIZATIONS
-    if norm == 'weight_norm':
+    if norm == "weight_norm":
         return nn.utils.weight_norm(module)
-    elif norm == 'spectral_norm':
+    elif norm == "spectral_norm":
         return nn.utils.spectral_norm(module)
     else:
         # We already check was in CONV_NORMALIZATION, so any other choice
@@ -107,15 +132,17 @@ def apply_parametrization_norm(module: nn.Module, norm: str = 'none') -> nn.Modu
         return module
 
 
-def get_norm_module(module: nn.Module, causal: bool = False, norm: str = 'none', **norm_kwargs) -> nn.Module:
+def get_norm_module(
+    module: nn.Module, causal: bool = False, norm: str = "none", **norm_kwargs
+) -> nn.Module:
     """Return the proper normalization module. If causal is True, this will ensure the returned
     module is causal, or return an error if the normalization doesn't support causal evaluation.
     """
     assert norm in CONV_NORMALIZATIONS
-    if norm == 'layer_norm':
+    if norm == "layer_norm":
         assert isinstance(module, nn.modules.conv._ConvNd)
         return ConvLayerNorm(module.out_channels, **norm_kwargs)
-    elif norm == 'time_group_norm':
+    elif norm == "time_group_norm":
         if causal:
             raise ValueError("GroupNorm doesn't support causal evaluation.")
         assert isinstance(module, nn.modules.conv._ConvNd)
@@ -124,8 +151,9 @@ def get_norm_module(module: nn.Module, causal: bool = False, norm: str = 'none',
         return nn.Identity()
 
 
-def get_extra_padding_for_conv1d(x: torch.Tensor, kernel_size: int, stride: int,
-                                padding_total: int = 0) -> int:
+def get_extra_padding_for_conv1d(
+    x: torch.Tensor, kernel_size: int, stride: int, padding_total: int = 0
+) -> int:
     """Calculate extra padding needed for convolution to have the same output length"""
     length = x.shape[-1]
     n_frames = (length - kernel_size + padding_total) / stride + 1
@@ -133,12 +161,14 @@ def get_extra_padding_for_conv1d(x: torch.Tensor, kernel_size: int, stride: int,
     return ideal_length - length
 
 
-def pad1d(x: torch.Tensor, paddings: tuple[int, int], mode: str = 'zero', value: float = 0.):
+def pad1d(
+    x: torch.Tensor, paddings: tuple[int, int], mode: str = "zero", value: float = 0.0
+):
     """Pad 1D input with handling for small inputs in reflect mode"""
     length = x.shape[-1]
     padding_left, padding_right = paddings
     assert padding_left >= 0 and padding_right >= 0, (padding_left, padding_right)
-    if mode == 'reflect':
+    if mode == "reflect":
         max_pad = max(padding_left, padding_right)
         extra_pad = 0
         if length <= max_pad:
@@ -157,13 +187,22 @@ def unpad1d(x: torch.Tensor, paddings: tuple[int, int]):
     assert padding_left >= 0 and padding_right >= 0, (padding_left, padding_right)
     assert (padding_left + padding_right) <= x.shape[-1]
     end = x.shape[-1] - padding_right
-    return x[..., padding_left: end]
+    return x[..., padding_left:end]
 
 
 class NormConv1d(nn.Module):
     """Wrapper around Conv1d and normalization applied to this conv"""
-    def __init__(self, *args, causal: bool = False, norm: str = 'none',
-                norm_kwargs: dict[str, tp.Any] = {}, **kwargs):
+
+    def __init__(
+        self,
+        *args,
+        causal: bool = False,
+        norm: str = "none",
+        norm_kwargs: dict[str, tp.Any] = None,
+        **kwargs,
+    ):
+        if norm_kwargs is None:
+            norm_kwargs = {}
         super().__init__()
         self.conv = apply_parametrization_norm(nn.Conv1d(*args, **kwargs), norm)
         self.norm = get_norm_module(self.conv, causal, norm, **norm_kwargs)
@@ -177,10 +216,21 @@ class NormConv1d(nn.Module):
 
 class NormConvTranspose1d(nn.Module):
     """Wrapper around ConvTranspose1d and normalization applied to this conv"""
-    def __init__(self, *args, causal: bool = False, norm: str = 'none',
-                norm_kwargs: dict[str, tp.Any] = {}, **kwargs):
+
+    def __init__(
+        self,
+        *args,
+        causal: bool = False,
+        norm: str = "none",
+        norm_kwargs: dict[str, tp.Any] = None,
+        **kwargs,
+    ):
+        if norm_kwargs is None:
+            norm_kwargs = {}
         super().__init__()
-        self.convtr = apply_parametrization_norm(nn.ConvTranspose1d(*args, **kwargs), norm)
+        self.convtr = apply_parametrization_norm(
+            nn.ConvTranspose1d(*args, **kwargs), norm
+        )
         self.norm = get_norm_module(self.convtr, causal, norm, **norm_kwargs)
         self.norm_type = norm
 
@@ -192,6 +242,7 @@ class NormConvTranspose1d(nn.Module):
 
 class VibeVoiceTokenizerStreamingCache:
     """Cache for streaming convolution, similar to KV cache in attention"""
+
     def __init__(self):
         self.cache = {}  # Dict mapping (layer_id, sample_idx) to state tensor
 
@@ -217,7 +268,7 @@ class VibeVoiceTokenizerStreamingCache:
                     # Pad on the time dimension (last dimension)
                     pad_size = max_length - state.shape[-1]
                     # Pad with zeros on the LEFT to align the most recent samples
-                    padded_state = F.pad(state, (pad_size, 0), mode='constant', value=0)
+                    padded_state = F.pad(state, (pad_size, 0), mode="constant", value=0)
                     padded_states.append(padded_state)
                 else:
                     padded_states.append(state)
@@ -240,7 +291,9 @@ class VibeVoiceTokenizerStreamingCache:
                 cached_tensor = self.cache[key]
                 self.cache[key] = torch.zeros_like(cached_tensor)
 
-    def clear(self, layer_id: str | None = None, sample_indices: torch.Tensor | None = None):
+    def clear(
+        self, layer_id: str | None = None, sample_indices: torch.Tensor | None = None
+    ):
         """Clear cache for specific layer/samples or everything"""
         if layer_id is None and sample_indices is None:
             self.cache.clear()
@@ -255,17 +308,39 @@ class VibeVoiceTokenizerStreamingCache:
                 key = (layer_id, idx)
                 self.cache.pop(key, None)
 
+
 class SConv1d(nn.Module):
     """Conv1d with built-in handling of asymmetric or causal padding and normalization."""
-    def __init__(self, in_channels: int, out_channels: int,
-                kernel_size: int, stride: int = 1, dilation: int = 1,
-                groups: int = 1, bias: bool = True, causal: bool = False,
-                norm: str = 'none', norm_kwargs: dict[str, tp.Any] = {},
-                pad_mode: str = 'reflect'):
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int = 1,
+        dilation: int = 1,
+        groups: int = 1,
+        bias: bool = True,
+        causal: bool = False,
+        norm: str = "none",
+        norm_kwargs: dict[str, tp.Any] = None,
+        pad_mode: str = "reflect",
+    ):
+        if norm_kwargs is None:
+            norm_kwargs = {}
         super().__init__()
-        self.conv = NormConv1d(in_channels, out_channels, kernel_size, stride,
-                            dilation=dilation, groups=groups, bias=bias, causal=causal,
-                            norm=norm, norm_kwargs=norm_kwargs)
+        self.conv = NormConv1d(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            dilation=dilation,
+            groups=groups,
+            bias=bias,
+            causal=causal,
+            norm=norm,
+            norm_kwargs=norm_kwargs,
+        )
         self.causal = causal
         self.pad_mode = pad_mode
 
@@ -293,21 +368,24 @@ class SConv1d(nn.Module):
             self._layer_id = f"sconv1d_{id(self)}"
         return self._layer_id
 
-    def forward(self, x: torch.Tensor,
-                cache: VibeVoiceTokenizerStreamingCache | None = None,
-                sample_indices: torch.Tensor | None = None,
-                use_cache: bool = False,
-                debug: bool = False) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        cache: VibeVoiceTokenizerStreamingCache | None = None,
+        sample_indices: torch.Tensor | None = None,
+        use_cache: bool = False,
+        debug: bool = False,
+    ) -> torch.Tensor:
         """
         Forward pass with optional streaming support via cache.
-        
+
         Args:
             x: Input tensor [batch_size, channels, time]
             cache: VibeVoiceTokenizerStreamingCache object for maintaining states
             sample_indices: Indices identifying each sample for cache management
             use_cache: Whether to use cached states for streaming
             debug: Whether to print debug information
-            
+
         Returns:
             Output tensor
         """
@@ -319,15 +397,20 @@ class SConv1d(nn.Module):
 
         # Streaming mode
         assert self.causal, "Streaming mode is only supported for causal convolutions"
-        assert sample_indices is not None, "sample_indices must be provided for streaming mode"
+        assert sample_indices is not None, (
+            "sample_indices must be provided for streaming mode"
+        )
         assert len(sample_indices) == B, "sample_indices must match batch size"
 
         return self._forward_streaming(x, cache, sample_indices, debug)
 
-    def _forward_streaming(self, x: torch.Tensor,
-                          cache: VibeVoiceTokenizerStreamingCache,
-                          sample_indices: torch.Tensor,
-                          debug: bool = False) -> torch.Tensor:
+    def _forward_streaming(
+        self,
+        x: torch.Tensor,
+        cache: VibeVoiceTokenizerStreamingCache,
+        sample_indices: torch.Tensor,
+        debug: bool = False,
+    ) -> torch.Tensor:
         """Streaming forward pass with cache operations kept separate from compiled code"""
         B, C, T = x.shape
 
@@ -337,9 +420,13 @@ class SConv1d(nn.Module):
         if cached_states is None:
             # First chunk - initialize with zeros for context
             if self.context_size > 0:
-                cached_states = torch.zeros(B, C, self.context_size, device=x.device, dtype=x.dtype)
+                cached_states = torch.zeros(
+                    B, C, self.context_size, device=x.device, dtype=x.dtype
+                )
                 if debug:
-                    print(f"[DEBUG] Initialized cache with shape: {cached_states.shape}, context_size={self.context_size}")
+                    print(
+                        f"[DEBUG] Initialized cache with shape: {cached_states.shape}, context_size={self.context_size}"
+                    )
             else:
                 cached_states = torch.zeros(B, C, 0, device=x.device, dtype=x.dtype)
                 if debug:
@@ -352,7 +439,9 @@ class SConv1d(nn.Module):
             input_with_context = x
 
         if debug:
-            print(f"[DEBUG] Input shape: {x.shape}, Cache shape: {cached_states.shape}, Combined: {input_with_context.shape}")
+            print(
+                f"[DEBUG] Input shape: {x.shape}, Cache shape: {cached_states.shape}, Combined: {input_with_context.shape}"
+            )
 
         # Apply convolution directly - no extra padding in streaming mode
         # The conv layer will handle its own padding internally
@@ -381,31 +470,40 @@ class SConv1d(nn.Module):
 
         return output
 
-    def _forward_non_streaming(self, x: torch.Tensor, debug: bool = False) -> torch.Tensor:
+    def _forward_non_streaming(
+        self, x: torch.Tensor, debug: bool = False
+    ) -> torch.Tensor:
         """Standard forward pass without streaming"""
         B, C, T = x.shape
         kernel_size = self.kernel_size
         stride = self.stride
-        dilation = self.dilation
         padding_total = self.padding_total
 
         # Compute extra padding for stride alignment
-        extra_padding = get_extra_padding_for_conv1d(x, kernel_size, stride, padding_total)
+        extra_padding = get_extra_padding_for_conv1d(
+            x, kernel_size, stride, padding_total
+        )
 
         if debug:
-            print(f"[DEBUG NON-STREAMING] Input shape: {x.shape}, padding_total={padding_total}, extra_padding={extra_padding}")
+            print(
+                f"[DEBUG NON-STREAMING] Input shape: {x.shape}, padding_total={padding_total}, extra_padding={extra_padding}"
+            )
 
         if self.causal:
             # Left padding for causal
-            if self.pad_mode == 'constant':
-                x = pad1d(x, (padding_total, extra_padding), mode=self.pad_mode, value=0)
+            if self.pad_mode == "constant":
+                x = pad1d(
+                    x, (padding_total, extra_padding), mode=self.pad_mode, value=0
+                )
             else:
                 x = pad1d(x, (padding_total, extra_padding), mode=self.pad_mode)
         else:
             # Symmetric padding for non-causal
             padding_right = padding_total // 2
             padding_left = padding_total - padding_right
-            x = pad1d(x, (padding_left, padding_right + extra_padding), mode=self.pad_mode)
+            x = pad1d(
+                x, (padding_left, padding_right + extra_padding), mode=self.pad_mode
+            )
 
         if debug:
             print(f"[DEBUG NON-STREAMING] After padding: {x.shape}")
@@ -420,18 +518,38 @@ class SConv1d(nn.Module):
 
 class SConvTranspose1d(nn.Module):
     """ConvTranspose1d with built-in handling of asymmetric or causal padding and normalization."""
-    def __init__(self, in_channels: int, out_channels: int,
-                kernel_size: int, stride: int = 1, causal: bool = False,
-                norm: str = 'none', trim_right_ratio: float = 1.,
-                norm_kwargs: dict[str, tp.Any] = {}, bias: bool = True):
+
+    def __init__(
+        self,
+        in_channels: int,
+        out_channels: int,
+        kernel_size: int,
+        stride: int = 1,
+        causal: bool = False,
+        norm: str = "none",
+        trim_right_ratio: float = 1.0,
+        norm_kwargs: dict[str, tp.Any] = None,
+        bias: bool = True,
+    ):
+        if norm_kwargs is None:
+            norm_kwargs = {}
         super().__init__()
-        self.convtr = NormConvTranspose1d(in_channels, out_channels, kernel_size, stride,
-                                        causal=causal, norm=norm, norm_kwargs=norm_kwargs, bias=bias)
+        self.convtr = NormConvTranspose1d(
+            in_channels,
+            out_channels,
+            kernel_size,
+            stride,
+            causal=causal,
+            norm=norm,
+            norm_kwargs=norm_kwargs,
+            bias=bias,
+        )
         self.causal = causal
         self.trim_right_ratio = trim_right_ratio
-        assert self.causal or self.trim_right_ratio == 1., \
+        assert self.causal or self.trim_right_ratio == 1.0, (
             "`trim_right_ratio` != 1.0 only makes sense for causal convolutions"
-        assert self.trim_right_ratio >= 0. and self.trim_right_ratio <= 1.
+        )
+        assert self.trim_right_ratio >= 0.0 and self.trim_right_ratio <= 1.0
 
         # Store configuration
         self.kernel_size = kernel_size
@@ -455,11 +573,14 @@ class SConvTranspose1d(nn.Module):
             self._layer_id = f"sconvtr1d_{id(self)}"
         return self._layer_id
 
-    def forward(self, x: torch.Tensor,
-                cache: VibeVoiceTokenizerStreamingCache | None = None,
-                sample_indices: torch.Tensor | None = None,
-                use_cache: bool = False,
-                debug: bool = False) -> torch.Tensor:
+    def forward(
+        self,
+        x: torch.Tensor,
+        cache: VibeVoiceTokenizerStreamingCache | None = None,
+        sample_indices: torch.Tensor | None = None,
+        use_cache: bool = False,
+        debug: bool = False,
+    ) -> torch.Tensor:
         """
         Forward pass with optional streaming support via cache.
         """
@@ -470,15 +591,20 @@ class SConvTranspose1d(nn.Module):
             return self._forward_non_streaming(x, debug=debug)
 
         # Streaming mode
-        assert sample_indices is not None, "sample_indices must be provided for streaming mode"
+        assert sample_indices is not None, (
+            "sample_indices must be provided for streaming mode"
+        )
         assert len(sample_indices) == B, "sample_indices must match batch size"
 
         return self._forward_streaming(x, cache, sample_indices, debug)
 
-    def _forward_streaming(self, x: torch.Tensor,
-                          cache: VibeVoiceTokenizerStreamingCache,
-                          sample_indices: torch.Tensor,
-                          debug: bool = False) -> torch.Tensor:
+    def _forward_streaming(
+        self,
+        x: torch.Tensor,
+        cache: VibeVoiceTokenizerStreamingCache,
+        sample_indices: torch.Tensor,
+        debug: bool = False,
+    ) -> torch.Tensor:
         """Streaming forward pass with cache operations kept separate from compiled code"""
         B, C, T = x.shape
 
@@ -495,7 +621,9 @@ class SConvTranspose1d(nn.Module):
         full_input = torch.cat([cached_input, x], dim=2)
 
         if debug:
-            print(f"[DEBUG] Input shape: {x.shape}, Cache shape: {cached_input.shape}, Combined: {full_input.shape}")
+            print(
+                f"[DEBUG] Input shape: {x.shape}, Cache shape: {cached_input.shape}, Combined: {full_input.shape}"
+            )
 
         # First chunk or debug mode - use uncompiled version
         full_output = self.convtr(full_input)
@@ -537,7 +665,7 @@ class SConvTranspose1d(nn.Module):
 
         # Update cache
         if full_input.shape[2] > self.context_size:
-            new_cache = full_input[:, :, -self.context_size:]
+            new_cache = full_input[:, :, -self.context_size :]
         else:
             new_cache = full_input
 
@@ -548,7 +676,9 @@ class SConvTranspose1d(nn.Module):
 
         return output
 
-    def _forward_non_streaming(self, x: torch.Tensor, debug: bool = False) -> torch.Tensor:
+    def _forward_non_streaming(
+        self, x: torch.Tensor, debug: bool = False
+    ) -> torch.Tensor:
         """Standard forward pass without streaming"""
         if debug:
             print(f"[DEBUG NON-STREAMING] Input shape: {x.shape}")
@@ -575,6 +705,7 @@ class SConvTranspose1d(nn.Module):
 
         return y
 
+
 # FFN
 class FFN(nn.Module):
     def __init__(
@@ -598,66 +729,96 @@ class FFN(nn.Module):
 
 class Convlayer(nn.Module):
     def __init__(
-            self,
+        self,
+        in_channels,
+        out_channels,
+        kernel_size,
+        stride=1,
+        dilation=1,
+        groups=1,
+        bias=True,
+        pad_mode="zeros",
+        norm="weight_norm",
+        causal=True,
+    ):
+        super().__init__()
+        self.conv = SConv1d(
             in_channels,
             out_channels,
             kernel_size,
-            stride=1,
-            dilation=1,
-            groups=1,
-            bias=True,
-            pad_mode='zeros',
-            norm='weight_norm',
-            causal=True,
-        ):
-        super().__init__()
-        self.conv = SConv1d(in_channels, out_channels, kernel_size, stride=stride, dilation=dilation,
-                           groups=groups, bias=bias, pad_mode=pad_mode, norm=norm, causal=causal)
+            stride=stride,
+            dilation=dilation,
+            groups=groups,
+            bias=bias,
+            pad_mode=pad_mode,
+            norm=norm,
+            causal=causal,
+        )
 
     def forward(self, x):
         return self.conv(x)
 
+
 class Block1D(nn.Module):
-    def __init__(self, dim, kernel_size=7, drop_path=0., mixer_layer='conv',
-                layer_scale_init_value=1e-6, **kwargs):
+    def __init__(
+        self,
+        dim,
+        kernel_size=7,
+        drop_path=0.0,
+        mixer_layer="conv",
+        layer_scale_init_value=1e-6,
+        **kwargs,
+    ):
         super().__init__()
 
-        if kwargs.get('layernorm', 'LN') == 'LN':
-            self.norm = ConvLayerNorm(dim, eps=kwargs.get('eps', 1e-6))
-            self.ffn_norm = ConvLayerNorm(dim, eps=kwargs.get('eps', 1e-6))
-        elif kwargs.get('layernorm', 'RMSNorm') == 'RMSNorm':
-            self.norm = ConvRMSNorm(dim, eps=kwargs.get('eps', 1e-6))
-            self.ffn_norm = ConvRMSNorm(dim, eps=kwargs.get('eps', 1e-6))
+        if kwargs.get("layernorm", "LN") == "LN":
+            self.norm = ConvLayerNorm(dim, eps=kwargs.get("eps", 1e-6))
+            self.ffn_norm = ConvLayerNorm(dim, eps=kwargs.get("eps", 1e-6))
+        elif kwargs.get("layernorm", "RMSNorm") == "RMSNorm":
+            self.norm = ConvRMSNorm(dim, eps=kwargs.get("eps", 1e-6))
+            self.ffn_norm = ConvRMSNorm(dim, eps=kwargs.get("eps", 1e-6))
 
-        if mixer_layer == 'conv':
-            self.mixer = Convlayer(dim, dim, groups=kwargs.get('groups', 1),
-                                kernel_size=kernel_size,
-                                pad_mode=kwargs.get('pad_mode', 'reflect'),
-                                norm=kwargs.get('norm', 'none'),
-                                causal=kwargs.get('causal', True),
-                                bias=kwargs.get('bias', True),
-                                )
-        elif mixer_layer == 'depthwise_conv':
-            self.mixer = Convlayer(dim, dim, groups=dim,
-                                kernel_size=kernel_size,
-                                pad_mode=kwargs.get('pad_mode', 'reflect'),
-                                norm=kwargs.get('norm', 'none'),
-                                causal=kwargs.get('causal', True),
-                                bias=kwargs.get('bias', True),
-                                )
+        if mixer_layer == "conv":
+            self.mixer = Convlayer(
+                dim,
+                dim,
+                groups=kwargs.get("groups", 1),
+                kernel_size=kernel_size,
+                pad_mode=kwargs.get("pad_mode", "reflect"),
+                norm=kwargs.get("norm", "none"),
+                causal=kwargs.get("causal", True),
+                bias=kwargs.get("bias", True),
+            )
+        elif mixer_layer == "depthwise_conv":
+            self.mixer = Convlayer(
+                dim,
+                dim,
+                groups=dim,
+                kernel_size=kernel_size,
+                pad_mode=kwargs.get("pad_mode", "reflect"),
+                norm=kwargs.get("norm", "none"),
+                causal=kwargs.get("causal", True),
+                bias=kwargs.get("bias", True),
+            )
         else:
             raise ValueError(f"Unsupported mixer layer: {mixer_layer}")
 
         self.ffn = FFN(
             dim,
-            kwargs.get('ffn_expansion', 4) * dim,
-            bias=kwargs.get('bias', False),
+            kwargs.get("ffn_expansion", 4) * dim,
+            bias=kwargs.get("bias", False),
         )
-        self.drop_path = nn.Identity() if drop_path <= 0. else nn.modules.DropPath(drop_path)
+        self.drop_path = (
+            nn.Identity() if drop_path <= 0.0 else nn.modules.DropPath(drop_path)
+        )
 
         if layer_scale_init_value > 0:
-            self.gamma = nn.Parameter(layer_scale_init_value * torch.ones(dim), requires_grad=True)
-            self.ffn_gamma = nn.Parameter(layer_scale_init_value * torch.ones(dim), requires_grad=True)
+            self.gamma = nn.Parameter(
+                layer_scale_init_value * torch.ones(dim), requires_grad=True
+            )
+            self.ffn_gamma = nn.Parameter(
+                layer_scale_init_value * torch.ones(dim), requires_grad=True
+            )
         else:
             self.gamma = None
             self.ffn_gamma = None
@@ -687,10 +848,11 @@ class Block1D(nn.Module):
 class TokenizerEncoder(nn.Module):
     """
     Encoder component for the VibeVoice tokenizer that converts audio to latent representations.
-    
+
     Args:
         config: Configuration object with model parameters
     """
+
     def __init__(self, config):
         super().__init__()
 
@@ -713,32 +875,54 @@ class TokenizerEncoder(nn.Module):
         bias = getattr(config, "bias", True)
         layernorm = getattr(config, "layernorm", "LN")
         layernorm_eps = getattr(config, "layernorm_eps", 1e-6)
-        layernorm_elementwise_affine = getattr(config, "layernorm_elementwise_affine", True)
+        layernorm_elementwise_affine = getattr(
+            config, "layernorm_elementwise_affine", True
+        )
         drop_path_rate = getattr(config, "drop_path_rate", 0.0)
         mixer_layer = getattr(config, "mixer_layer", "conv")
         layer_scale_init_value = getattr(config, "layer_scale_init_value", 0)
         disable_last_norm = getattr(config, "disable_last_norm", False)
 
         # determine the norm type based on layernorm
-        if layernorm == 'LN':
+        if layernorm == "LN":
             norm_type = ConvLayerNorm
-        elif layernorm == 'RMSNorm':
-            norm_type = partial(ConvRMSNorm, elementwise_affine=layernorm_elementwise_affine)
+        elif layernorm == "RMSNorm":
+            norm_type = partial(
+                ConvRMSNorm, elementwise_affine=layernorm_elementwise_affine
+            )
         else:
             raise ValueError(f"Unsupported norm type: {layernorm}")
 
         # stem and intermediate downsampling conv layers
         stem = nn.Sequential(
-                SConv1d(self.channels, self.n_filters, kernel_size, norm=norm, norm_kwargs=norm_params, causal=self.causal, pad_mode=pad_mode, bias=bias),
-            )
+            SConv1d(
+                self.channels,
+                self.n_filters,
+                kernel_size,
+                norm=norm,
+                norm_kwargs=norm_params,
+                causal=self.causal,
+                pad_mode=pad_mode,
+                bias=bias,
+            ),
+        )
 
         self.downsample_layers = nn.ModuleList()
         self.downsample_layers.append(stem)
         for i in range(len(self.ratios)):
-            in_ch = self.n_filters * (2 ** i)
+            in_ch = self.n_filters * (2**i)
             out_ch = self.n_filters * (2 ** (i + 1))
             downsample_layer = nn.Sequential(
-                SConv1d(in_ch, out_ch, kernel_size=self.ratios[i] * 2, stride=self.ratios[i], causal=self.causal, pad_mode=pad_mode, norm=norm, bias=bias)
+                SConv1d(
+                    in_ch,
+                    out_ch,
+                    kernel_size=self.ratios[i] * 2,
+                    stride=self.ratios[i],
+                    causal=self.causal,
+                    pad_mode=pad_mode,
+                    norm=norm,
+                    bias=bias,
+                )
             )
             self.downsample_layers.append(downsample_layer)
 
@@ -756,13 +940,18 @@ class TokenizerEncoder(nn.Module):
         )
 
         self.stages = nn.ModuleList()
-        dp_rates = [x.item() for x in torch.linspace(0, drop_path_rate, sum(self.depths))]
+        dp_rates = [
+            x.item() for x in torch.linspace(0, drop_path_rate, sum(self.depths))
+        ]
         cur = 0
 
         for i in range(len(self.depths)):
-            in_ch = self.n_filters * (2 ** i)
+            in_ch = self.n_filters * (2**i)
             stage = nn.Sequential(
-                *[layer_type(dim=in_ch, drop_path=dp_rates[cur + j]) for j in range(self.depths[i])]
+                *[
+                    layer_type(dim=in_ch, drop_path=dp_rates[cur + j])
+                    for j in range(self.depths[i])
+                ]
             )
             self.stages.append(stage)
             cur += self.depths[i]
@@ -771,24 +960,50 @@ class TokenizerEncoder(nn.Module):
             self.norm = norm_type(in_ch, eps=layernorm_eps)
         else:
             self.norm = nn.Identity()
-        self.head = SConv1d(in_ch, self.dimension, kernel_size=last_kernel_size, causal=self.causal, pad_mode=pad_mode, norm=norm, bias=bias)
+        self.head = SConv1d(
+            in_ch,
+            self.dimension,
+            kernel_size=last_kernel_size,
+            causal=self.causal,
+            pad_mode=pad_mode,
+            norm=norm,
+            bias=bias,
+        )
 
-    def forward_features(self, x, cache=None, sample_indices=None, use_cache=False, debug=False):
+    def forward_features(
+        self, x, cache=None, sample_indices=None, use_cache=False, debug=False
+    ):
         for i in range(len(self.depths)):
             # Apply downsampling
             for layer in self.downsample_layers[i]:
                 if isinstance(layer, SConv1d):
-                    x = layer(x, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
+                    x = layer(
+                        x,
+                        cache=cache,
+                        sample_indices=sample_indices,
+                        use_cache=use_cache,
+                        debug=debug,
+                    )
                 else:
                     x = layer(x)
 
             # Apply stage (Block1D contains Convlayer which contains SConv1d)
             for block in self.stages[i]:
-                if hasattr(block, 'mixer') and hasattr(block.mixer, 'conv') and isinstance(block.mixer.conv, SConv1d):
+                if (
+                    hasattr(block, "mixer")
+                    and hasattr(block.mixer, "conv")
+                    and isinstance(block.mixer.conv, SConv1d)
+                ):
                     # Block1D forward with cache support
                     residual = x
                     x = block.norm(x)
-                    x = block.mixer.conv(x, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
+                    x = block.mixer.conv(
+                        x,
+                        cache=cache,
+                        sample_indices=sample_indices,
+                        use_cache=use_cache,
+                        debug=debug,
+                    )
                     if block.gamma is not None:
                         x = x * block.gamma.unsqueeze(-1)
                     x = residual + x
@@ -808,18 +1023,31 @@ class TokenizerEncoder(nn.Module):
         return self.norm(x)
 
     def forward(self, x, cache=None, sample_indices=None, use_cache=False, debug=False):
-        x = self.forward_features(x, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
-        x = self.head(x, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
+        x = self.forward_features(
+            x,
+            cache=cache,
+            sample_indices=sample_indices,
+            use_cache=use_cache,
+            debug=debug,
+        )
+        x = self.head(
+            x,
+            cache=cache,
+            sample_indices=sample_indices,
+            use_cache=use_cache,
+            debug=debug,
+        )
         return x
 
 
 class TokenizerDecoder(nn.Module):
     """
     Decoder component for the VibeVoice tokenizer that converts latent representations back to audio.
-    
+
     Args:
         config: Configuration object with model parameters
     """
+
     def __init__(self, config):
         super().__init__()
 
@@ -846,25 +1074,37 @@ class TokenizerDecoder(nn.Module):
         layernorm = getattr(config, "layernorm", "LN")
         layernorm_eps = getattr(config, "layernorm_eps", 1e-6)
         trim_right_ratio = getattr(config, "trim_right_ratio", 1.0)
-        layernorm_elementwise_affine = getattr(config, "layernorm_elementwise_affine", True)
+        layernorm_elementwise_affine = getattr(
+            config, "layernorm_elementwise_affine", True
+        )
         drop_path_rate = getattr(config, "drop_path_rate", 0.0)
         mixer_layer = getattr(config, "mixer_layer", "conv")
         layer_scale_init_value = getattr(config, "layer_scale_init_value", 0)
         disable_last_norm = getattr(config, "disable_last_norm", False)
 
         # determine the norm type based on layernorm
-        if layernorm == 'LN':
+        if layernorm == "LN":
             norm_type = ConvLayerNorm
-        elif layernorm == 'RMSNorm':
-            norm_type = partial(ConvRMSNorm, elementwise_affine=layernorm_elementwise_affine)
+        elif layernorm == "RMSNorm":
+            norm_type = partial(
+                ConvRMSNorm, elementwise_affine=layernorm_elementwise_affine
+            )
         else:
             raise ValueError(f"Unsupported norm type: {layernorm}")
 
         # stem and upsampling layers
         stem = nn.Sequential(
-                SConv1d(self.dimension, self.n_filters * 2 ** (len(self.depths) - 1), kernel_size, norm=norm,
-                        norm_kwargs=norm_params, causal=self.causal, pad_mode=pad_mode, bias=bias),
-            )
+            SConv1d(
+                self.dimension,
+                self.n_filters * 2 ** (len(self.depths) - 1),
+                kernel_size,
+                norm=norm,
+                norm_kwargs=norm_params,
+                causal=self.causal,
+                pad_mode=pad_mode,
+                bias=bias,
+            ),
+        )
 
         self.upsample_layers = nn.ModuleList()
         self.upsample_layers.append(stem)
@@ -872,10 +1112,17 @@ class TokenizerDecoder(nn.Module):
             in_ch = self.n_filters * (2 ** (len(self.depths) - 1 - i))
             out_ch = self.n_filters * (2 ** (len(self.depths) - 1 - i - 1))
             upsample_layer = nn.Sequential(
-                SConvTranspose1d(in_ch, out_ch,
-                                kernel_size=self.ratios[i] * 2, stride=self.ratios[i],
-                                norm=norm, norm_kwargs=norm_params, bias=bias,
-                                causal=self.causal, trim_right_ratio=trim_right_ratio),
+                SConvTranspose1d(
+                    in_ch,
+                    out_ch,
+                    kernel_size=self.ratios[i] * 2,
+                    stride=self.ratios[i],
+                    norm=norm,
+                    norm_kwargs=norm_params,
+                    bias=bias,
+                    causal=self.causal,
+                    trim_right_ratio=trim_right_ratio,
+                ),
             )
             self.upsample_layers.append(upsample_layer)
 
@@ -893,14 +1140,19 @@ class TokenizerDecoder(nn.Module):
         )
 
         self.stages = nn.ModuleList()
-        dp_rates = [x.item() for x in torch.linspace(0, drop_path_rate, sum(self.depths))]
+        dp_rates = [
+            x.item() for x in torch.linspace(0, drop_path_rate, sum(self.depths))
+        ]
         cur = 0
 
         # Create stages in the same order as the original model
         for i in range(len(self.depths)):
             in_ch = self.n_filters * (2 ** (len(self.depths) - 1 - i))
             stage = nn.Sequential(
-                *[layer_type(dim=in_ch, drop_path=dp_rates[cur + j]) for j in range(self.depths[i])]
+                *[
+                    layer_type(dim=in_ch, drop_path=dp_rates[cur + j])
+                    for j in range(self.depths[i])
+                ]
             )
             self.stages.append(stage)
             cur += self.depths[i]
@@ -909,24 +1161,50 @@ class TokenizerDecoder(nn.Module):
             self.norm = norm_type(in_ch, eps=layernorm_eps)
         else:
             self.norm = nn.Identity()
-        self.head = SConv1d(in_ch, self.channels, kernel_size=last_kernel_size, causal=self.causal, pad_mode=pad_mode, norm=norm, bias=bias)
+        self.head = SConv1d(
+            in_ch,
+            self.channels,
+            kernel_size=last_kernel_size,
+            causal=self.causal,
+            pad_mode=pad_mode,
+            norm=norm,
+            bias=bias,
+        )
 
-    def forward_features(self, x, cache=None, sample_indices=None, use_cache=False, debug=False):
+    def forward_features(
+        self, x, cache=None, sample_indices=None, use_cache=False, debug=False
+    ):
         for i in range(len(self.depths)):
             # Apply upsampling
             for layer in self.upsample_layers[i]:
                 if isinstance(layer, (SConv1d, SConvTranspose1d)):
-                    x = layer(x, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
+                    x = layer(
+                        x,
+                        cache=cache,
+                        sample_indices=sample_indices,
+                        use_cache=use_cache,
+                        debug=debug,
+                    )
                 else:
                     x = layer(x)
 
             # Apply stage (Block1D contains Convlayer which contains SConv1d)
             for block in self.stages[i]:
-                if hasattr(block, 'mixer') and hasattr(block.mixer, 'conv') and isinstance(block.mixer.conv, SConv1d):
+                if (
+                    hasattr(block, "mixer")
+                    and hasattr(block.mixer, "conv")
+                    and isinstance(block.mixer.conv, SConv1d)
+                ):
                     # Block1D forward with cache support
                     residual = x
                     x = block.norm(x)
-                    x = block.mixer.conv(x, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
+                    x = block.mixer.conv(
+                        x,
+                        cache=cache,
+                        sample_indices=sample_indices,
+                        use_cache=use_cache,
+                        debug=debug,
+                    )
                     if block.gamma is not None:
                         x = x * block.gamma.unsqueeze(-1)
                     x = residual + x
@@ -946,8 +1224,20 @@ class TokenizerDecoder(nn.Module):
         return self.norm(x)
 
     def forward(self, x, cache=None, sample_indices=None, use_cache=False, debug=False):
-        x = self.forward_features(x, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
-        x = self.head(x, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
+        x = self.forward_features(
+            x,
+            cache=cache,
+            sample_indices=sample_indices,
+            use_cache=use_cache,
+            debug=debug,
+        )
+        x = self.head(
+            x,
+            cache=cache,
+            sample_indices=sample_indices,
+            use_cache=use_cache,
+            debug=debug,
+        )
         return x
 
 
@@ -955,32 +1245,36 @@ class TokenizerDecoder(nn.Module):
 class VibeVoiceTokenizerEncoderOutput:
     """
     Output of VibeVoice tokenizer encoder, representing a Gaussian distribution with fixed variance.
-    
+
     Args:
         mean (`torch.FloatTensor`): The mean parameters of the distribution.
         std (`float` or `torch.FloatTensor`): Fixed standard deviation value.
     """
+
     mean: torch.Tensor
     std: float | torch.Tensor | None = None
 
-    def sample(self, dist_type='fix'):
+    def sample(self, dist_type="fix"):
         """
         Sample from the distribution.
-        
+
         Args:
             dist_type (`str`): Sampling method, either 'fix' or 'gaussian'.
-                
+
         Returns:
             `torch.FloatTensor`: Sampled values.
             `torch.FloatTensor` (optional): Standard deviation used (only when dist_type='gaussian').
         """
-        if dist_type == 'fix':
+        if dist_type == "fix":
             x = self.mean + self.std * torch.randn_like(self.mean)
             return x, self.std
-        elif dist_type == 'gaussian':
+        elif dist_type == "gaussian":
             batch_size = self.mean.size(0)
             value = self.std / 0.8
-            std = torch.randn(batch_size, device=self.mean.device, dtype=self.mean.dtype) * value
+            std = (
+                torch.randn(batch_size, device=self.mean.device, dtype=self.mean.dtype)
+                * value
+            )
 
             while std.dim() < self.mean.dim():
                 std = std.unsqueeze(-1)
@@ -993,11 +1287,12 @@ class VibeVoiceTokenizerEncoderOutput:
     def kl(self):
         """Compute KL divergence between this distribution and a standard normal."""
         target = torch.zeros_like(self.mean)
-        return F.mse_loss(self.mean, target, reduction='none')
+        return F.mse_loss(self.mean, target, reduction="none")
 
     def mode(self):
         """Return the distribution mode (which is the mean for Gaussian)."""
         return self.mean
+
 
 class VibeVoiceAcousticTokenizerModel(PreTrainedModel):
     """VibeVoice speech tokenizer model combining encoder and decoder for acoustic tokens"""
@@ -1011,18 +1306,18 @@ class VibeVoiceAcousticTokenizerModel(PreTrainedModel):
     def __init__(self, config):
         super().__init__(config)
 
-        self.register_buffer('fix_std', torch.tensor(config.fix_std), persistent=False)
+        self.register_buffer("fix_std", torch.tensor(config.fix_std), persistent=False)
         self.std_dist_type = getattr(config, "std_dist_type", "fix")
 
         # Parse encoder depths
         if isinstance(config.encoder_depths, str):
-            encoder_depths = [int(d) for d in config.encoder_depths.split('-')]
+            encoder_depths = [int(d) for d in config.encoder_depths.split("-")]
         else:
             encoder_depths = config.encoder_depths
 
         # Parse decoder depths if provided
         if config.decoder_depths is not None and isinstance(config.decoder_depths, str):
-            decoder_depths = [int(d) for d in config.decoder_depths.split('-')]
+            decoder_depths = [int(d) for d in config.decoder_depths.split("-")]
         else:
             # Default: use reversed encoder depths if decoder_depths is None
             decoder_depths = list(reversed(encoder_depths))
@@ -1037,7 +1332,9 @@ class VibeVoiceAcousticTokenizerModel(PreTrainedModel):
         encoder_config.pad_mode = config.pad_mode
         encoder_config.bias = config.conv_bias
         encoder_config.layernorm_eps = config.layernorm_eps
-        encoder_config.layernorm_elementwise_affine = config.layernorm_elementwise_affine
+        encoder_config.layernorm_elementwise_affine = (
+            config.layernorm_elementwise_affine
+        )
         encoder_config.mixer_layer = config.mixer_layer
         encoder_config.layer_scale_init_value = config.layer_scale_init_value
         encoder_config.disable_last_norm = config.disable_last_norm
@@ -1052,7 +1349,9 @@ class VibeVoiceAcousticTokenizerModel(PreTrainedModel):
         decoder_config.pad_mode = config.pad_mode
         decoder_config.bias = config.conv_bias
         decoder_config.layernorm_eps = config.layernorm_eps
-        decoder_config.layernorm_elementwise_affine = config.layernorm_elementwise_affine
+        decoder_config.layernorm_elementwise_affine = (
+            config.layernorm_elementwise_affine
+        )
         decoder_config.mixer_layer = config.mixer_layer
         decoder_config.layer_scale_init_value = config.layer_scale_init_value
         decoder_config.disable_last_norm = config.disable_last_norm
@@ -1079,39 +1378,73 @@ class VibeVoiceAcousticTokenizerModel(PreTrainedModel):
                 nn.init.zeros_(module.bias)
 
     @torch.no_grad()
-    def encode(self, audio, cache=None, sample_indices=None, use_cache=False, debug=False):
+    def encode(
+        self, audio, cache=None, sample_indices=None, use_cache=False, debug=False
+    ):
         """Convert audio to latent representations"""
-        latents = self.encoder(audio, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
-        return VibeVoiceTokenizerEncoderOutput(mean=latents.permute(0, 2, 1), std=self.fix_std)
+        latents = self.encoder(
+            audio,
+            cache=cache,
+            sample_indices=sample_indices,
+            use_cache=use_cache,
+            debug=debug,
+        )
+        return VibeVoiceTokenizerEncoderOutput(
+            mean=latents.permute(0, 2, 1), std=self.fix_std
+        )
 
     @torch.no_grad()
     def sampling(self, encoder_output, dist_type=None):
         """Sample from the encoder output distribution"""
         dist_type = dist_type or self.std_dist_type
 
-        if dist_type == 'fix':
-            return encoder_output.sample(dist_type='fix')
-        elif dist_type == 'gaussian':
-            return encoder_output.sample(dist_type='gaussian')
+        if dist_type == "fix":
+            return encoder_output.sample(dist_type="fix")
+        elif dist_type == "gaussian":
+            return encoder_output.sample(dist_type="gaussian")
         else:
-            raise ValueError(f"Unsupported dist_type: {dist_type}, expected 'fix' or 'gaussian'")
+            raise ValueError(
+                f"Unsupported dist_type: {dist_type}, expected 'fix' or 'gaussian'"
+            )
 
     @torch.no_grad()
-    def decode(self, latents, cache=None, sample_indices=None, use_cache=False, debug=False):
+    def decode(
+        self, latents, cache=None, sample_indices=None, use_cache=False, debug=False
+    ):
         """Convert latent representations back to audio"""
         if latents.shape[1] == self.config.vae_dim:
             pass
         else:
             latents = latents.permute(0, 2, 1)
 
-        audio = self.decoder(latents, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
+        audio = self.decoder(
+            latents,
+            cache=cache,
+            sample_indices=sample_indices,
+            use_cache=use_cache,
+            debug=debug,
+        )
         return audio
 
-    def forward(self, audio, cache=None, sample_indices=None, use_cache=False, debug=False):
+    def forward(
+        self, audio, cache=None, sample_indices=None, use_cache=False, debug=False
+    ):
         """Full forward pass: encode audio to latents, then decode back to audio"""
-        encoder_output = self.encode(audio, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
+        encoder_output = self.encode(
+            audio,
+            cache=cache,
+            sample_indices=sample_indices,
+            use_cache=use_cache,
+            debug=debug,
+        )
         sampled_latents, _ = self.sampling(encoder_output)
-        reconstructed = self.decode(sampled_latents, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
+        reconstructed = self.decode(
+            sampled_latents,
+            cache=cache,
+            sample_indices=sample_indices,
+            use_cache=use_cache,
+            debug=debug,
+        )
         return reconstructed, sampled_latents
 
 
@@ -1129,7 +1462,7 @@ class VibeVoiceSemanticTokenizerModel(PreTrainedModel):
 
         # Parse encoder depths
         if isinstance(config.encoder_depths, str):
-            encoder_depths = [int(d) for d in config.encoder_depths.split('-')]
+            encoder_depths = [int(d) for d in config.encoder_depths.split("-")]
         else:
             encoder_depths = config.encoder_depths
 
@@ -1143,7 +1476,9 @@ class VibeVoiceSemanticTokenizerModel(PreTrainedModel):
         encoder_config.pad_mode = config.pad_mode
         encoder_config.bias = config.conv_bias
         encoder_config.layernorm_eps = config.layernorm_eps
-        encoder_config.layernorm_elementwise_affine = config.layernorm_elementwise_affine
+        encoder_config.layernorm_elementwise_affine = (
+            config.layernorm_elementwise_affine
+        )
         encoder_config.mixer_layer = config.mixer_layer
         encoder_config.layer_scale_init_value = config.layer_scale_init_value
         encoder_config.disable_last_norm = config.disable_last_norm
@@ -1169,21 +1504,38 @@ class VibeVoiceSemanticTokenizerModel(PreTrainedModel):
                 nn.init.zeros_(module.bias)
 
     @torch.no_grad()
-    def encode(self, audio, cache=None, sample_indices=None, use_cache=False, debug=False):
+    def encode(
+        self, audio, cache=None, sample_indices=None, use_cache=False, debug=False
+    ):
         """Convert audio to latent representations"""
-        latents = self.encoder(audio, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
+        latents = self.encoder(
+            audio,
+            cache=cache,
+            sample_indices=sample_indices,
+            use_cache=use_cache,
+            debug=debug,
+        )
         return VibeVoiceTokenizerEncoderOutput(mean=latents.permute(0, 2, 1))
 
     @torch.no_grad()
     def sampling(self, encoder_output, dist_type=None):
         """Sample from the encoder output distribution"""
-        return encoder_output.sample(dist_type='none')
+        return encoder_output.sample(dist_type="none")
 
-    def forward(self, audio, cache=None, sample_indices=None, use_cache=False, debug=False):
+    def forward(
+        self, audio, cache=None, sample_indices=None, use_cache=False, debug=False
+    ):
         """Full forward pass: encode audio to latents, then decode back to audio"""
-        encoder_output = self.encode(audio, cache=cache, sample_indices=sample_indices, use_cache=use_cache, debug=debug)
-        sampled_latents, _ = self.sampling(encoder_output, dist_type='none')
+        encoder_output = self.encode(
+            audio,
+            cache=cache,
+            sample_indices=sample_indices,
+            use_cache=use_cache,
+            debug=debug,
+        )
+        sampled_latents, _ = self.sampling(encoder_output, dist_type="none")
         return None, sampled_latents
+
 
 AutoModel.register(VibeVoiceAcousticTokenizerConfig, VibeVoiceAcousticTokenizerModel)
 AutoModel.register(VibeVoiceSemanticTokenizerConfig, VibeVoiceSemanticTokenizerModel)

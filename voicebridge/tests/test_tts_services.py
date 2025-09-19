@@ -420,24 +420,32 @@ class TestTTSDaemonService(unittest.TestCase):
     def test_handle_generate_hotkey_clipboard_mode(self):
         """Test handling generate hotkey in clipboard mode."""
         self.daemon.current_config = TTSConfig(tts_mode=TTSMode.CLIPBOARD)
-        self.mock_orchestrator.text_input_service.get_clipboard_text.return_value = "test text"
+        self.mock_orchestrator.text_input_service.get_clipboard_text.return_value = (
+            "test text"
+        )
         self.mock_orchestrator.generate_tts_from_text.return_value = True
 
         self.daemon._handle_generate_hotkey()
 
         self.mock_orchestrator.text_input_service.get_clipboard_text.assert_called_once()
-        self.mock_orchestrator.generate_tts_from_text.assert_called_once_with("test text", self.daemon.current_config)
+        self.mock_orchestrator.generate_tts_from_text.assert_called_once_with(
+            "test text", self.daemon.current_config
+        )
 
     def test_handle_generate_hotkey_mouse_mode(self):
         """Test handling generate hotkey in mouse mode."""
         self.daemon.current_config = TTSConfig(tts_mode=TTSMode.MOUSE)
-        self.mock_orchestrator.text_input_service.get_selected_text.return_value = "selected text"
+        self.mock_orchestrator.text_input_service.get_selected_text.return_value = (
+            "selected text"
+        )
         self.mock_orchestrator.generate_tts_from_text.return_value = True
 
         self.daemon._handle_generate_hotkey()
 
         self.mock_orchestrator.text_input_service.get_selected_text.assert_called_once()
-        self.mock_orchestrator.generate_tts_from_text.assert_called_once_with("selected text", self.daemon.current_config)
+        self.mock_orchestrator.generate_tts_from_text.assert_called_once_with(
+            "selected text", self.daemon.current_config
+        )
 
     def test_handle_stop_hotkey(self):
         """Test handling stop hotkey."""

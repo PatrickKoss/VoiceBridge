@@ -294,8 +294,12 @@ class TTSOrchestrator:
             def on_press(key):
                 try:
                     # Check for generate hotkey (F12 by default)
-                    if hasattr(key, 'name') and key.name == config.tts_generate_key.lower().replace('f', 'f'):
-                        self.logger.info("Generate hotkey pressed, getting selected text")
+                    if hasattr(
+                        key, "name"
+                    ) and key.name == config.tts_generate_key.lower().replace("f", "f"):
+                        self.logger.info(
+                            "Generate hotkey pressed, getting selected text"
+                        )
                         text = self.text_input_service.get_selected_text()
                         if text:
                             self.generate_tts_from_text(text, config)
@@ -303,11 +307,11 @@ class TTSOrchestrator:
                             self.logger.warning("No text selected")
                     # Check for stop hotkey
                     elif key == keyboard.Key.esc or (
-                        hasattr(key, 'char') and
-                        key.char and
-                        key.char.lower() == 's' and
-                        keyboard.Controller().pressed(keyboard.Key.ctrl) and
-                        keyboard.Controller().pressed(keyboard.Key.alt)
+                        hasattr(key, "char")
+                        and key.char
+                        and key.char.lower() == "s"
+                        and keyboard.Controller().pressed(keyboard.Key.ctrl)
+                        and keyboard.Controller().pressed(keyboard.Key.alt)
                     ):
                         self.logger.info("Stop hotkey pressed")
                         self.tts_service.stop_generation()
@@ -319,7 +323,9 @@ class TTSOrchestrator:
             self.keyboard_listener = keyboard.Listener(on_press=on_press)
             self.keyboard_listener.start()
 
-            self.logger.info(f"TTS selection mode ready - press {config.tts_generate_key} after selecting text")
+            self.logger.info(
+                f"TTS selection mode ready - press {config.tts_generate_key} after selecting text"
+            )
         except ImportError:
             self.logger.error("pynput not available for hotkey monitoring")
             # Fall back to simple message
@@ -431,16 +437,12 @@ class TTSOrchestrator:
             for full_name, voice_info in self.voice_samples_cache.items():
                 # Check if the requested voice name is contained in the full name
                 if voice_name.lower() in full_name.lower():
-                    self.logger.info(
-                        f"Voice '{voice_name}' matched to '{full_name}'"
-                    )
+                    self.logger.info(f"Voice '{voice_name}' matched to '{full_name}'")
                     return [voice_info.file_path]
 
                 # Also check if the full name ends with the requested name
                 if full_name.lower().endswith(f"-{voice_name.lower()}"):
-                    self.logger.info(
-                        f"Voice '{voice_name}' matched to '{full_name}'"
-                    )
+                    self.logger.info(f"Voice '{voice_name}' matched to '{full_name}'")
                     return [voice_info.file_path]
 
         # If no match found, use first available voice
@@ -588,6 +590,7 @@ class TTSDaemonService:
             try:
                 with open(self.status_file) as f:
                     import json
+
                     status_data = json.load(f)
                 return {"status": "running", **status_data}
             except (FileNotFoundError, json.JSONDecodeError):
@@ -662,7 +665,9 @@ class TTSDaemonService:
 
             if is_wsl:
                 # In WSL, avoid GlobalHotKeys as they can interfere with clipboard
-                self.logger.warning("WSL detected - using basic hotkey support to avoid clipboard conflicts")
+                self.logger.warning(
+                    "WSL detected - using basic hotkey support to avoid clipboard conflicts"
+                )
                 self.logger.info(
                     f"Hotkeys configured (may require focus) - Generate: {config.tts_generate_key}, Stop: {config.tts_stop_key}"
                 )
@@ -744,20 +749,21 @@ class TTSDaemonService:
 
     def _write_pid_file(self) -> None:
         """Write current process PID to file"""
-        with open(self.pid_file, 'w') as f:
+        with open(self.pid_file, "w") as f:
             f.write(str(os.getpid()))
 
     def _write_status_file(self, config: TTSConfig) -> None:
         """Write daemon status to file"""
         import json
+
         status_data = {
             "mode": config.tts_mode.value,
             "voice": config.default_voice,
             "generate_key": config.tts_generate_key,
             "stop_key": config.tts_stop_key,
-            "started_at": time.time()
+            "started_at": time.time(),
         }
-        with open(self.status_file, 'w') as f:
+        with open(self.status_file, "w") as f:
             json.dump(status_data, f)
 
     def _cleanup_daemon_files(self) -> None:

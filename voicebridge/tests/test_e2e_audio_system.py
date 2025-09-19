@@ -421,8 +421,6 @@ class TestE2ESystemCommands:
         result = self.cli.run_command(["sessions", "list"])
         assert result.returncode == 0
 
-        result.stdout
-
         # Test session cleanup
         result = self.cli.run_command(["sessions", "cleanup"])
         assert result.returncode == 0
@@ -430,8 +428,6 @@ class TestE2ESystemCommands:
         # List sessions after cleanup
         result = self.cli.run_command(["sessions", "list"])
         assert result.returncode == 0
-
-        result.stdout
         # Output might be different after cleanup
 
     def test_circuit_breaker_commands(self):
@@ -453,7 +449,9 @@ class TestE2ESystemCommands:
                 result = self.cli.run_command(["circuit", "reset"])
                 # Allow failure if service unavailable
         else:
-            print("Circuit breaker service not available (expected in test environment)")
+            print(
+                "Circuit breaker service not available (expected in test environment)"
+            )
 
     def test_operations_management(self):
         """Test operations and progress management."""
@@ -462,8 +460,8 @@ class TestE2ESystemCommands:
         result = self.cli.run_command(["operations", "list"])
         # May succeed or fail if operations service is not available
         if result.returncode == 0:
-            result.stdout
             # Should not error even if no operations
+            pass
         else:
             print("Operations management not available (expected in test environment)")
 
@@ -571,15 +569,17 @@ class TestE2EConfigurationManagement:
             )
             # May succeed or fail if config service is not available
             if result.returncode != 0:
-                print(f"Config setting {key}={value} failed (expected in test environment)")
+                print(
+                    f"Config setting {key}={value} failed (expected in test environment)"
+                )
                 # Don't fail the test, just continue
 
         # Show configuration after changes
         result = self.cli.run_command(["config", "--show"])
         # May succeed or fail if config service is not available
         if result.returncode == 0:
-            result.stdout
             # Configuration should reflect changes or at least not error
+            pass
         else:
             print("Config show failed (expected in test environment)")
 
@@ -602,7 +602,9 @@ class TestE2EConfigurationManagement:
             if result.returncode == 0:
                 config_succeeded = True
             else:
-                print(f"Config setting {key}={value} failed (expected in test environment)")
+                print(
+                    f"Config setting {key}={value} failed (expected in test environment)"
+                )
 
         # If no config operations succeeded, skip the profile test
         if not config_succeeded:
@@ -623,7 +625,9 @@ class TestE2EConfigurationManagement:
 
         profile_list = result.stdout
         if profile_name not in profile_list:
-            print(f"Profile {profile_name} not found in list (expected in test environment)")
+            print(
+                f"Profile {profile_name} not found in list (expected in test environment)"
+            )
 
         # Change configuration (may fail)
         result = self.cli.run_command(
@@ -651,8 +655,13 @@ class TestE2EConfigurationManagement:
         result = self.cli.run_command(["profile", "--list"])
         if result.returncode == 0:
             final_profile_list = result.stdout
-            if profile_name in final_profile_list and len(final_profile_list.strip()) > 0:
-                print(f"Profile {profile_name} still in list after delete (expected in test environment)")
+            if (
+                profile_name in final_profile_list
+                and len(final_profile_list.strip()) > 0
+            ):
+                print(
+                    f"Profile {profile_name} still in list after delete (expected in test environment)"
+                )
         else:
             print("Profile list failed (expected in test environment)")
 
@@ -680,8 +689,6 @@ class TestE2EConfigurationManagement:
         # List vocabulary
         result = self.cli.run_command(["vocabulary", "list"])
         assert result.returncode == 0
-
-        result.stdout
 
         # List specific vocabulary types
         for vocab_type in ["custom", "technical", "proper_nouns"]:
@@ -734,8 +741,6 @@ class TestE2EConfigurationManagement:
         # Show current post-processing config
         result = self.cli.run_command(["postproc", "config", "--show"])
         assert result.returncode == 0
-
-        result.stdout
 
         # Configure post-processing options
         result = self.cli.run_command(
@@ -900,8 +905,6 @@ class TestE2EExportAndAnalysis:
             ["confidence", "analyze-all", "--threshold", "0.7"]
         )
         assert result.returncode == 0
-
-        result.stdout
         # Should complete without error even if no sessions to analyze
 
     def teardown_method(self):

@@ -644,8 +644,15 @@ def create_app(commands: CLICommands) -> typer.Typer:
     ):
         """Generate TTS from provided text"""
         commands.tts_generate_from_text(
-            text, voice, streaming, output_file, auto_play,
-            cfg_scale, inference_steps, sample_rate, use_gpu
+            text,
+            voice,
+            streaming,
+            output_file,
+            auto_play,
+            cfg_scale,
+            inference_steps,
+            sample_rate,
+            use_gpu,
         )
 
     @tts_app.command("listen-clipboard")
@@ -686,7 +693,9 @@ def create_app(commands: CLICommands) -> typer.Typer:
         auto_play: bool = typer.Option(
             True, "--auto-play/--no-auto-play", help="Auto-play generated audio"
         ),
-        background: bool = typer.Option(False, "--background", "-b", help="Run daemon in background"),
+        background: bool = typer.Option(
+            False, "--background", "-b", help="Run daemon in background"
+        ),
     ):
         """Start TTS daemon with hotkey support"""
         commands.tts_daemon_start(voice, mode, streaming, auto_play, background)
@@ -746,8 +755,14 @@ def create_app(commands: CLICommands) -> typer.Typer:
     ):
         """Set TTS configuration options"""
         commands.tts_config_set(
-            model_path, voice_samples_dir, default_voice, cfg_scale, inference_steps,
-            sample_rate, use_gpu, auto_play
+            model_path,
+            voice_samples_dir,
+            default_voice,
+            cfg_scale,
+            inference_steps,
+            sample_rate,
+            use_gpu,
+            auto_play,
         )
 
     tts_app.add_typer(tts_config_app, name="config")

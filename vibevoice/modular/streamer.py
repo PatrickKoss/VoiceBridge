@@ -11,7 +11,7 @@ class AudioStreamer(BaseStreamer):
     """
     Audio streamer that stores audio chunks in queues for each sample in the batch.
     This allows streaming audio generation for multiple samples simultaneously.
-    
+
     Parameters:
         batch_size (`int`):
             The batch size for generation
@@ -39,7 +39,7 @@ class AudioStreamer(BaseStreamer):
     def put(self, audio_chunks: torch.Tensor, sample_indices: torch.Tensor):
         """
         Receives audio chunks and puts them in the appropriate queues.
-        
+
         Args:
             audio_chunks: Tensor of shape (num_samples, ...) containing audio chunks
             sample_indices: Tensor indicating which samples these chunks belong to
@@ -54,7 +54,7 @@ class AudioStreamer(BaseStreamer):
     def end(self, sample_indices: torch.Tensor | None = None):
         """
         Signals the end of generation for specified samples or all samples.
-        
+
         Args:
             sample_indices: Optional tensor of sample indices to end. If None, ends all.
         """
@@ -79,7 +79,9 @@ class AudioStreamer(BaseStreamer):
     def get_stream(self, sample_idx: int):
         """Get the audio stream for a specific sample."""
         if sample_idx >= self.batch_size:
-            raise ValueError(f"Sample index {sample_idx} exceeds batch size {self.batch_size}")
+            raise ValueError(
+                f"Sample index {sample_idx} exceeds batch size {self.batch_size}"
+            )
         return AudioSampleIterator(self, sample_idx)
 
 
@@ -94,7 +96,9 @@ class AudioSampleIterator:
         return self
 
     def __next__(self):
-        value = self.streamer.audio_queues[self.sample_idx].get(timeout=self.streamer.timeout)
+        value = self.streamer.audio_queues[self.sample_idx].get(
+            timeout=self.streamer.timeout
+        )
         if value == self.streamer.stop_signal:
             raise StopIteration()
         return value
@@ -125,7 +129,7 @@ class AudioBatchIterator:
                     samples_to_remove.add(idx)
                 else:
                     batch_chunks[idx] = value
-            except:
+            except Exception:
                 # Queue is empty for this sample, skip it this iteration
                 pass
 
@@ -138,6 +142,7 @@ class AudioBatchIterator:
             # If no chunks were ready but we still have active samples,
             # wait a bit and try again
             import time
+
             time.sleep(0.01)
             return self.__next__()
         else:
@@ -175,7 +180,9 @@ class AsyncAudioStreamer(AudioStreamer):
         if sample_indices is None:
             indices_to_end = range(self.batch_size)
         else:
-            indices_to_end = [s.item() if torch.is_tensor(s) else s for s in sample_indices]
+            indices_to_end = [
+                s.item() if torch.is_tensor(s) else s for s in sample_indices
+            ]
 
         for idx in indices_to_end:
             if idx < self.batch_size and not self.finished_flags[idx]:
@@ -187,7 +194,9 @@ class AsyncAudioStreamer(AudioStreamer):
     async def get_stream(self, sample_idx: int):
         """Get async iterator for a specific sample's audio stream."""
         if sample_idx >= self.batch_size:
-            raise ValueError(f"Sample index {sample_idx} exceeds batch size {self.batch_size}")
+            raise ValueError(
+                f"Sample index {sample_idx} exceeds batch size {self.batch_size}"
+            )
 
         while True:
             value = await self.audio_queues[sample_idx].get()
@@ -227,7 +236,7 @@ class AsyncAudioBatchIterator:
         done, pending = await asyncio.wait(
             tasks.values(),
             return_when=asyncio.FIRST_COMPLETED,
-            timeout=self.streamer.timeout
+            timeout=self.streamer.timeout,
         )
 
         # Cancel pending tasks

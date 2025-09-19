@@ -1,6 +1,5 @@
 """Tokenization classes for vibevoice."""
 
-
 from transformers.models.qwen2.tokenization_qwen2 import Qwen2Tokenizer
 from transformers.models.qwen2.tokenization_qwen2_fast import Qwen2TokenizerFast
 from transformers.utils import logging
@@ -11,7 +10,7 @@ logger = logging.get_logger(__name__)
 class VibeVoiceTextTokenizer(Qwen2Tokenizer):
     """
     Construct a VibeVoice tokenizer. Based on the Qwen2 tokenizer with additional special tokens for speech.
-    
+
     Args:
         vocab_file (`str`):
             Path to the vocabulary file.
@@ -78,7 +77,7 @@ class VibeVoiceTextTokenizer(Qwen2Tokenizer):
         self._speech_end_id = self.convert_tokens_to_ids("<|vision_end|>")
         self._speech_diffusion_id = self.convert_tokens_to_ids("<|vision_pad|>")
 
-        self._eos_id = self.convert_tokens_to_ids('<|endoftext|>')
+        self._eos_id = self.convert_tokens_to_ids("<|endoftext|>")
 
         return num_added
 
@@ -112,7 +111,7 @@ class VibeVoiceTextTokenizerFast(Qwen2TokenizerFast):
     """
     Construct a "fast" VibeVoice tokenizer (backed by HuggingFace's *tokenizers* library).
     Based on the Qwen2 tokenizer with additional special tokens for speech.
-    
+
     Args:
         vocab_file (`str`, *optional*):
             Path to the vocabulary file.
@@ -176,8 +175,8 @@ class VibeVoiceTextTokenizerFast(Qwen2TokenizerFast):
         self._speech_diffusion_id = self.convert_tokens_to_ids("<|vision_pad|>")
 
         # self._eos_id = self.convert_tokens_to_ids('<|endoftext|>')
-        self._eos_id = self.eos_token_id # qwen2 / qwen3
-        self._pad_id = self.convert_tokens_to_ids('<|image_pad|>')
+        self._eos_id = self.eos_token_id  # qwen2 / qwen3
+        self._pad_id = self.convert_tokens_to_ids("<|image_pad|>")
 
         return num_added
 

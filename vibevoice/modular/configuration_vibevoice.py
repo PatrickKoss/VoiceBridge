@@ -1,5 +1,4 @@
-""" VibeVoice_AcousticTokenizer model configuration"""
-
+"""VibeVoice_AcousticTokenizer model configuration"""
 
 from transformers.configuration_utils import PretrainedConfig
 from transformers.models.qwen2.configuration_qwen2 import Qwen2Config
@@ -18,13 +17,13 @@ class VibeVoiceAcousticTokenizerConfig(PretrainedConfig):
         causal: bool = True,
         vae_dim: int = 64,
         fix_std: float = 0.5,
-        std_dist_type: str = 'gaussian',
+        std_dist_type: str = "gaussian",
         # common
-        mixer_layer: str = 'depthwise_conv',
-        conv_norm: str = 'none',
-        pad_mode: str = 'constant',
+        mixer_layer: str = "depthwise_conv",
+        conv_norm: str = "none",
+        pad_mode: str = "constant",
         disable_last_norm: bool = True,
-        layernorm: str = 'RMSNorm',
+        layernorm: str = "RMSNorm",
         layernorm_eps: float = 1e-5,
         layernorm_elementwise_affine: bool = True,
         conv_bias: bool = True,
@@ -32,14 +31,16 @@ class VibeVoiceAcousticTokenizerConfig(PretrainedConfig):
         weight_init_value: float = 1e-2,
         # encoder specific
         encoder_n_filters: int = 32,
-        encoder_ratios: list[int] | None = [8,5,5,4,2,2],
+        encoder_ratios: list[int] | None = None,
         encoder_depths: str = "3-3-3-3-3-3-8",
         # decoder specific
         decoder_n_filters: int = 32,
-        decoder_ratios: list[int] | None = None, # if None, same as encoder
+        decoder_ratios: list[int] | None = None,  # if None, same as encoder
         decoder_depths: str | None = None,
-        **kwargs
+        **kwargs,
     ):
+        if encoder_ratios is None:
+            encoder_ratios = [8, 5, 5, 4, 2, 2]
         super().__init__(**kwargs)
         self.channels = channels
         self.corpus_normalize = corpus_normalize
@@ -66,7 +67,9 @@ class VibeVoiceAcousticTokenizerConfig(PretrainedConfig):
         self.encoder_depths = encoder_depths
 
         # decoder specific parameters
-        self.decoder_ratios = decoder_ratios if decoder_ratios is not None else encoder_ratios
+        self.decoder_ratios = (
+            decoder_ratios if decoder_ratios is not None else encoder_ratios
+        )
         self.decoder_n_filters = decoder_n_filters
         self.decoder_depths = decoder_depths
 
@@ -81,13 +84,13 @@ class VibeVoiceSemanticTokenizerConfig(PretrainedConfig):
         causal: bool = True,
         vae_dim: int = 64,
         fix_std: float = 0,
-        std_dist_type: str = 'none',
+        std_dist_type: str = "none",
         # common
-        mixer_layer: str = 'depthwise_conv',
-        conv_norm: str = 'none',
-        pad_mode: str = 'constant',
+        mixer_layer: str = "depthwise_conv",
+        conv_norm: str = "none",
+        pad_mode: str = "constant",
         disable_last_norm: bool = True,
-        layernorm: str = 'RMSNorm',
+        layernorm: str = "RMSNorm",
         layernorm_eps: float = 1e-5,
         layernorm_elementwise_affine: bool = True,
         conv_bias: bool = True,
@@ -95,10 +98,12 @@ class VibeVoiceSemanticTokenizerConfig(PretrainedConfig):
         weight_init_value: float = 1e-2,
         # encoder specific
         encoder_n_filters: int = 32,
-        encoder_ratios: list[int] | None = [8,5,5,4,2,2],
+        encoder_ratios: list[int] | None = None,
         encoder_depths: str = "3-3-3-3-3-3-8",
-        **kwargs
+        **kwargs,
     ):
+        if encoder_ratios is None:
+            encoder_ratios = [8, 5, 5, 4, 2, 2]
         super().__init__(**kwargs)
         self.channels = channels
         self.corpus_normalize = corpus_normalize
@@ -142,7 +147,7 @@ class VibeVoiceDiffusionHeadConfig(PretrainedConfig):
         ddpm_num_inference_steps=20,
         ddpm_beta_schedule="cosine",
         ddpm_batch_mul=4,
-        **kwargs
+        **kwargs,
     ):
         self.hidden_size = hidden_size
         self.head_layers = head_layers
@@ -158,6 +163,7 @@ class VibeVoiceDiffusionHeadConfig(PretrainedConfig):
         self.ddpm_batch_mul = ddpm_batch_mul
 
         super().__init__(**kwargs)
+
 
 class VibeVoiceConfig(PretrainedConfig):
     model_type = "vibevoice"
@@ -186,26 +192,33 @@ class VibeVoiceConfig(PretrainedConfig):
         semantic_tokenizer_config=None,
         decoder_config=None,
         diffusion_head_config=None,
-        **kwargs
+        **kwargs,
     ):
-
         # kwargs["_attn_implementation"] = "flash_attention_2"
         kwargs["_attn_implementation_autoset"] = False
 
         if acoustic_tokenizer_config is None:
-            self.acoustic_tokenizer_config = self.sub_configs["acoustic_tokenizer_config"]()
+            self.acoustic_tokenizer_config = self.sub_configs[
+                "acoustic_tokenizer_config"
+            ]()
         elif isinstance(acoustic_tokenizer_config, dict):
             acoustic_tokenizer_config["model_type"] = "vibevoice_acoustic_tokenizer"
-            self.acoustic_tokenizer_config = self.sub_configs["acoustic_tokenizer_config"](**acoustic_tokenizer_config)
+            self.acoustic_tokenizer_config = self.sub_configs[
+                "acoustic_tokenizer_config"
+            ](**acoustic_tokenizer_config)
         elif isinstance(acoustic_tokenizer_config, VibeVoiceAcousticTokenizerConfig):
             # If an instance of the config class is provided
             self.acoustic_tokenizer_config = acoustic_tokenizer_config
 
         if semantic_tokenizer_config is None:
-            self.semantic_tokenizer_config = self.sub_configs["semantic_tokenizer_config"]()
+            self.semantic_tokenizer_config = self.sub_configs[
+                "semantic_tokenizer_config"
+            ]()
         elif isinstance(semantic_tokenizer_config, dict):
             semantic_tokenizer_config["model_type"] = "vibevoice_semantic_tokenizer"
-            self.semantic_tokenizer_config = self.sub_configs["semantic_tokenizer_config"](**semantic_tokenizer_config)
+            self.semantic_tokenizer_config = self.sub_configs[
+                "semantic_tokenizer_config"
+            ](**semantic_tokenizer_config)
         elif isinstance(semantic_tokenizer_config, VibeVoiceSemanticTokenizerConfig):
             # If an instance of the config class is provided
             self.semantic_tokenizer_config = semantic_tokenizer_config
@@ -215,10 +228,12 @@ class VibeVoiceConfig(PretrainedConfig):
         elif isinstance(decoder_config, dict):
             # If a dictionary is provided, instantiate the config class with it
             # self.decoder_config = self.sub_configs["decoder_config"](**decoder_config)
-            if decoder_config.get("model_type", '') == "qwen2":
+            if decoder_config.get("model_type", "") == "qwen2":
                 self.decoder_config = Qwen2Config(**decoder_config)
             else:
-                raise ValueError(f"Unsupported decoder model type: {decoder_config.get('model_type', '')}")
+                raise ValueError(
+                    f"Unsupported decoder model type: {decoder_config.get('model_type', '')}"
+                )
         elif isinstance(decoder_config, (Qwen2Config,)):
             # If an instance of the config class is provided
             self.decoder_config = decoder_config
@@ -227,25 +242,28 @@ class VibeVoiceConfig(PretrainedConfig):
             self.diffusion_head_config = self.sub_configs["diffusion_head_config"]()
         elif isinstance(diffusion_head_config, dict):
             diffusion_head_config["model_type"] = "vibevoice_diffusion_head"
-            self.diffusion_head_config = self.sub_configs["diffusion_head_config"](**diffusion_head_config)
+            self.diffusion_head_config = self.sub_configs["diffusion_head_config"](
+                **diffusion_head_config
+            )
         elif isinstance(diffusion_head_config, VibeVoiceDiffusionHeadConfig):
             # If an instance of the config class is provided
             self.diffusion_head_config = diffusion_head_config
 
         # other parameters
-        self.acoustic_vae_dim = getattr(self.acoustic_tokenizer_config, 'vae_dim', 64)
-        self.semantic_vae_dim = getattr(self.semantic_tokenizer_config, 'vae_dim', 128)
+        self.acoustic_vae_dim = getattr(self.acoustic_tokenizer_config, "vae_dim", 64)
+        self.semantic_vae_dim = getattr(self.semantic_tokenizer_config, "vae_dim", 128)
 
         super().__init__(**kwargs)
 
     @property
     def num_hidden_layers(self):
         """Delegate num_hidden_layers to decoder config for cache compatibility"""
-        return getattr(self.decoder_config, 'num_hidden_layers', 32)
+        return getattr(self.decoder_config, "num_hidden_layers", 32)
+
 
 __all__ = [
     "VibeVoiceAcousticTokenizerConfig",
     "VibeVoiceSemanticTokenizerConfig",
     "VibeVoiceDiffusionHeadConfig",
-    "VibeVoiceConfig"
+    "VibeVoiceConfig",
 ]

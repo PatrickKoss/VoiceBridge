@@ -151,9 +151,9 @@ class VibeVoiceTTSAdapter(TTSService):
         # Format text for single speaker, handling line breaks properly
         # Replace line breaks with spaces to keep all text on one line
         # This prevents parsing errors in the VibeVoice processor
-        cleaned_text = text.replace('\n', ' ').replace('\r', ' ')
+        cleaned_text = text.replace("\n", " ").replace("\r", " ")
         # Remove multiple spaces
-        cleaned_text = ' '.join(cleaned_text.split())
+        cleaned_text = " ".join(cleaned_text.split())
         formatted_text = f"Speaker 1: {cleaned_text}"
 
         try:
@@ -236,8 +236,8 @@ class VibeVoiceTTSAdapter(TTSService):
                 voice_data.append(self._load_audio(voice_path))
 
             # Format text for single speaker, handling line breaks properly
-            cleaned_text = text.replace('\n', ' ').replace('\r', ' ')
-            cleaned_text = ' '.join(cleaned_text.split())
+            cleaned_text = text.replace("\n", " ").replace("\r", " ")
+            cleaned_text = " ".join(cleaned_text.split())
             formatted_text = f"Speaker 1: {cleaned_text}"
 
             # Process inputs

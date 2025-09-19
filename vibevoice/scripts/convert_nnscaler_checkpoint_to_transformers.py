@@ -13,6 +13,7 @@ from vibevoice.modular.modeling_vibevoice import VibeVoiceForConditionalGenerati
 
 logger = logging.get_logger(__name__)
 
+
 def convert_vibevoice_nnscaler_checkpoint_to_hf(
     checkpoint_path: str,
     pytorch_dump_folder_path: str,
@@ -25,31 +26,43 @@ def convert_vibevoice_nnscaler_checkpoint_to_hf(
 
     # Load regular checkpoint
     logger.info(f"Loading regular checkpoint from {checkpoint_path}")
-    checkpoint = torch.load(checkpoint_path, map_location="cpu") # ['model', 'optimizer', 'lr_scheduler', 'train_status', 'train_args', 'rng_states', 'nnscaler', 'dataloader']
+    checkpoint = torch.load(
+        checkpoint_path, map_location="cpu"
+    )  # ['model', 'optimizer', 'lr_scheduler', 'train_status', 'train_args', 'rng_states', 'nnscaler', 'dataloader']
 
     # config = checkpoint['train_args']
-    init_config_name = checkpoint['train_args']['vars']['model_args']['config_path']['relative_path']
-    pretrained_name = checkpoint['train_args']['vars']['data_args']['tokenizer_path']
+    init_config_name = checkpoint["train_args"]["vars"]["model_args"]["config_path"][
+        "relative_path"
+    ]
+    pretrained_name = checkpoint["train_args"]["vars"]["data_args"]["tokenizer_path"]
 
-    init_config_path = Path(__file__).parent.parent / 'configs' / init_config_name.split('/')[-1]
+    init_config_path = (
+        Path(__file__).parent.parent / "configs" / init_config_name.split("/")[-1]
+    )
     if init_config_path.exists():
         logger.info(f"Loading initial config from {init_config_path}")
         with open(init_config_path) as f:
             init_config = json.load(f)
     else:
-        raise FileNotFoundError(f"Initial config file {init_config_path} not found. Please provide a valid path.")
+        raise FileNotFoundError(
+            f"Initial config file {init_config_path} not found. Please provide a valid path."
+        )
 
-    tie_word_embeddings = init_config['decoder_config'].get('tie_word_embeddings', True)
+    tie_word_embeddings = init_config["decoder_config"].get("tie_word_embeddings", True)
     logger.info(f"Tie word embeddings: {tie_word_embeddings}")
 
-    init_config['decoder_config']['use_cache'] = True
+    init_config["decoder_config"]["use_cache"] = True
     config = VibeVoiceConfig(**init_config, tie_word_embeddings=tie_word_embeddings)
 
     # # Extract the model state dict
-    model_state_dict = {k.replace('model.model.', 'model.'): v for k, v in checkpoint["model"].items() if k.startswith('model.model.')}
-    if not tie_word_embeddings and 'model.lm_head.weight' in checkpoint["model"].keys():
+    model_state_dict = {
+        k.replace("model.model.", "model."): v
+        for k, v in checkpoint["model"].items()
+        if k.startswith("model.model.")
+    }
+    if not tie_word_embeddings and "model.lm_head.weight" in checkpoint["model"].keys():
         # If not tying weights, we need to add the lm_head weight separately
-        model_state_dict['lm_head.weight'] = checkpoint["model"]['model.lm_head.weight']
+        model_state_dict["lm_head.weight"] = checkpoint["model"]["model.lm_head.weight"]
 
     # Override with provided config if available
     if config_path:
@@ -71,7 +84,9 @@ def convert_vibevoice_nnscaler_checkpoint_to_hf(
 
     # Load the state dict
     logger.info("Loading weights into model")
-    missing_keys, unexpected_keys = model.load_state_dict(model_state_dict, strict=False)
+    missing_keys, unexpected_keys = model.load_state_dict(
+        model_state_dict, strict=False
+    )
 
     if missing_keys:
         logger.warning(f"Missing keys: {missing_keys}")
@@ -104,8 +119,10 @@ def convert_vibevoice_nnscaler_checkpoint_to_hf(
         "language_model_pretrained_name": pretrained_name,
     }
 
-    processor_config_path = os.path.join(pytorch_dump_folder_path, "preprocessor_config.json")
-    with open(processor_config_path, 'w') as f:
+    processor_config_path = os.path.join(
+        pytorch_dump_folder_path, "preprocessor_config.json"
+    )
+    with open(processor_config_path, "w") as f:
         json.dump(processor_config, f, indent=2)
     logger.info(f"Saved processor config to {processor_config_path}")
 
@@ -115,7 +132,7 @@ def convert_vibevoice_nnscaler_checkpoint_to_hf(
     model.save_pretrained(
         pytorch_dump_folder_path,
         max_shard_size="2GB",  # Set maximum size for each shard
-        safe_serialization=True  # Ensure saving in .safetensors format
+        safe_serialization=True,  # Ensure saving in .safetensors format
     )
     logger.info(f"Model weights saved to {pytorch_dump_folder_path}")
 
@@ -123,8 +140,9 @@ def convert_vibevoice_nnscaler_checkpoint_to_hf(
 
     # Verify the saved model can be loaded
     logger.info("Verifying saved model...")
-    loaded_model = VibeVoiceForConditionalGeneration.from_pretrained(pytorch_dump_folder_path)
+    VibeVoiceForConditionalGeneration.from_pretrained(pytorch_dump_folder_path)
     logger.info("Model successfully loaded from saved checkpoint!")
+
 
 def main():
     parser = argparse.ArgumentParser()
@@ -133,8 +151,8 @@ def main():
         type=str,
         required=True,
         help="Path to the fairseq checkpoint (.pt file). For tensor parallel checkpoints, "
-             "provide any one of the part files (e.g., checkpoint_1_5000-model_part-0.pt), "
-             "and the script will automatically detect and merge all parts.",
+        "provide any one of the part files (e.g., checkpoint_1_5000-model_part-0.pt), "
+        "and the script will automatically detect and merge all parts.",
     )
     parser.add_argument(
         "--pytorch_dump_folder_path",

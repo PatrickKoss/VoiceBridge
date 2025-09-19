@@ -61,7 +61,7 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
                 self.is_initialized = False
             except Exception:
                 pass
-        
+
         if not self.is_initialized:
             try:
                 pygame.mixer.init(
@@ -90,24 +90,25 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
             # This avoids the file I/O and potential quality loss
             if len(audio_data) % 2 != 0:
                 audio_data = audio_data + b"\x00"
-            
+
             # Create numpy array from raw audio data
             audio_np = np.frombuffer(audio_data, dtype=np.int16)
-            
+
             # pygame.sndarray requires the audio in the correct shape
             # For mono audio, we need a 1D array
             # Create Sound object directly from array
             try:
                 import pygame.sndarray
+
                 # Make sure array is C-contiguous for pygame
                 audio_array = np.ascontiguousarray(audio_np)
                 self.current_sound = pygame.sndarray.make_sound(audio_array)
                 self.is_playing_flag = True
                 self.stop_requested = False
-                
+
                 # Play the sound
                 self.current_sound.play()
-                
+
                 # Monitor playback in separate thread
                 self.playback_thread = threading.Thread(
                     target=self._monitor_playback,
@@ -115,18 +116,20 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
                     daemon=True,
                 )
                 self.playback_thread.start()
-                
+
             except (ImportError, pygame.error) as e:
                 # Fallback to file-based method if sndarray not available
                 print(f"Direct array playback failed, using file method: {e}")
-                with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as temp_file:
+                with tempfile.NamedTemporaryFile(
+                    suffix=".wav", delete=False
+                ) as temp_file:
                     temp_path = temp_file.name
-                
+
                 self.save_audio(audio_data, sample_rate, temp_path)
                 self.current_sound = pygame.mixer.Sound(temp_path)
                 self.is_playing_flag = True
                 self.stop_requested = False
-                
+
                 self.playback_thread = threading.Thread(
                     target=self._play_sound_thread,
                     args=(self.current_sound, temp_path),

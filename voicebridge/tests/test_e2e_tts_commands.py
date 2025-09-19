@@ -199,8 +199,6 @@ class TestE2ETTSCommands:
         result = self.cli.run_command(["tts", "daemon", "status"])
         assert result.returncode == 0
 
-        result.stdout
-
         # Start daemon in clipboard mode (non-blocking)
         daemon_process = self.cli.start_background_command(
             ["tts", "daemon", "start", "--mode", "clipboard", "--no-auto-play"]
@@ -211,8 +209,6 @@ class TestE2ETTSCommands:
         # Check status (should be running)
         result = self.cli.run_command(["tts", "daemon", "status"])
         assert result.returncode == 0
-
-        result.stdout
         # Status should have changed or show running info
 
         # Stop daemon

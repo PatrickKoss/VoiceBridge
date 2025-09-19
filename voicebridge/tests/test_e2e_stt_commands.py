@@ -382,7 +382,6 @@ class TestE2ESTTCommands:
         # Check initial sessions
         result = self.cli.run_command(["sessions", "list"])
         assert result.returncode == 0
-        result.stdout
 
         # Transcribe to create a session
         output_file = self.paths["output_dir"] / "session_test.json"

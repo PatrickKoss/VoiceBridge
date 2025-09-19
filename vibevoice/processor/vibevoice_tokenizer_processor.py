@@ -16,7 +16,7 @@ logger = logging.get_logger(__name__)
 class AudioNormalizer:
     """
     Audio normalization class for VibeVoice tokenizer.
-    
+
     This class provides audio normalization to ensure consistent input levels
     for the VibeVoice tokenizer while maintaining audio quality.
     """
@@ -24,7 +24,7 @@ class AudioNormalizer:
     def __init__(self, target_dB_FS: float = -25, eps: float = 1e-6):
         """
         Initialize the audio normalizer.
-        
+
         Args:
             target_dB_FS (float): Target dB FS level for the audio. Default: -25
             eps (float): Small value to avoid division by zero. Default: 1e-6
@@ -35,10 +35,10 @@ class AudioNormalizer:
     def tailor_dB_FS(self, audio: np.ndarray) -> tuple:
         """
         Adjust the audio to the target dB FS level.
-        
+
         Args:
             audio (np.ndarray): Input audio signal
-            
+
         Returns:
             tuple: (normalized_audio, rms, scalar)
         """
@@ -50,11 +50,11 @@ class AudioNormalizer:
     def avoid_clipping(self, audio: np.ndarray, scalar: float | None = None) -> tuple:
         """
         Avoid clipping by scaling down if necessary.
-        
+
         Args:
             audio (np.ndarray): Input audio signal
             scalar (float, optional): Explicit scaling factor
-            
+
         Returns:
             tuple: (normalized_audio, scalar)
         """
@@ -70,10 +70,10 @@ class AudioNormalizer:
     def __call__(self, audio: np.ndarray) -> np.ndarray:
         """
         Normalize the audio by adjusting to target dB FS and avoiding clipping.
-        
+
         Args:
             audio (np.ndarray): Input audio signal
-            
+
         Returns:
             np.ndarray: Normalized audio signal
         """
@@ -88,18 +88,19 @@ class AudioNormalizer:
 class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
     """
     Processor for VibeVoice acoustic tokenizer models.
-    
+
     This processor handles audio preprocessing for VibeVoice models, including:
     - Audio format conversion (stereo to mono)
     - Optional audio normalization
     - Streaming support for infinite-length audio
-    
+
     Args:
         sampling_rate (int, optional): Expected sampling rate. Defaults to 24000.
         normalize_audio (bool, optional): Whether to normalize audio. Defaults to True.
         target_dB_FS (float, optional): Target dB FS for normalization. Defaults to -25.
         eps (float, optional): Small value for numerical stability. Defaults to 1e-6.
     """
+
     model_input_names = ["input_features"]
 
     def __init__(
@@ -132,10 +133,10 @@ class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
     def _ensure_mono(self, audio: np.ndarray) -> np.ndarray:
         """
         Convert stereo audio to mono if needed.
-        
+
         Args:
             audio (np.ndarray): Input audio array
-            
+
         Returns:
             np.ndarray: Mono audio array
         """
@@ -160,10 +161,10 @@ class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
     def _process_single_audio(self, audio: np.ndarray | list[float]) -> np.ndarray:
         """
         Process a single audio array.
-        
+
         Args:
             audio: Single audio input
-            
+
         Returns:
             np.ndarray: Processed audio
         """
@@ -184,14 +185,19 @@ class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
 
     def __call__(
         self,
-        audio: str | np.ndarray | list[float] | list[np.ndarray] | list[list[float]] | list[str] = None,
+        audio: str
+        | np.ndarray
+        | list[float]
+        | list[np.ndarray]
+        | list[list[float]]
+        | list[str] = None,
         sampling_rate: int | None = None,
         return_tensors: str | None = None,
         **kwargs,
     ):
         """
         Process audio for VibeVoice models.
-        
+
         Args:
             audio: Audio input(s) to process. Can be:
                 - str: Path to audio file
@@ -201,7 +207,7 @@ class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
                 - List[str]: Batch of audio file paths
             sampling_rate (int, optional): Sampling rate of the input audio
             return_tensors (str, optional): Return format ('pt' for PyTorch, 'np' for NumPy)
-            
+
         Returns:
             dict: Processed audio inputs with keys:
                 - input_features: Audio tensor(s) ready for the model
@@ -247,17 +253,23 @@ class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
         if return_tensors == "pt":
             if len(processed_audio) == 1:
                 # Create a proper batch dimension (B, T)
-                input_features = torch.from_numpy(processed_audio[0]).unsqueeze(0).unsqueeze(1)
+                input_features = (
+                    torch.from_numpy(processed_audio[0]).unsqueeze(0).unsqueeze(1)
+                )
             else:
                 # For batched input with different lengths, create a batch properly
-                input_features = torch.stack([torch.from_numpy(a) for a in processed_audio]).unsqueeze(1)
+                input_features = torch.stack(
+                    [torch.from_numpy(a) for a in processed_audio]
+                ).unsqueeze(1)
         elif return_tensors == "np":
             if len(processed_audio) == 1:
                 input_features = processed_audio[0][np.newaxis, np.newaxis, :]
             else:
                 input_features = np.stack(processed_audio)[:, np.newaxis, :]
         else:
-            input_features = processed_audio[0] if len(processed_audio) == 1 else processed_audio
+            input_features = (
+                processed_audio[0] if len(processed_audio) == 1 else processed_audio
+            )
 
         outputs = {
             "audio": input_features,  # Use "audio" instead of "input_features"
@@ -268,34 +280,31 @@ class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
     def _load_audio_from_path(self, audio_path: str) -> np.ndarray:
         """
         Load audio from file path.
-        
+
         Args:
             audio_path (str): Path to audio file
-            
+
         Returns:
             np.ndarray: Loaded audio array
         """
         # Get file extension to determine loading method
         file_ext = os.path.splitext(audio_path)[1].lower()
 
-        if file_ext in ['.wav', '.mp3', '.flac', '.m4a', '.ogg']:
+        if file_ext in [".wav", ".mp3", ".flac", ".m4a", ".ogg"]:
             # Audio file - use librosa
             import librosa
-            audio_array, sr = librosa.load(
-                audio_path,
-                sr=self.sampling_rate,
-                mono=True
-            )
+
+            audio_array, sr = librosa.load(audio_path, sr=self.sampling_rate, mono=True)
             return audio_array
-        elif file_ext == '.pt':
+        elif file_ext == ".pt":
             # PyTorch tensor file
-            audio_tensor = torch.load(audio_path, map_location='cpu').squeeze()
+            audio_tensor = torch.load(audio_path, map_location="cpu").squeeze()
             if isinstance(audio_tensor, torch.Tensor):
                 audio_array = audio_tensor.numpy()
             else:
                 audio_array = np.array(audio_tensor)
             return audio_array.astype(np.float32)
-        elif file_ext == '.npy':
+        elif file_ext == ".npy":
             # NumPy file
             audio_array = np.load(audio_path)
             return audio_array.astype(np.float32)
@@ -313,11 +322,11 @@ class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
         """
         Convenience method to preprocess audio from file path or array.
         This method is kept for backward compatibility but __call__ is recommended.
-        
+
         Args:
             audio_path_or_array: Path to audio file or numpy array
             normalize: Whether to normalize (overrides default setting)
-            
+
         Returns:
             np.ndarray: Preprocessed audio array
         """
@@ -356,7 +365,7 @@ class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
     ):
         """
         Save audio data to WAV file(s).
-        
+
         Args:
             audio: Audio data to save. Can be:
                 - torch.Tensor: PyTorch tensor with shape (B, C, T) or (B, T) or (T)
@@ -367,7 +376,7 @@ class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
             sampling_rate: Sampling rate for the saved audio. Defaults to the processor's rate.
             normalize: Whether to normalize audio before saving.
             batch_prefix: Prefix for batch files when saving multiple audios.
-                
+
         Returns:
             List[str]: Paths to the saved audio files.
         """
@@ -376,11 +385,11 @@ class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
 
         try:
             import soundfile as sf
-        except ImportError:
+        except ImportError as err:
             raise ImportError(
                 "soundfile is required to save audio files. "
                 "Install it with: pip install soundfile"
-            )
+            ) from err
 
         # Ensure audio is in the right format
         if isinstance(audio, torch.Tensor):
@@ -435,13 +444,17 @@ class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
                             if single_audio.shape[0] == 1:  # (1, T)
                                 single_audio = single_audio.squeeze(0)
 
-                        single_audio = self._prepare_audio_for_save(single_audio, normalize)
+                        single_audio = self._prepare_audio_for_save(
+                            single_audio, normalize
+                        )
                         file_path = os.path.join(output_dir, f"{batch_prefix}{i}.wav")
                         sf.write(file_path, single_audio, sampling_rate)
                         saved_paths.append(file_path)
                 else:
                     # Single audio with batch and channel dims
-                    audio_item = audio_np.squeeze()  # Remove batch and channel dimensions
+                    audio_item = (
+                        audio_np.squeeze()
+                    )  # Remove batch and channel dimensions
                     audio_item = self._prepare_audio_for_save(audio_item, normalize)
                     sf.write(output_path, audio_item, sampling_rate)
                     saved_paths.append(output_path)
@@ -456,11 +469,11 @@ class VibeVoiceTokenizerProcessor(FeatureExtractionMixin):
     def _prepare_audio_for_save(self, audio: np.ndarray, normalize: bool) -> np.ndarray:
         """
         Prepare audio for saving by ensuring it's the right shape and optionally normalizing.
-        
+
         Args:
             audio: Audio data as numpy array
             normalize: Whether to normalize audio
-            
+
         Returns:
             np.ndarray: Processed audio ready for saving
         """

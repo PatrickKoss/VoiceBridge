@@ -25,10 +25,13 @@ def _configure_wsl_clipboard():
 
                 # If no Linux clipboard utility found, try to use clip.exe from Windows
                 try:
-                    subprocess.run(["which", "clip.exe"], capture_output=True, check=True)
+                    subprocess.run(
+                        ["which", "clip.exe"], capture_output=True, check=True
+                    )
                     os.environ["PYPERCLIP_CMD"] = "clip.exe"
                 except subprocess.CalledProcessError:
                     pass
+
 
 _configure_wsl_clipboard()
 
@@ -103,11 +106,15 @@ class PlatformTextInputAdapter(TextInputService):
                                 ["xclip", "-selection", "clipboard", "-o"],
                                 capture_output=True,
                                 text=True,
-                                timeout=1
+                                timeout=1,
                             )
                             if result.returncode == 0:
                                 return result.stdout
-                        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+                        except (
+                            subprocess.CalledProcessError,
+                            subprocess.TimeoutExpired,
+                            FileNotFoundError,
+                        ):
                             pass
 
                         # Try PowerShell through WSL interop
@@ -116,12 +123,16 @@ class PlatformTextInputAdapter(TextInputService):
                                 ["powershell.exe", "-command", "Get-Clipboard"],
                                 capture_output=True,
                                 text=True,
-                                timeout=1
+                                timeout=1,
                             )
                             if result.returncode == 0:
                                 # Remove Windows line endings
-                                return result.stdout.replace('\r\n', '\n').strip()
-                        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+                                return result.stdout.replace("\r\n", "\n").strip()
+                        except (
+                            subprocess.CalledProcessError,
+                            subprocess.TimeoutExpired,
+                            FileNotFoundError,
+                        ):
                             pass
 
             # Only print error if we're not in WSL (avoid powershell.exe spam)
@@ -144,9 +155,13 @@ class PlatformTextInputAdapter(TextInputService):
                     try:
                         subprocess.run(
                             ["bash", "-c", "echo -n '' | xclip -selection clipboard"],
-                            timeout=1
+                            timeout=1,
                         )
-                    except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+                    except (
+                        subprocess.CalledProcessError,
+                        subprocess.TimeoutExpired,
+                        FileNotFoundError,
+                    ):
                         pass
             time.sleep(0.05)  # Small delay
 
