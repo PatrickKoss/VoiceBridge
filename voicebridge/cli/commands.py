@@ -581,6 +581,7 @@ class CLICommands:
 
                                             # Copy to clipboard if enabled
                                             if config.copy_final:
+                                                print("Copying to clipboard...")
                                                 success = self.transcription_orchestrator.clipboard_service.copy_text(result.text)
                                                 if success:
                                                     print("📋 Copied to clipboard")

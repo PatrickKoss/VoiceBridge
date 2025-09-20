@@ -1,3 +1,4 @@
+import os
 import platform
 import shutil
 import subprocess
@@ -35,60 +36,148 @@ class PlatformClipboardService(ClipboardService):
             return False
 
     def _copy_windows(self, text: str) -> bool:
-        result = subprocess.run(
-            ["powershell", "-command", f"Set-Clipboard -Value '{text}'"],
-            capture_output=True,
-        )
-        return result.returncode == 0
+        try:
+            result = subprocess.run(
+                ["powershell", "-command", f"Set-Clipboard -Value '{text}'"],
+                capture_output=True,
+                timeout=5,
+            )
+            return result.returncode == 0
+        except subprocess.TimeoutExpired:
+            return False
 
     def _copy_macos(self, text: str) -> bool:
-        result = subprocess.run(
-            ["pbcopy"], input=text.encode("utf-8"), capture_output=True
-        )
-        return result.returncode == 0
+        try:
+            result = subprocess.run(
+                ["pbcopy"], input=text.encode("utf-8"), capture_output=True, timeout=5
+            )
+            return result.returncode == 0
+        except subprocess.TimeoutExpired:
+            return False
 
     def _copy_linux(self, text: str) -> bool:
-        # Try xclip first, then xsel as fallback
+        # Check if we're in WSL and try Windows clipboard tools first
+        if os.path.exists("/proc/version"):
+            try:
+                with open("/proc/version") as f:
+                    if "microsoft" in f.read().lower():
+                        # We're in WSL, try PowerShell through WSL interop
+                        try:
+                            # Use PowerShell Set-Clipboard through WSL interop
+                            escaped_text = text.replace("'", "''")
+                            result = subprocess.run(
+                                ["powershell.exe", "-command", f"Set-Clipboard -Value '{escaped_text}'"],
+                                capture_output=True,
+                                timeout=5,
+                            )
+                            if result.returncode == 0:
+                                return True
+                        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+                            pass
+
+                        # Try clip.exe as fallback
+                        try:
+                            result = subprocess.run(
+                                ["clip.exe"],
+                                input=text.encode("utf-8"),
+                                capture_output=True,
+                                timeout=5,
+                            )
+                            if result.returncode == 0:
+                                return True
+                        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+                            pass
+
+                        # Try clip.exe via direct Windows path
+                        try:
+                            result = subprocess.run(
+                                ["/mnt/c/Windows/System32/clip.exe"],
+                                input=text.encode("utf-8"),
+                                capture_output=True,
+                                timeout=5,
+                            )
+                            if result.returncode == 0:
+                                return True
+                        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+                            pass
+            except (OSError, IOError):
+                pass
+
+        # Try Linux clipboard tools
         for cmd in [["xclip", "-selection", "clipboard"], ["xsel", "--clipboard"]]:
             if shutil.which(cmd[0]):
-                result = subprocess.run(
-                    cmd, input=text.encode("utf-8"), capture_output=True
-                )
-                return result.returncode == 0
+                process = None
+                try:
+                    # Use Popen to properly handle stdin closure for xclip
+                    process = subprocess.Popen(
+                        cmd, 
+                        stdin=subprocess.PIPE, 
+                        stdout=subprocess.PIPE, 
+                        stderr=subprocess.PIPE
+                    )
+                    stdout, stderr = process.communicate(input=text.encode("utf-8"), timeout=5)
+                    return process.returncode == 0
+                except subprocess.TimeoutExpired:
+                    # If this clipboard tool times out, kill it and try the next one
+                    if process:
+                        process.kill()
+                        process.wait()
+                    continue
+                except Exception:
+                    # If any other error occurs, try the next tool
+                    if process:
+                        try:
+                            process.kill()
+                            process.wait()
+                        except:
+                            pass
+                    continue
         return False
 
     def _type_windows(self, text: str) -> bool:
         # Use PowerShell SendKeys for Windows
         escaped_text = text.replace("'", "''")
-        result = subprocess.run(
-            [
-                "powershell",
-                "-command",
-                f"Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('{escaped_text}')",
-            ],
-            capture_output=True,
-        )
-        return result.returncode == 0
+        try:
+            result = subprocess.run(
+                [
+                    "powershell",
+                    "-command",
+                    f"Add-Type -AssemblyName System.Windows.Forms; [System.Windows.Forms.SendKeys]::SendWait('{escaped_text}')",
+                ],
+                capture_output=True,
+                timeout=10,  # Typing can take longer than clipboard operations
+            )
+            return result.returncode == 0
+        except subprocess.TimeoutExpired:
+            return False
 
     def _type_macos(self, text: str) -> bool:
         # Use AppleScript for macOS
         escaped_text = text.replace('"', '\\"').replace("\\", "\\\\")
-        result = subprocess.run(
-            [
-                "osascript",
-                "-e",
-                f'tell application "System Events" to keystroke "{escaped_text}"',
-            ],
-            capture_output=True,
-        )
-        return result.returncode == 0
+        try:
+            result = subprocess.run(
+                [
+                    "osascript",
+                    "-e",
+                    f'tell application "System Events" to keystroke "{escaped_text}"',
+                ],
+                capture_output=True,
+                timeout=10,  # Typing can take longer than clipboard operations
+            )
+            return result.returncode == 0
+        except subprocess.TimeoutExpired:
+            return False
 
     def _type_linux(self, text: str) -> bool:
         # Try xdotool first, then ydotool as fallback
         for cmd in [["xdotool", "type", text], ["ydotool", "type", text]]:
             if shutil.which(cmd[0]):
-                result = subprocess.run(cmd, capture_output=True)
-                return result.returncode == 0
+                try:
+                    result = subprocess.run(cmd, capture_output=True, timeout=10)
+                    return result.returncode == 0
+                except subprocess.TimeoutExpired:
+                    # If this tool times out, try the next one
+                    continue
         return False
 
 
