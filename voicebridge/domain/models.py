@@ -61,8 +61,8 @@ class WhisperConfig:
     initial_prompt: str | None = None
     temperature: float = 0.0
     mode: OperationMode = OperationMode.TOGGLE
-    key: str = "f9"
-    start_key: str = "f9"
+    key: str = "ctrl+f2"
+    start_key: str = "ctrl+f2"
     stop_key: str = "f10"
     quit_key: str = "esc"
     paste_stream: bool = False
@@ -142,7 +142,7 @@ class TTSConfig:
 
     # Hotkey configuration
     tts_toggle_key: str = "f11"
-    tts_generate_key: str = "f2"
+    tts_generate_key: str = "ctrl+f2"
     tts_stop_key: str = "ctrl+alt+s"
 
     # Audio settings

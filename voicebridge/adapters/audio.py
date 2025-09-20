@@ -10,11 +10,22 @@ from voicebridge.ports.interfaces import AudioRecorder
 class FFmpegAudioRecorder(AudioRecorder):
     def __init__(self):
         self.system_info = SystemInfo.current()
+        self._state_lock = threading.Lock()
+        self._current_process: subprocess.Popen | None = None
+        self._current_stop_event: threading.Event | None = None
+        self._current_audio_queue: queue.Queue | None = None
+        self._current_reader_thread: threading.Thread | None = None
 
     def record_stream(self, sample_rate: int = 16000) -> Iterator[bytes]:
         device = self._get_default_device()
         if not device:
             raise RuntimeError("No audio input device found")
+
+        stop_event = threading.Event()
+        with self._state_lock:
+            if self._current_process is not None:
+                raise RuntimeError("Audio recording already in progress")
+            self._current_stop_event = stop_event
 
         cmd = self._build_ffmpeg_command(device, sample_rate)
 
@@ -23,17 +34,29 @@ class FFmpegAudioRecorder(AudioRecorder):
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
             )
         except FileNotFoundError:
+            with self._state_lock:
+                self._current_stop_event = None
             raise RuntimeError("FFmpeg not found. Please install FFmpeg to record audio.")
         except Exception as e:
+            with self._state_lock:
+                self._current_stop_event = None
             raise RuntimeError(f"Failed to start audio recording: {e}")
+
+        with self._state_lock:
+            self._current_process = proc
 
         chunk_size = sample_rate * 2  # 1 second of 16-bit audio
         audio_queue = queue.Queue()
         error_queue = queue.Queue()
 
+        with self._state_lock:
+            self._current_audio_queue = audio_queue
+
         def read_audio():
             try:
                 while True:
+                    if stop_event.is_set():
+                        break
                     data = proc.stdout.read(chunk_size)
                     if not data:
                         # Check if process failed
@@ -51,6 +74,9 @@ class FFmpegAudioRecorder(AudioRecorder):
         thread = threading.Thread(target=read_audio, daemon=True)
         thread.start()
 
+        with self._state_lock:
+            self._current_reader_thread = thread
+
         try:
             # Wait a moment for the process to start
             import time
@@ -66,6 +92,8 @@ class FFmpegAudioRecorder(AudioRecorder):
                     data = audio_queue.get(timeout=1.0)  # 1 second timeout
                     if data is None:
                         break
+                    if stop_event.is_set():
+                        break
                     yield data
                 except queue.Empty:
                     # Check for errors during recording
@@ -74,7 +102,56 @@ class FFmpegAudioRecorder(AudioRecorder):
                         raise RuntimeError(error)
                     continue
         finally:
+            self._finalize_recording(proc, stop_event)
+
+    def stop_current_stream(self) -> None:
+        with self._state_lock:
+            proc = self._current_process
+            stop_event = self._current_stop_event
+            audio_queue = self._current_audio_queue
+
+        if stop_event:
+            stop_event.set()
+
+        if audio_queue:
+            audio_queue.put(None)
+
+        if proc:
             self._stop_ffmpeg_gracefully(proc)
+
+        self._clear_recording_state(proc, stop_event)
+
+    def _finalize_recording(
+        self, proc: subprocess.Popen, stop_event: threading.Event
+    ) -> None:
+        try:
+            self._stop_ffmpeg_gracefully(proc)
+        finally:
+            self._clear_recording_state(proc, stop_event)
+
+    def _clear_recording_state(
+        self,
+        expected_proc: subprocess.Popen | None,
+        expected_stop_event: threading.Event | None,
+    ) -> None:
+        reader_thread: threading.Thread | None = None
+        with self._state_lock:
+            matches_proc = (
+                expected_proc is None or self._current_process is expected_proc
+            )
+            matches_event = (
+                expected_stop_event is None
+                or self._current_stop_event is expected_stop_event
+            )
+            if matches_proc and matches_event:
+                reader_thread = self._current_reader_thread
+                self._current_stop_event = None
+                self._current_process = None
+                self._current_audio_queue = None
+                self._current_reader_thread = None
+
+        if reader_thread and reader_thread.is_alive():
+            reader_thread.join(timeout=0.5)
 
     def list_devices(self) -> list[AudioDeviceInfo]:
         if self.system_info.platform == PlatformType.WINDOWS:

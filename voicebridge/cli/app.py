@@ -71,7 +71,7 @@ def create_app(commands: CLICommands) -> typer.Typer:
         language: str | None = typer.Option(
             None, "--language", "-l", help="Language code"
         ),
-        key: str = typer.Option("f2", "--key", "-k", help="Hotkey to use"),
+        key: str = typer.Option("ctrl+f2", "--key", "-k", help="Hotkey to use"),
         mode: str = typer.Option(
             "toggle", "--mode", help="Mode: toggle or push_to_talk"
         ),

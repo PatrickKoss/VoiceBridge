@@ -94,6 +94,21 @@ class CLICommands:
         self.tts_orchestrator = tts_orchestrator
         self.tts_daemon_service = tts_daemon_service
 
+    def _stop_audio_recorder(self) -> None:
+        """Attempt to stop the active audio recorder stream if one is running."""
+        recorder = getattr(self.transcription_orchestrator, "audio_recorder", None)
+        stop_method = getattr(recorder, "stop_current_stream", None)
+
+        if callable(stop_method):
+            try:
+                stop_method()
+            except Exception as exc:  # Defensive: best-effort stop only
+                try:
+                    if self.logger:
+                        self.logger.warning(f"Failed to stop audio recorder cleanly: {exc}")
+                except Exception:
+                    pass
+
     def listen(
         self,
         model: str | None = None,
@@ -125,7 +140,7 @@ class CLICommands:
                 debug,
             )
 
-            typer.echo("🎤 Press F2 to start/stop recording, or Ctrl+C to quit")
+            typer.echo(f"🎤 Press {getattr(config, 'key', 'ctrl+f2').upper()} to start/stop recording, or Ctrl+C to quit")
 
             # State management
             audio_data = b""
@@ -134,7 +149,7 @@ class CLICommands:
             stop_recording = threading.Event()
 
             def record_audio():
-                nonlocal audio_data
+                nonlocal audio_data, recording
                 audio_data = b""
                 try:
                     chunk_count = 0
@@ -144,13 +159,15 @@ class CLICommands:
                         audio_data += chunk
                         chunk_count += 1
 
-                        # Show audio level feedback every few chunks
-                        if chunk_count % 10 == 0:
+                        # Show progress without carriage return to avoid terminal conflicts
+                        if chunk_count % 20 == 0:
                             level = min(len(chunk) // 1000, 10)
                             bar = "█" * level + "░" * (10 - level)
-                            typer.echo(f"\r🎤 Recording... {bar} {len(audio_data):,} bytes", nl=False)
+                            print(f"🎤 Recording... {bar} {len(audio_data):,} bytes")
                 except Exception as e:
-                    typer.echo(f"\nRecording error: {e}")
+                    print(f"\nRecording error: {e}")
+                finally:
+                    recording = False
 
             # Hotkey listener
             def on_hotkey():
@@ -160,13 +177,14 @@ class CLICommands:
                     typer.echo("🎤 Starting recording... (Press F2 again to stop)")
                     recording = True
                     stop_recording.clear()
-                    recording_thread = threading.Thread(target=record_audio)
+                    recording_thread = threading.Thread(target=record_audio, daemon=True)
                     recording_thread.start()
                 else:
                     # Stop recording and transcribe
                     typer.echo("\n🛑 Stopping recording...")
                     recording = False
                     stop_recording.set()
+                    self._stop_audio_recorder()
 
                     if recording_thread:
                         recording_thread.join(timeout=2)
@@ -195,72 +213,176 @@ class CLICommands:
                     else:
                         typer.echo("No audio recorded.")
 
-                    typer.echo("💡 Press F2 to start recording again")
+                    typer.echo(f"💡 Press {getattr(config, 'key', 'ctrl+f2').upper()} to start recording again")
 
-            # Setup hotkey listener with fallback for terminal issues
+            def format_hotkey_for_pynput(hotkey: str) -> str:
+                parts = [part.strip() for part in hotkey.split('+') if part.strip()]
+                formatted = []
+                for part in parts:
+                    part_lower = part.lower()
+                    if part_lower in {"ctrl", "alt", "shift", "cmd", "super"}:
+                        formatted.append(f"<{part_lower}>")
+                    elif part_lower.startswith('f') and part_lower[1:].isdigit():
+                        formatted.append(f"<{part_lower}>")
+                    elif part_lower in {"space", "enter", "return", "tab", "esc", "escape", "backspace"}:
+                        formatted.append(f"<{part_lower}>")
+                    else:
+                        formatted.append(part_lower)
+                return "+".join(formatted)
+
+            # Setup hotkey listener using pynput's built-in hotkey support
             try:
                 from pynput import keyboard
 
-                def on_press(key):
-                    try:
-                        # Handle F2 key with standard pynput detection
-                        if key == keyboard.Key.f2:
-                            on_hotkey()
-                    except (AttributeError, ValueError):
-                        pass
+                # Parse the configured hotkey - for listen mode, use the main config key
+                hotkey_str = getattr(config, 'key', 'ctrl+f2').lower()
 
-                listener = keyboard.Listener(on_press=on_press, suppress=False)
-                listener.start()
+                def build_manual_hotkey_detector(hotkey: str):
+                    parts = [part.strip() for part in hotkey.split('+') if part.strip()]
+                    modifiers = {"ctrl", "alt", "shift", "cmd", "super"}
+                    required_mods = {part for part in parts if part in modifiers}
+                    base_key = None
+                    for part in reversed(parts):
+                        if part not in modifiers:
+                            base_key = part
+                            break
 
-                typer.echo("✅ Hotkey listener active. Press F2 to start recording.")
-                typer.echo("💡 If F2 doesn't work, try pressing 'r' in the terminal or use Ctrl+C")
+                    if base_key is None:
+                        base_key = "f2"
 
-                # Also listen for F2 and 'r' key in terminal as backup
+                    base_key = base_key.lower()
+
+                    special_keys = {
+                        "space": keyboard.Key.space,
+                        "enter": keyboard.Key.enter,
+                        "return": keyboard.Key.enter,
+                        "tab": keyboard.Key.tab,
+                        "esc": keyboard.Key.esc,
+                        "escape": keyboard.Key.esc,
+                        "backspace": keyboard.Key.backspace,
+                    }
+
+                    def modifiers_active(ctrl: bool, alt: bool, shift: bool, cmd: bool, super_key: bool) -> bool:
+                        checks = []
+                        if "ctrl" in required_mods:
+                            checks.append(ctrl)
+                        if "alt" in required_mods:
+                            checks.append(alt)
+                        if "shift" in required_mods:
+                            checks.append(shift)
+                        if "cmd" in required_mods:
+                            checks.append(cmd)
+                        if "super" in required_mods:
+                            checks.append(super_key)
+                        return all(checks) if checks else True
+
+                    def key_matches(key: object) -> bool:
+                        if base_key in special_keys:
+                            return key == special_keys[base_key]
+                        if base_key.startswith('f') and base_key[1:].isdigit():
+                            target = getattr(keyboard.Key, base_key, None)
+                            return key == target
+                        if base_key == "space":
+                            return key == keyboard.Key.space
+                        if hasattr(key, "char") and getattr(key, "char"):
+                            return key.char.lower() == base_key
+                        return False
+
+                    return required_mods, modifiers_active, key_matches
+
+                # Use pynput's built-in GlobalHotKeys for reliable detection
+                try:
+                    pynput_hotkey = format_hotkey_for_pynput(hotkey_str)
+
+                    hotkey_listener = keyboard.GlobalHotKeys({
+                        pynput_hotkey: on_hotkey
+                    })
+                    hotkey_listener.start()
+                    
+                    typer.echo(f"✅ Global hotkey listener active. Press {hotkey_str.upper()} to start recording.")
+                    
+                except Exception as e:
+                    # Fallback to manual detection if GlobalHotKeys fails
+                    typer.echo(f"⚠️ Global hotkeys failed ({e}), using manual detection")
+
+                    # Manual modifier tracking approach
+                    ctrl_pressed = False
+                    alt_pressed = False
+                    shift_pressed = False
+                    cmd_pressed = False
+                    super_pressed = False
+
+                    required_mods, modifiers_active, key_matches = build_manual_hotkey_detector(hotkey_str)
+
+                    def on_press(key):
+                        nonlocal ctrl_pressed, alt_pressed, shift_pressed, cmd_pressed, super_pressed
+                        try:
+                            if key == keyboard.Key.ctrl_l or key == keyboard.Key.ctrl_r:
+                                ctrl_pressed = True
+                            elif key == keyboard.Key.alt_l or key == keyboard.Key.alt_r:
+                                alt_pressed = True
+                            elif key == keyboard.Key.shift_l or key == keyboard.Key.shift_r:
+                                shift_pressed = True
+                            elif key == getattr(keyboard.Key, 'cmd', None) or key == getattr(keyboard.Key, 'cmd_l', None) or key == getattr(keyboard.Key, 'cmd_r', None):
+                                cmd_pressed = True
+                            elif key == getattr(keyboard.Key, 'super', None):
+                                super_pressed = True
+                            elif key_matches(key):
+                                if modifiers_active(ctrl_pressed, alt_pressed, shift_pressed, cmd_pressed, super_pressed):
+                                    on_hotkey()
+                        except (AttributeError, ValueError):
+                            pass
+
+                    def on_release(key):
+                        nonlocal ctrl_pressed, alt_pressed, shift_pressed, cmd_pressed, super_pressed
+                        try:
+                            if key == keyboard.Key.ctrl_l or key == keyboard.Key.ctrl_r:
+                                ctrl_pressed = False
+                            elif key == keyboard.Key.alt_l or key == keyboard.Key.alt_r:
+                                alt_pressed = False
+                            elif key == keyboard.Key.shift_l or key == keyboard.Key.shift_r:
+                                shift_pressed = False
+                            elif key == getattr(keyboard.Key, 'cmd', None) or key == getattr(keyboard.Key, 'cmd_l', None) or key == getattr(keyboard.Key, 'cmd_r', None):
+                                cmd_pressed = False
+                            elif key == getattr(keyboard.Key, 'super', None):
+                                super_pressed = False
+                        except (AttributeError, ValueError):
+                            pass
+
+                    listener = keyboard.Listener(on_press=on_press, on_release=on_release, suppress=False)
+                    listener.start()
+                    
+                    typer.echo(f"✅ Manual hotkey detection active. Press {hotkey_str.upper()} to start recording.")
+                
+                typer.echo("💡 If hotkey doesn't work, try pressing 'r' in the terminal or use Ctrl+C")
+
+                # Simple terminal backup - just 'r' key support to avoid conflicts
                 def check_terminal_input():
                     import select
                     import sys
                     import termios
                     import tty
+                    old_settings = None
                     try:
                         old_settings = termios.tcgetattr(sys.stdin)
                         tty.setraw(sys.stdin.fileno())
-                        escape_sequence = ""
                         while True:
                             if select.select([sys.stdin], [], [], 0.1) == ([sys.stdin], [], []):
                                 ch = sys.stdin.read(1)
-
-                                # Handle escape sequences for F2
-                                if ch == '\x1b':  # ESC
-                                    escape_sequence = ch
-                                    continue
-                                elif escape_sequence:
-                                    escape_sequence += ch
-                                    # F2 sequences: \x1b[OQ, \x1bOQ, or other variants
-                                    if escape_sequence in ['\x1b[OQ', '\x1bOQ', '\x1b[12~']:
-                                        typer.echo("F2 detected via terminal!")
-                                        on_hotkey()
-                                        escape_sequence = ""
-                                        continue
-                                    elif len(escape_sequence) >= 4:  # Reset if too long
-                                        escape_sequence = ""
-
-                                # Handle regular keys
                                 if ch.lower() == 'r':
                                     on_hotkey()
                                 elif ch == '\x03':  # Ctrl+C
                                     break
-
-                                # Reset escape sequence on regular key
-                                escape_sequence = ""
                     except (OSError, ValueError, termios.error):
                         pass
                     finally:
-                        try:
-                            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-                        except (OSError, ValueError, termios.error):
-                            pass
+                        if old_settings:
+                            try:
+                                termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+                            except (OSError, ValueError, termios.error):
+                                pass
 
-                # Start terminal input thread as backup
+                # Start minimal terminal input thread
                 terminal_thread = threading.Thread(target=check_terminal_input, daemon=True)
                 terminal_thread.start()
 
@@ -272,9 +394,17 @@ class CLICommands:
                     typer.echo("\n👋 Exiting...")
                     if recording:
                         stop_recording.set()
+                        self._stop_audio_recorder()
                         if recording_thread:
                             recording_thread.join(timeout=2)
-                    listener.stop()
+                    # Stop the appropriate listener
+                    try:
+                        if 'hotkey_listener' in locals():
+                            hotkey_listener.stop()
+                        elif 'listener' in locals():
+                            listener.stop()
+                    except:
+                        pass
 
             except ImportError:
                 typer.echo("⚠️ pynput not available - falling back to simple mode")
@@ -292,6 +422,7 @@ class CLICommands:
                     typer.echo("\n🛑 Recording stopped. Transcribing...")
                     recording = False
                     stop_recording.set()
+                    self._stop_audio_recorder()
                     time.sleep(0.2)
 
                 if audio_data:
@@ -339,6 +470,7 @@ class CLICommands:
 
             typer.echo("🎯 Interactive Mode Started!")
             typer.echo("💡 Commands: 's' = start recording, 't' = stop recording, 'q' = quit")
+            typer.echo("💡 Single keypress - no Enter needed")
             typer.echo()
 
             # Shared state between threads
@@ -351,28 +483,34 @@ class CLICommands:
                 nonlocal audio_data
                 audio_data = b""
                 try:
+                    chunk_count = 0
                     for chunk in self.transcription_orchestrator.audio_recorder.record_stream():
                         if stop_recording.is_set():
                             break
                         audio_data += chunk
-                        # Show live feedback
-                        typer.echo(f"\r🎤 Recording... {len(audio_data):,} bytes", nl=False)
+                        chunk_count += 1
+                        # Show progress without carriage return to avoid formatting issues
+                        if chunk_count % 20 == 0:
+                            print(f"🎤 Recording... {len(audio_data):,} bytes")
                 except Exception as e:
-                    typer.echo(f"\nRecording error: {e}")
+                    print(f"\nRecording error: {e}")
+                finally:
+                    recording_state['is_recording'] = False
 
             should_exit = threading.Event()
 
-            # Use same reliable terminal input handling as listen mode
+            # Restore single-keypress functionality for interactive mode  
             def check_terminal_input():
                 import select
                 import sys
                 import termios
                 import tty
                 nonlocal recording_thread
+                old_settings = None
                 try:
                     old_settings = termios.tcgetattr(sys.stdin)
                     tty.setraw(sys.stdin.fileno())
-
+                    
                     while not should_exit.is_set():
                         if select.select([sys.stdin], [], [], 0.1) == ([sys.stdin], [], []):
                             ch = sys.stdin.read(1)
@@ -380,50 +518,52 @@ class CLICommands:
                             if ch.lower() == 's':
                                 if not recording_state['is_recording']:
                                     # Start recording
-                                    typer.echo("🎤 Starting recording... Press 's' again to stop")
+                                    print("\n🎤 Starting recording... (Press 't' to stop)")
                                     recording_state['is_recording'] = True
                                     stop_recording.clear()
-                                    recording_thread = threading.Thread(target=record_audio)
+                                    recording_thread = threading.Thread(target=record_audio, daemon=True)
                                     recording_thread.start()
                                 else:
                                     # Stop recording and process
-                                    typer.echo("\n🛑 Stopping recording...")
+                                    print("\n🛑 Stopping recording...")
                                     stop_recording.set()
+                                    self._stop_audio_recorder()
                                     recording_state['is_recording'] = False
 
                                     if recording_thread:
                                         recording_thread.join(timeout=2)
 
-                                    # Process transcription - duplicate logic here for simplicity
+                                    # Process transcription
                                     if audio_data:
                                         try:
-                                            typer.echo("🔄 Processing audio...")
+                                            print("🔄 Processing audio...")
                                             result = self.transcription_orchestrator.transcription_service.transcribe(audio_data, config)
                                             if result and result.text:
-                                                typer.echo(f"📝 Transcription: {result.text}")
-                                                typer.echo(f"🎯 Confidence: {result.confidence:.2f}")
-                                                typer.echo(f"🌍 Language: {result.language}")
+                                                print(f"📝 Transcription: {result.text}")
+                                                print(f"🎯 Confidence: {result.confidence:.2f}")
+                                                print(f"🌍 Language: {result.language}")
 
                                                 # Copy to clipboard if enabled
                                                 if config.copy_final:
                                                     success = self.transcription_orchestrator.clipboard_service.copy_text(result.text)
                                                     if success:
-                                                        typer.echo("📋 Copied to clipboard")
+                                                        print("📋 Copied to clipboard")
                                                     else:
-                                                        typer.echo("⚠️ Failed to copy to clipboard")
+                                                        print("⚠️ Failed to copy to clipboard")
                                             else:
-                                                typer.echo("No speech detected or transcription failed.")
+                                                print("No speech detected or transcription failed.")
                                         except Exception as e:
-                                            typer.echo(f"Transcription error: {e}")
+                                            print(f"Transcription error: {e}")
                                     else:
-                                        typer.echo("No audio recorded.")
+                                        print("No audio recorded.")
 
-                                    typer.echo("💡 Press 's' to start recording again, 'q' to quit")
+                                    print("💡 Press 's' to start recording again, 'q' to quit")
 
                             elif ch.lower() == 't' and recording_state['is_recording']:
                                 # Stop recording only
-                                typer.echo("\n🛑 Stopping recording...")
+                                print("\n🛑 Stopping recording...")
                                 stop_recording.set()
+                                self._stop_audio_recorder()
                                 recording_state['is_recording'] = False
 
                                 if recording_thread:
@@ -432,28 +572,28 @@ class CLICommands:
                                 # Process transcription
                                 if audio_data:
                                     try:
-                                        typer.echo("🔄 Processing audio...")
+                                        print("🔄 Processing audio...")
                                         result = self.transcription_orchestrator.transcription_service.transcribe(audio_data, config)
                                         if result and result.text:
-                                            typer.echo(f"📝 Transcription: {result.text}")
-                                            typer.echo(f"🎯 Confidence: {result.confidence:.2f}")
-                                            typer.echo(f"🌍 Language: {result.language}")
+                                            print(f"📝 Transcription: {result.text}")
+                                            print(f"🎯 Confidence: {result.confidence:.2f}")
+                                            print(f"🌍 Language: {result.language}")
 
                                             # Copy to clipboard if enabled
                                             if config.copy_final:
                                                 success = self.transcription_orchestrator.clipboard_service.copy_text(result.text)
                                                 if success:
-                                                    typer.echo("📋 Copied to clipboard")
+                                                    print("📋 Copied to clipboard")
                                                 else:
-                                                    typer.echo("⚠️ Failed to copy to clipboard")
+                                                    print("⚠️ Failed to copy to clipboard")
                                         else:
-                                            typer.echo("No speech detected or transcription failed.")
+                                            print("No speech detected or transcription failed.")
                                     except Exception as e:
-                                        typer.echo(f"Transcription error: {e}")
+                                        print(f"Transcription error: {e}")
                                 else:
-                                    typer.echo("No audio recorded.")
+                                    print("No audio recorded.")
 
-                                typer.echo("💡 Press 's' to start recording again, 'q' to quit")
+                                print("💡 Press 's' to start recording again, 'q' to quit")
 
                             elif ch.lower() == 'q':
                                 should_exit.set()
@@ -461,19 +601,19 @@ class CLICommands:
                             elif ch == '\x03':  # Ctrl+C
                                 should_exit.set()
                                 break
+                                
                 except (OSError, ValueError, termios.error):
                     pass
                 finally:
-                    try:
-                        termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
-                    except (OSError, ValueError, termios.error):
-                        pass
+                    if old_settings:
+                        try:
+                            termios.tcsetattr(sys.stdin, termios.TCSADRAIN, old_settings)
+                        except (OSError, ValueError, termios.error):
+                            pass
 
             # Start terminal input handler
             terminal_thread = threading.Thread(target=check_terminal_input, daemon=True)
             terminal_thread.start()
-
-            typer.echo("💡 Press 's' to start/stop recording, 't' to stop only, 'q' to quit")
 
             try:
                 # Keep main thread alive
@@ -481,15 +621,15 @@ class CLICommands:
                     time.sleep(0.1)
             except KeyboardInterrupt:
                 should_exit.set()
-                typer.echo("\n👋 Stopped by Ctrl+C")
-
+                print("\n👋 Stopped by Ctrl+C")
 
             # Final cleanup
             if recording_state['is_recording']:
                 stop_recording.set()
+                self._stop_audio_recorder()
                 if recording_thread:
                     recording_thread.join(timeout=2)
-            should_exit.set()
+
             typer.echo("👋 Goodbye!")
 
         except Exception as e:
@@ -567,6 +707,7 @@ class CLICommands:
                     return
 
                 self._recording = False
+                self._stop_audio_recorder()
                 typer.echo("🛑 Recording stopped. Transcribing...")
 
                 if self._audio_data:
