@@ -17,11 +17,14 @@ ffmpy>=0.6.1
 # Machine Learning - CPU versions by default
 torch>=2.8.0
 torchaudio>=2.8.0
-torchmetrics>=1.0.3
+torchvision>=0.23.0
+torchmetrics>=1.8.2
 transformers==4.51.3
-accelerate>=1.6.0
+accelerate>=1.10.1
 diffusers>=0.35.1
-safetensors>=0.5.3
+safetensors>=0.6.2
+tiktoken>=0.11.0
+tokenizers>=0.21.4
 
 # TTS Dependencies (removed TTS due to Python 3.12 incompatibility, using VibeVoice instead)
 # gruut>=2.2.3
@@ -56,10 +59,10 @@ aiofiles>=24.1.0
 websockets>=15.0.1
 
 # Data processing
-numpy>=1.26.4
-pandas>=1.5.3
-scipy>=1.16.0
-scikit-learn>=1.7.0
+numpy>=2.2.6
+pandas>=2.3.2
+scipy>=1.16.2
+scikit-learn>=1.7.2
 
 # Utilities
 python-dateutil>=2.9.0
