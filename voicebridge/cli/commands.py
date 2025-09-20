@@ -172,6 +172,7 @@ class CLICommands:
             # Hotkey listener
             def on_hotkey():
                 nonlocal recording, recording_thread
+                typer.echo(f"🔥 DEBUG: on_hotkey() called! Recording state: {recording}")
                 if not recording:
                     # Start recording
                     typer.echo("🎤 Starting recording... (Press F2 again to stop)")
@@ -236,6 +237,17 @@ class CLICommands:
 
                 # Parse the configured hotkey - for listen mode, use the main config key
                 hotkey_str = getattr(config, 'key', 'ctrl+f2').lower()
+                
+                # Check for WSL environment and warn about potential issues
+                is_wsl = False
+                if os.path.exists("/proc/version"):
+                    with open("/proc/version") as f:
+                        content = f.read()
+                        if "microsoft" in content.lower() or "wsl" in content.lower():
+                            is_wsl = True
+                            typer.echo("⚠️  WSL detected. If hotkeys don't work, you may need to use the 'r' key in terminal as backup.")
+                
+                typer.echo(f"🔧 Attempting to set up hotkey: {hotkey_str}")
 
                 def build_manual_hotkey_detector(hotkey: str):
                     parts = [part.strip() for part in hotkey.split('+') if part.strip()]
@@ -290,21 +302,68 @@ class CLICommands:
 
                     return required_mods, modifiers_active, key_matches
 
-                # Use pynput's built-in GlobalHotKeys for reliable detection
-                try:
-                    pynput_hotkey = format_hotkey_for_pynput(hotkey_str)
-
-                    hotkey_listener = keyboard.GlobalHotKeys({
-                        pynput_hotkey: on_hotkey
-                    })
-                    hotkey_listener.start()
+                # In WSL, test if pynput can actually detect keys before trying hotkey detection
+                hotkey_working = False
+                use_manual_detection = False
+                
+                # First test if pynput can detect keys at all in WSL
+                if is_wsl:
+                    typer.echo("🔧 Testing if pynput can detect keys in WSL environment...")
                     
-                    typer.echo(f"✅ Global hotkey listener active. Press {hotkey_str.upper()} to start recording.")
+                    test_key_detected = False
+                    def test_key_callback(key):
+                        nonlocal test_key_detected
+                        test_key_detected = True
+                        return False  # Stop listener
                     
-                except Exception as e:
-                    # Fallback to manual detection if GlobalHotKeys fails
-                    typer.echo(f"⚠️ Global hotkeys failed ({e}), using manual detection")
+                    try:
+                        test_listener = keyboard.Listener(on_press=test_key_callback, suppress=False)
+                        test_listener.start()
+                        
+                        # Give a short time for initialization
+                        time.sleep(0.1)
+                        
+                        # Test if listener is actually working by checking if it can be stopped
+                        test_listener.stop()
+                        test_listener.join(timeout=1)
+                        
+                        # If we get here without exception, pynput is at least partially working
+                        typer.echo("🔧 pynput seems to work, trying manual detection")
+                        use_manual_detection = True
+                        
+                    except Exception as e:
+                        typer.echo(f"🔧 pynput test failed: {e}")
+                        typer.echo("🔧 X11 display access may be missing. Using terminal-only mode.")
+                        use_manual_detection = False
+                else:
+                    use_manual_detection = False
+                
+                if not use_manual_detection and not is_wsl:
+                    # Try GlobalHotKeys for non-WSL environments only
+                    try:
+                        pynput_hotkey = format_hotkey_for_pynput(hotkey_str)
+                        typer.echo(f"🔧 Debug: Original hotkey: '{hotkey_str}', Formatted: '{pynput_hotkey}'")
 
+                        # Test callback to verify the hotkey system
+                        def test_callback():
+                            typer.echo("🔧 DEBUG: GlobalHotKeys test callback triggered!")
+                            return on_hotkey()
+
+                        hotkey_listener = keyboard.GlobalHotKeys({
+                            pynput_hotkey: test_callback
+                        })
+                        hotkey_listener.start()
+                        
+                        typer.echo(f"✅ Global hotkey listener active. Press {hotkey_str.upper()} to start recording.")
+                        hotkey_working = True
+                        
+                    except Exception as e:
+                        # Fallback to manual detection if GlobalHotKeys fails
+                        typer.echo(f"⚠️ Global hotkeys failed ({e.__class__.__name__}: {e}), using manual detection")
+                        use_manual_detection = True
+
+                # Set up manual detection if needed
+                if use_manual_detection:
                     # Manual modifier tracking approach
                     ctrl_pressed = False
                     alt_pressed = False
@@ -317,6 +376,7 @@ class CLICommands:
                     def on_press(key):
                         nonlocal ctrl_pressed, alt_pressed, shift_pressed, cmd_pressed, super_pressed
                         try:
+                            # Update modifier states
                             if key == keyboard.Key.ctrl_l or key == keyboard.Key.ctrl_r:
                                 ctrl_pressed = True
                             elif key == keyboard.Key.alt_l or key == keyboard.Key.alt_r:
@@ -325,9 +385,11 @@ class CLICommands:
                                 shift_pressed = True
                             elif key == getattr(keyboard.Key, 'cmd', None) or key == getattr(keyboard.Key, 'cmd_l', None) or key == getattr(keyboard.Key, 'cmd_r', None):
                                 cmd_pressed = True
-                            elif key == getattr(keyboard.Key, 'super', None):
+                            elif key in [getattr(keyboard.Key, 'super_l', None), getattr(keyboard.Key, 'super_r', None)]:
                                 super_pressed = True
-                            elif key_matches(key):
+                            
+                            # Check if this is the target key (F2)
+                            if key_matches(key):
                                 if modifiers_active(ctrl_pressed, alt_pressed, shift_pressed, cmd_pressed, super_pressed):
                                     on_hotkey()
                         except (AttributeError, ValueError):
@@ -344,17 +406,30 @@ class CLICommands:
                                 shift_pressed = False
                             elif key == getattr(keyboard.Key, 'cmd', None) or key == getattr(keyboard.Key, 'cmd_l', None) or key == getattr(keyboard.Key, 'cmd_r', None):
                                 cmd_pressed = False
-                            elif key == getattr(keyboard.Key, 'super', None):
+                            elif key in [getattr(keyboard.Key, 'super_l', None), getattr(keyboard.Key, 'super_r', None)]:
                                 super_pressed = False
                         except (AttributeError, ValueError):
                             pass
 
-                    listener = keyboard.Listener(on_press=on_press, on_release=on_release, suppress=False)
-                    listener.start()
-                    
-                    typer.echo(f"✅ Manual hotkey detection active. Press {hotkey_str.upper()} to start recording.")
+                    try:
+                        listener = keyboard.Listener(on_press=on_press, on_release=on_release, suppress=False)
+                        listener.start()
+                        
+                        typer.echo(f"✅ Manual hotkey detection active. Press {hotkey_str.upper()} to start recording.")
+                        hotkey_working = True
+                    except Exception as e:
+                        typer.echo(f"⚠️ Manual hotkey detection failed: {e}")
+                        typer.echo("🔧 Falling back to terminal-only mode ('r' key)")
+                        hotkey_working = False
                 
-                typer.echo("💡 If hotkey doesn't work, try pressing 'r' in the terminal or use Ctrl+C")
+                if not hotkey_working:
+                    if is_wsl:
+                        typer.echo("⚠️ Hotkeys disabled due to WSL/X11 limitations")
+                        typer.echo("💡 Use 'r' in the terminal to start/stop recording")
+                    else:
+                        typer.echo("💡 If hotkey doesn't work, try pressing 'r' in the terminal or use Ctrl+C")
+                elif is_wsl:
+                    typer.echo("💡 Backup method: Press 'r' in the terminal if hotkey fails")
 
                 # Simple terminal backup - just 'r' key support to avoid conflicts
                 def check_terminal_input():
