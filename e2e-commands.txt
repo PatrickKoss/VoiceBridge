@@ -1,0 +1,90 @@
+real time processing command seem to not work. See this command:
+uv run python -m voicebridge realtime
+/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+APEX FusedRMSNorm not available, using native implementation
+Starting real-time transcription...
+Chunk duration: 2.0s
+VAD threshold: 0.01
+Output format: live
+Press Ctrl+C to stop
+My expectation was a showing text or something like this.
+
+benchmarking does not works. See this command:
+uv run python -m voicebridge gpu benchmark --model small
+/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+APEX FusedRMSNorm not available, using native implementation
+Benchmarking model 'small' with GPU acceleration...
+GPU Results:
+  Model Load Time: 0.00s
+  Inference Time: 0.00s
+  Memory Usage: 0.0MB
+  Device: auto
+
+CPU Results:
+  Model Load Time: 0.00s
+  Inference Time: 0.00s
+  Memory Usage: 0.0MB
+  Device: cpu
+
+what is session doing? It list,resumes, cleanup but how does it start a session? And how is it different from deamon?
+
+vocabulary does not really work:
+uv run python -m voicebridge vocabulary add kubernetes
+/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+APEX FusedRMSNorm not available, using native implementation
+Vocabulary service not available
+(voicebridge) ➜  VoiceBridge git:(main) ✗ uv run python -m voicebridge vocabulary list
+/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+APEX FusedRMSNorm not available, using native implementation
+Vocabulary service not available
+
+postproc command does not work altough it is shown:
+uv run python -m voicebridge postproc
+/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+APEX FusedRMSNorm not available, using native implementation
+Usage: python -m voicebridge postproc [OPTIONS] COMMAND [ARGS]...
+Try 'python -m voicebridge postproc --help' for help.
+╭─ Error ──────────────────────────────────────────────────────────────────────────────────────────────────────────────╮
+│ Missing command.
+
+webhook stuff does not work:
+uv run python -m voicebridge webhook list
+/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+APEX FusedRMSNorm not available, using native implementation
+Webhook service not available
+
+API config server is not implemented:
+uv run python -m voicebridge api status
+/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+APEX FusedRMSNorm not available, using native implementation
+API server status: Not implemented
+
+operations stuff is not working:
+uv run python -m voicebridge operations list
+/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
+  from pkg_resources import resource_stream, resource_exists
+pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+APEX FusedRMSNorm not available, using native implementation
+Progress service not available

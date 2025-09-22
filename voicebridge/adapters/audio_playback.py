@@ -50,7 +50,8 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
             # pygame() call will fail with TypeError normally, that's OK
             pass
 
-        self._initialize()
+        # Don't initialize pygame immediately - wait until first use
+        # This prevents PulseAudio issues when forking daemon processes
 
     def _initialize(self, sample_rate: int = 24000) -> None:
         """Initialize pygame mixer with specified sample rate"""
