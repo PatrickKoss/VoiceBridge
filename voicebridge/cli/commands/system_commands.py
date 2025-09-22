@@ -11,6 +11,7 @@ from voicebridge.cli.utils.command_helpers import (
     format_duration,
     format_file_size,
 )
+from voicebridge.domain.models import GPUType
 
 
 class SystemCommands(BaseCommands):
@@ -23,34 +24,33 @@ class SystemCommands(BaseCommands):
             return
 
         try:
-            gpu_info = self.system_service.get_gpu_info()
+            gpu_devices = self.system_service.detect_gpu_devices()
+            gpu_info = gpu_devices[0] if gpu_devices else None
 
             typer.echo("GPU Status:")
-            if gpu_info and gpu_info.is_available:
+            if gpu_info and gpu_info.gpu_type != GPUType.NONE:
                 typer.echo("  Status: Available")
-                typer.echo(f"  Device: {gpu_info.name}")
-                typer.echo(f"  Type: {gpu_info.device_type}")
-                typer.echo(f"  Memory Total: {format_file_size(int(gpu_info.memory_total * 1024**3))}")
-                typer.echo(f"  Memory Free: {format_file_size(int(gpu_info.memory_free * 1024**3))}")
-                typer.echo(f"  Memory Used: {format_file_size(int(gpu_info.memory_used * 1024**3))}")
-                typer.echo(f"  Utilization: {gpu_info.utilization:.1f}%")
-                typer.echo(f"  Temperature: {gpu_info.temperature}°C")
+                typer.echo(f"  Device: {gpu_info.device_name}")
+                typer.echo(f"  Type: {gpu_info.gpu_type.value}")
+                typer.echo(f"  Memory Total: {format_file_size(int(gpu_info.memory_total * 1024**2))}")
+                typer.echo(f"  Memory Available: {format_file_size(int(gpu_info.memory_available * 1024**2))}")
 
                 # Show compute capability if available
-                if hasattr(gpu_info, 'compute_capability'):
+                if gpu_info.compute_capability:
                     typer.echo(f"  Compute Capability: {gpu_info.compute_capability}")
 
             else:
                 typer.echo("  Status: Not available")
                 typer.echo("  Running on CPU")
 
-            # Show CPU info as fallback
-            cpu_info = self.system_service.get_cpu_info()
-            if cpu_info:
-                typer.echo("\nCPU Info:")
-                typer.echo(f"  Cores: {cpu_info.get('cores', 'Unknown')}")
-                typer.echo(f"  Threads: {cpu_info.get('threads', 'Unknown')}")
-                typer.echo(f"  Usage: {cpu_info.get('usage', 0):.1f}%")
+            # Show memory info
+            memory_info = self.system_service.get_memory_usage()
+            if memory_info:
+                typer.echo("\nMemory Info:")
+                typer.echo(f"  Total: {format_file_size(int(memory_info['total_mb'] * 1024**2))}")
+                typer.echo(f"  Available: {format_file_size(int(memory_info['available_mb'] * 1024**2))}")
+                typer.echo(f"  Used: {format_file_size(int(memory_info['used_mb'] * 1024**2))}")
+                typer.echo(f"  Usage: {memory_info['percent']:.1f}%")
 
         except Exception as e:
             display_error(f"Error getting GPU status: {e}")

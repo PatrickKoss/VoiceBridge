@@ -438,10 +438,11 @@ class TranscriptionCommands(BaseCommands):
         if self.system_service:
             try:
                 display_progress("Testing GPU availability...")
-                gpu_info = self.system_service.get_gpu_info()
-                if gpu_info and gpu_info.is_available:
-                    display_progress(f"✓ GPU available: {gpu_info.name}", finished=True)
-                    display_info(f"Memory: {gpu_info.memory_total:.1f}GB total, {gpu_info.memory_free:.1f}GB free")
+                gpu_devices = self.system_service.detect_gpu_devices()
+                gpu_info = gpu_devices[0] if gpu_devices else None
+                if gpu_info and gpu_info.gpu_type.value != 'none':
+                    display_progress(f"✓ GPU available: {gpu_info.device_name}", finished=True)
+                    display_info(f"Memory: {gpu_info.memory_total:.1f}MB total, {gpu_info.memory_available:.1f}MB available")
                 else:
                     display_info("⚠ No GPU available, using CPU")
             except Exception as e:

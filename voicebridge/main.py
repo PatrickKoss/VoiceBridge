@@ -20,7 +20,7 @@ from voicebridge.adapters.text_input import create_text_input_service
 from voicebridge.adapters.transcription import WhisperTranscriptionService
 from voicebridge.adapters.vibevoice_tts import VibeVoiceTTSAdapter
 from voicebridge.cli.app import create_app
-from voicebridge.cli.commands import CLICommands
+from voicebridge.cli.registry import CommandRegistry
 
 # Services
 from voicebridge.services.batch_service import WhisperBatchProcessingService
@@ -128,8 +128,8 @@ def setup_dependencies(config_dir=None):
     # translation_service = MockTranslationService()
     # speaker_service = MockSpeakerDiarizationService(max_speakers=config.max_speakers)
 
-    # CLI Commands
-    commands = CLICommands(
+    # CLI Command Registry
+    command_registry = CommandRegistry(
         config_repo=config_repo,
         profile_repo=profile_repo,
         daemon_service=daemon_service,
@@ -151,20 +151,20 @@ def setup_dependencies(config_dir=None):
         tts_daemon_service=tts_daemon_service,
     )
 
-    return commands
+    return command_registry
 
 
 def main():
     """Main entry point."""
     try:
         # Setup dependencies
-        commands = setup_dependencies()
+        command_registry = setup_dependencies()
 
         # Ensure system dependencies
-        commands.system_service.ensure_dependencies()
+        command_registry.dependencies['system_service'].ensure_dependencies()
 
         # Create and run Typer app
-        app = create_app(commands)
+        app = create_app(command_registry)
         app()
 
     except RuntimeError as e:

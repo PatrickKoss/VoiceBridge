@@ -55,7 +55,7 @@ def handle_profile_config(profile_name: str | None, config_repo, profile_repo):
     """Load profile configuration if specified."""
     if profile_name:
         try:
-            profile_config = profile_repo.get_profile(profile_name)
+            profile_config = profile_repo.load_profile(profile_name)
             if profile_config:
                 return profile_config
             else:
@@ -63,7 +63,7 @@ def handle_profile_config(profile_name: str | None, config_repo, profile_repo):
         except Exception as e:
             typer.echo(f"Error loading profile '{profile_name}': {e}", err=True)
 
-    return config_repo.get_config()
+    return config_repo.load()
 
 
 def display_progress(message: str, finished: bool = False):

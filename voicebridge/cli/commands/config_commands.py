@@ -85,7 +85,7 @@ class ConfigCommands(BaseCommands):
     def profile_load(self, name: str):
         """Load a configuration profile."""
         try:
-            profile_config = self.profile_repo.get_profile(name)
+            profile_config = self.profile_repo.load_profile(name)
 
             if profile_config:
                 self.config_repo.save(profile_config)
@@ -106,16 +106,8 @@ class ConfigCommands(BaseCommands):
                 return
 
             typer.echo("Available Profiles:")
-            for profile_name, profile_info in profiles.items():
-                created = profile_info.get('created_at', 'Unknown')
-                model = profile_info.get('model_name', 'Unknown')
-                language = profile_info.get('language', 'Auto-detect')
-
+            for profile_name in profiles:
                 typer.echo(f"  {profile_name}")
-                typer.echo(f"    Model: {model}")
-                typer.echo(f"    Language: {language}")
-                typer.echo(f"    Created: {created}")
-                typer.echo()
 
         except Exception as e:
             display_error(f"Error listing profiles: {e}")
@@ -141,7 +133,7 @@ class ConfigCommands(BaseCommands):
     def profile_copy(self, source: str, target: str):
         """Copy a profile to a new name."""
         try:
-            source_config = self.profile_repo.get_profile(source)
+            source_config = self.profile_repo.load_profile(source)
 
             if not source_config:
                 display_error(f"Source profile '{source}' not found")
@@ -183,7 +175,7 @@ class ConfigCommands(BaseCommands):
     def profile_export(self, name: str, file_path: str):
         """Export a profile to a file."""
         try:
-            profile_config = self.profile_repo.get_profile(name)
+            profile_config = self.profile_repo.load_profile(name)
 
             if not profile_config:
                 display_error(f"Profile '{name}' not found")
@@ -282,7 +274,8 @@ class ConfigCommands(BaseCommands):
 
             # Check GPU settings
             if config.use_gpu and self.system_service:
-                gpu_info = self.system_service.get_gpu_info()
+                gpu_devices = self.system_service.detect_gpu_devices()
+                gpu_info = gpu_devices[0] if gpu_devices else None
                 if not gpu_info or not gpu_info.is_available:
                     issues.append("GPU acceleration enabled but no GPU available")
 

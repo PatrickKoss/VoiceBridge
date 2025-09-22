@@ -306,19 +306,21 @@ class TTSCommands(BaseCommands):
             return
 
         try:
-            voices = self.tts_orchestrator.get_available_voices()
+            # Get config first
+            config = self.config_repo.load()
+            tts_config = config.tts_config
+            voices = self.tts_orchestrator.list_available_voices(tts_config)
             if voices:
                 typer.echo("Available TTS voices:")
                 for voice_id, info in voices.items():
-                    language = info.get('language', 'Unknown')
-                    gender = info.get('gender', 'Unknown')
-                    sample_path = info.get('sample_path', '')
-
                     typer.echo(f"  {voice_id}")
-                    typer.echo(f"    Language: {language}")
-                    typer.echo(f"    Gender: {gender}")
-                    if sample_path:
-                        typer.echo(f"    Sample: {sample_path}")
+                    if info.display_name:
+                        typer.echo(f"    Display Name: {info.display_name}")
+                    if info.language:
+                        typer.echo(f"    Language: {info.language}")
+                    if info.gender:
+                        typer.echo(f"    Gender: {info.gender}")
+                    typer.echo(f"    Sample: {info.file_path}")
                     typer.echo()
             else:
                 display_info("No TTS voices found. Please add voice samples to the voices directory.")

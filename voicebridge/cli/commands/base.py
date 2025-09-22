@@ -125,6 +125,8 @@ class BaseCommands:
         **kwargs,
     ):
         """Build configuration by merging profile, defaults, and provided options."""
+        from dataclasses import replace
+
         from voicebridge.cli.utils.command_helpers import (
             build_whisper_config,
             handle_profile_config,
@@ -144,6 +146,6 @@ class BaseCommands:
 
         # Merge configurations
         if whisper_config:
-            config = config.model_copy(update=whisper_config)
+            config = replace(config, **whisper_config)
 
         return config

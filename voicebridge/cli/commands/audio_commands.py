@@ -62,26 +62,12 @@ class AudioCommands(BaseCommands):
 
             typer.echo("Supported Audio Formats:")
 
-            # Group by type
-            input_formats = formats.get('input', [])
-            output_formats = formats.get('output', [])
-
-            if input_formats:
-                typer.echo("\nInput Formats:")
-                for fmt in sorted(input_formats):
+            # Formats is a list of strings
+            if formats:
+                for fmt in sorted(formats):
                     typer.echo(f"  .{fmt}")
-
-            if output_formats:
-                typer.echo("\nOutput Formats:")
-                for fmt in sorted(output_formats):
-                    typer.echo(f"  .{fmt}")
-
-            # Show codec information if available
-            codecs = formats.get('codecs', {})
-            if codecs:
-                typer.echo("\nAvailable Codecs:")
-                for codec, description in codecs.items():
-                    typer.echo(f"  {codec}: {description}")
+            else:
+                typer.echo("  No formats available")
 
         except Exception as e:
             display_error(f"Error getting supported formats: {e}")

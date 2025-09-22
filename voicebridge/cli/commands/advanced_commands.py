@@ -465,8 +465,9 @@ class AdvancedCommands(BaseCommands):
 
         if self.system_service:
             try:
-                gpu_info = self.system_service.get_gpu_info()
-                if gpu_info and gpu_info.is_available:
+                gpu_devices = self.system_service.detect_gpu_devices()
+                gpu_info = gpu_devices[0] if gpu_devices else None
+                if gpu_info and gpu_info.gpu_type.value != 'none':
                     typer.echo("  ✓ GPU available")
                 else:
                     typer.echo("  ⚠ GPU not available (using CPU)")
