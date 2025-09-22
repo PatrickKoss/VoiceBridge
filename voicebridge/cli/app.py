@@ -115,6 +115,11 @@ def create_app(commands: CLICommands) -> typer.Typer:
                 "Use --show to display config or --set-key key --value val to set a value"
             )
 
+    @app.command("test-audio")
+    def test_audio():
+        """Test audio setup and provide diagnostic information."""
+        commands.test_audio_setup()
+
     @app.command()
     def profile(
         save: str | None = typer.Option(None, "--save", help="Save profile"),

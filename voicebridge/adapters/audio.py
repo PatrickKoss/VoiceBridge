@@ -86,6 +86,11 @@ class FFmpegAudioRecorder(AudioRecorder):
             if not error_queue.empty():
                 error = error_queue.get()
                 raise RuntimeError(error)
+            
+            # Check if process is still alive after initial startup
+            if proc.poll() is not None:
+                stderr = proc.stderr.read().decode('utf-8', errors='ignore')
+                raise RuntimeError(f"FFmpeg process died immediately. Error: {stderr}")
 
             while True:
                 try:
@@ -164,6 +169,27 @@ class FFmpegAudioRecorder(AudioRecorder):
     def _get_default_device(self) -> str:
         devices = self.list_devices()
         if not devices:
+            # Test if pulse audio is available on Linux
+            if self.system_info.platform == PlatformType.LINUX:
+                try:
+                    import subprocess
+                    result = subprocess.run(
+                        ["timeout", "2", "ffmpeg", "-f", "pulse", "-i", "default", "-t", "0.1", "-f", "null", "-"],
+                        capture_output=True,
+                        timeout=3
+                    )
+                    if result.returncode != 0:
+                        raise RuntimeError(
+                            "Audio input not available. This commonly occurs in WSL or environments without audio support. "
+                            "Real-time transcription requires an audio input device."
+                        )
+                except subprocess.TimeoutExpired:
+                    raise RuntimeError(
+                        "Audio system timeout. PulseAudio may not be running or available. "
+                        "Real-time transcription is not supported in this environment."
+                    )
+                except FileNotFoundError:
+                    raise RuntimeError("FFmpeg not found. Please install FFmpeg to record audio.")
             return None
 
         # For Linux/PulseAudio, prefer non-monitor devices (actual input devices)
@@ -297,7 +323,10 @@ class FFmpegAudioRecorder(AudioRecorder):
     def _list_linux_devices(self) -> list[AudioDeviceInfo]:
         try:
             result = subprocess.run(
-                ["pactl", "list", "short", "sources"], capture_output=True, text=True
+                ["pactl", "list", "short", "sources"], 
+                capture_output=True, 
+                text=True, 
+                timeout=3
             )
             devices = []
             for line in result.stdout.split("\n"):

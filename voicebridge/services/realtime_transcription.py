@@ -40,6 +40,7 @@ class RealtimeTranscriptionService:
             output_format: Format for output ("live", "segments", "complete")
         """
         self.is_running = True
+        self.logger.info("Starting realtime transcription service")
 
         try:
             # Audio buffer management
@@ -49,24 +50,34 @@ class RealtimeTranscriptionService:
             overlap_size = int(sample_rate * overlap_duration)
 
             # Start audio recording thread
+            self.logger.info("Starting audio capture thread")
             audio_thread = threading.Thread(
                 target=self._audio_capture_worker,
                 args=(audio_buffer, sample_rate),
                 daemon=True,
             )
             audio_thread.start()
+            self.logger.info("Audio capture thread started")
 
             # Processing state
             audio_accumulator = b""
             last_transcription = ""
             segment_counter = 0
 
+            startup_time = time.time()
+            max_startup_wait = 5.0  # 5 seconds max wait for first audio
+            first_chunk_received = False
+            
             while self.is_running:
                 try:
                     # Get audio chunk with timeout
                     chunk = audio_buffer.get(timeout=1.0)
                     if chunk is None:  # End signal
                         break
+                    
+                    if not first_chunk_received:
+                        self.logger.info("First audio chunk received")
+                        first_chunk_received = True
 
                     audio_accumulator += chunk
 
@@ -103,6 +114,12 @@ class RealtimeTranscriptionService:
                                     last_transcription = result.text.strip()
 
                 except queue.Empty:
+                    # Check if we're still waiting for the first chunk
+                    if not first_chunk_received:
+                        elapsed = time.time() - startup_time
+                        if elapsed > max_startup_wait:
+                            self.logger.error("No audio input received after 5 seconds. Audio device may not be available.")
+                            break
                     continue
                 except Exception as e:
                     self.logger.error(f"Realtime transcription error: {e}")
@@ -188,14 +205,17 @@ class RealtimeTranscriptionService:
     def _audio_capture_worker(self, audio_buffer: queue.Queue, sample_rate: int):
         """Worker thread for continuous audio capture."""
         try:
+            self.logger.info("Starting audio recorder stream")
             for chunk in self.audio_recorder.record_stream(sample_rate):
                 if not self.is_running:
                     break
                 audio_buffer.put(chunk)
+                self.logger.debug(f"Audio chunk received: {len(chunk)} bytes")
         except Exception as e:
             self.logger.error(f"Audio capture error: {e}")
         finally:
             audio_buffer.put(None)  # End signal
+            self.logger.info("Audio capture worker finished")
 
     def _has_voice_activity(self, audio_chunk: bytes, threshold: float) -> bool:
         """Simple energy-based voice activity detection."""

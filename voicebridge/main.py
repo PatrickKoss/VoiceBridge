@@ -7,7 +7,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent))
 
 # Adapters
-from voicebridge.adapters.audio import FFmpegAudioRecorder
+from voicebridge.adapters.audio_factory import create_audio_recorder
 from voicebridge.adapters.audio_formats import FFmpegAudioFormatAdapter
 from voicebridge.adapters.audio_playback import create_audio_playback_service
 from voicebridge.adapters.audio_preprocessing import FFmpegAudioPreprocessingAdapter
@@ -51,7 +51,7 @@ def setup_dependencies(config_dir=None):
     profile_repo = FileProfileRepository(profiles_dir)
 
     # Adapters
-    audio_recorder = FFmpegAudioRecorder()
+    audio_recorder = create_audio_recorder()
     clipboard_service = PlatformClipboardService()
     system_service = StandardSystemService()
 

@@ -2238,6 +2238,98 @@ class CLICommands:
             typer.echo(f"Error splitting audio: {e}", err=True)
             raise typer.Exit(1) from e
 
+    def test_audio_setup(self):
+        """Test audio setup and provide diagnostic information."""
+        typer.echo("VoiceBridge Audio Setup Diagnostics")
+        typer.echo("=" * 40)
+        
+        # Check environment
+        try:
+            with open("/proc/version", "r") as f:
+                version = f.read()
+                if "microsoft" in version.lower():
+                    typer.echo("Environment: WSL (Windows Subsystem for Linux)")
+                    is_wsl = True
+                else:
+                    typer.echo("Environment: Native Linux")
+                    is_wsl = False
+        except Exception:
+            typer.echo("Environment: Unknown")
+            is_wsl = False
+        
+        # Test audio recorder creation
+        typer.echo("\nTesting audio recorder creation...")
+        try:
+            from voicebridge.adapters.audio_factory import create_audio_recorder
+            recorder = create_audio_recorder()
+            typer.echo(f"✓ Audio recorder created: {type(recorder).__name__}")
+            
+            # Test device listing
+            typer.echo("\nTesting audio device enumeration...")
+            devices = recorder.list_devices()
+            if devices:
+                typer.echo(f"✓ Found {len(devices)} audio devices:")
+                for i, device in enumerate(devices):
+                    typer.echo(f"  {i+1}. {device.name} (Platform: {device.platform})")
+            else:
+                typer.echo("✗ No audio devices found")
+                
+                if is_wsl:
+                    typer.echo("\nWSL Audio Setup Instructions:")
+                    typer.echo("1. Install FFmpeg on Windows:")
+                    typer.echo("   • Via chocolatey: choco install ffmpeg")
+                    typer.echo("   • Or download from https://ffmpeg.org/download.html")
+                    typer.echo("2. Enable microphone access in Windows:")
+                    typer.echo("   • Settings > Privacy & security > Microphone")
+                    typer.echo("   • Turn ON 'Allow desktop apps to access your microphone'")
+                    typer.echo("3. Test microphone in Windows first (Voice Recorder app)")
+                    typer.echo("4. Run this diagnostic again")
+                else:
+                    typer.echo("\nLinux Audio Setup Instructions:")
+                    typer.echo("1. Install PulseAudio: sudo apt install pulseaudio")
+                    typer.echo("2. Install FFmpeg: sudo apt install ffmpeg")
+                    typer.echo("3. Start PulseAudio: pulseaudio --start")
+                    typer.echo("4. Check devices: pactl list short sources")
+                    
+        except Exception as e:
+            typer.echo(f"✗ Error creating audio recorder: {e}")
+            
+        # FFmpeg availability check
+        typer.echo("\nTesting FFmpeg availability...")
+        if is_wsl:
+            # Check Windows FFmpeg
+            import subprocess
+            try:
+                result = subprocess.run(
+                    ["/mnt/c/Windows/System32/WindowsPowerShell/v1.0/powershell.exe", 
+                     "-Command", "Get-Command ffmpeg -ErrorAction SilentlyContinue"],
+                    capture_output=True, timeout=5
+                )
+                if result.returncode == 0:
+                    typer.echo("✓ Windows FFmpeg is available")
+                else:
+                    typer.echo("✗ Windows FFmpeg not found")
+                    typer.echo("  Install with: choco install ffmpeg")
+            except Exception as e:
+                typer.echo(f"✗ Error checking Windows FFmpeg: {e}")
+        else:
+            # Check Linux FFmpeg
+            import subprocess
+            try:
+                result = subprocess.run(["ffmpeg", "-version"], capture_output=True, timeout=5)
+                if result.returncode == 0:
+                    typer.echo("✓ Linux FFmpeg is available")
+                else:
+                    typer.echo("✗ Linux FFmpeg not working properly")
+            except FileNotFoundError:
+                typer.echo("✗ Linux FFmpeg not found")
+                typer.echo("  Install with: sudo apt install ffmpeg")
+            except Exception as e:
+                typer.echo(f"✗ Error checking Linux FFmpeg: {e}")
+                
+        typer.echo("\n" + "=" * 40)
+        typer.echo("Diagnostic complete. If issues persist, please check the setup instructions above.")
+
     def preprocess_audio(
         self,
         input_path: str,
@@ -2376,7 +2468,7 @@ class CLICommands:
         model: str | None = None,
     ):
         """Real-time transcription with configurable parameters."""
-        from services.realtime_transcription import RealtimeTranscriptionService
+        from voicebridge.services.realtime_transcription import RealtimeTranscriptionService
 
         # Load config
         config = self.config_repo.load()
@@ -2395,8 +2487,23 @@ class CLICommands:
         typer.echo(f"VAD threshold: {vad_threshold}")
         typer.echo(f"Output format: {output_format}")
         typer.echo("Press Ctrl+C to stop")
+        typer.echo()
+
+        # Show audio setup info if in WSL
+        try:
+            with open("/proc/version", "r") as f:
+                if "microsoft" in f.read().lower():
+                    typer.echo("WSL Environment Detected:")
+                    typer.echo("If no audio is captured, please ensure:")
+                    typer.echo("1. Windows Privacy Settings > Microphone > Allow desktop apps to access microphone: ON")
+                    typer.echo("2. Your microphone is working in Windows applications")
+                    typer.echo("3. FFmpeg is installed on Windows (available via chocolatey: choco install ffmpeg)")
+                    typer.echo()
+        except Exception:
+            pass
 
         try:
+            typer.echo("Starting audio stream...")
             for result in realtime_service.transcribe_realtime(
                 config, chunk_duration, overlap, vad_threshold, output_format
             ):
@@ -2408,6 +2515,9 @@ class CLICommands:
 
         except KeyboardInterrupt:
             typer.echo("\nStopping real-time transcription...")
+        except Exception as e:
+            typer.echo(f"\nError during real-time transcription: {e}", err=True)
+            self.logger.error(f"Realtime transcription error: {e}")
         finally:
             realtime_service.stop()
 
