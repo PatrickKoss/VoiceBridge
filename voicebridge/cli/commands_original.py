@@ -478,7 +478,7 @@ class CLICommands:
                             hotkey_listener.stop()
                         elif 'listener' in locals():
                             listener.stop()
-                    except Exception:
+                    except:
                         pass
 
             except ImportError:

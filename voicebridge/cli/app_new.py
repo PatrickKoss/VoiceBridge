@@ -320,7 +320,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
     app.add_typer(gpu_app, name="gpu")
 
     @gpu_app.command()
-    def status():  # noqa: F811
+    def status():
         """Show GPU status."""
         system_commands = command_registry.get_command_group('system')
         system_commands.gpu_status()
@@ -380,13 +380,13 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
     app.add_typer(config_app, name="config")
 
     @config_app.command()
-    def show():  # noqa: F811
+    def show():
         """Show current configuration."""
         config_commands = command_registry.get_command_group('config')
         config_commands.config_show()
 
     @config_app.command()
-    def set(  # noqa: F811
+    def set(
         key: str = typer.Argument(..., help="Configuration key"),
         value: str = typer.Argument(..., help="Configuration value"),
     ):
@@ -415,13 +415,13 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         config_commands.profile_load(name)
 
     @profile_app.command()
-    def list():  # noqa: F811
+    def list():
         """List all profiles."""
         config_commands = command_registry.get_command_group('config')
         config_commands.profile_list()
 
     @profile_app.command()
-    def delete(  # noqa: F811
+    def delete(
         name: str = typer.Argument(..., help="Profile name"),
     ):
         """Delete a profile."""
@@ -448,7 +448,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         )
 
     @export_app.command()
-    def formats():  # noqa: F811
+    def formats():
         """List export formats."""
         export_commands = command_registry.get_command_group('export')
         export_commands.list_export_formats()
