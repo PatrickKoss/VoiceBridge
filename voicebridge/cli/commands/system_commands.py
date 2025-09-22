@@ -57,21 +57,88 @@ class SystemCommands(BaseCommands):
 
     def gpu_benchmark(self, model: str = "base"):
         """Benchmark GPU performance with Whisper model."""
-        if not self.system_service or not self.transcription_orchestrator:
-            display_error("Required services not available")
+        if not self.performance_service:
+            display_error("Performance service not available")
             return
 
-        display_info(f"Starting GPU benchmark with model: {model}")
-        display_info("This may take a few minutes...")
+        display_info(f"Benchmarking model '{model}' with GPU acceleration...")
 
         try:
-            # Run benchmark
-            results = self.system_service.benchmark_gpu_performance(model)
+            # Check for GPU availability first
+            gpu_devices = self.system_service.detect_gpu_devices() if self.system_service else []
+            has_gpu = any(gpu.gpu_type.value != "none" for gpu in gpu_devices)
+            
+            # Run GPU benchmark
+            typer.echo("\n🚀 Running GPU benchmark:")
+            gpu_results = self.performance_service.benchmark_model(model, use_gpu=True)
+            
+            # Run CPU benchmark for comparison
+            typer.echo("\n🖥️  Running CPU benchmark:")
+            cpu_results = self.performance_service.benchmark_model(model, use_gpu=False)
+            
+            typer.echo("\n📊 Results:")
 
-            if results:
-                self._display_benchmark_results(results)
+            # Display results
+            typer.echo("GPU Results:")
+            if gpu_results and not gpu_results.get('error'):
+                typer.echo(f"  Audio File: {gpu_results.get('audio_file', 'Unknown')}")
+                typer.echo(f"  Audio Duration: {gpu_results.get('audio_duration', 0):.1f}s")
+                typer.echo(f"  Model Load Time: {gpu_results.get('model_load_time', 0):.2f}s")
+                typer.echo(f"  Inference Time: {gpu_results.get('inference_time', 0):.2f}s")
+                typer.echo(f"  Memory Usage: {gpu_results.get('memory_usage_mb', 0):.1f}MB")
+                typer.echo(f"  Device: {gpu_results.get('device', 'auto')} (actual: {gpu_results.get('actual_device', 'unknown')})")
+                if gpu_results.get('real_time_factor'):
+                    typer.echo(f"  Real-time Factor: {gpu_results.get('real_time_factor', 0):.1f}x faster than audio")
+                if gpu_results.get('words_transcribed'):
+                    typer.echo(f"  Words Transcribed: {gpu_results.get('words_transcribed', 0)}")
+                    typer.echo(f"  Processing Speed: {gpu_results.get('words_per_minute_processing', 0):.0f} words/min")
+                performance = gpu_results.get('performance_rating', 'unknown')
+                rating_emoji = {'excellent': '🟢', 'good': '🟡', 'fair': '🟠', 'poor': '🔴'}.get(performance, '⚪')
+                typer.echo(f"  Performance: {rating_emoji} {performance.title()}")
+                if gpu_results.get('transcribed_text'):
+                    typer.echo(f"  Sample Text: {gpu_results.get('transcribed_text', 'N/A')}")
+            elif gpu_results and gpu_results.get('error'):
+                typer.echo(f"  Error: {gpu_results.get('error')}")
             else:
-                display_error("Benchmark failed to produce results")
+                typer.echo("  No GPU results available")
+
+            typer.echo("\nCPU Results:")
+            if cpu_results and not cpu_results.get('error'):
+                typer.echo(f"  Audio File: {cpu_results.get('audio_file', 'Unknown')}")
+                typer.echo(f"  Audio Duration: {cpu_results.get('audio_duration', 0):.1f}s")
+                typer.echo(f"  Model Load Time: {cpu_results.get('model_load_time', 0):.2f}s")
+                typer.echo(f"  Inference Time: {cpu_results.get('inference_time', 0):.2f}s")
+                typer.echo(f"  Memory Usage: {cpu_results.get('memory_usage_mb', 0):.1f}MB")
+                typer.echo(f"  Device: {cpu_results.get('device', 'cpu')} (actual: {cpu_results.get('actual_device', 'unknown')})")
+                if cpu_results.get('real_time_factor'):
+                    typer.echo(f"  Real-time Factor: {cpu_results.get('real_time_factor', 0):.1f}x faster than audio")
+                if cpu_results.get('words_transcribed'):
+                    typer.echo(f"  Words Transcribed: {cpu_results.get('words_transcribed', 0)}")
+                    typer.echo(f"  Processing Speed: {cpu_results.get('words_per_minute_processing', 0):.0f} words/min")
+                performance = cpu_results.get('performance_rating', 'unknown')
+                rating_emoji = {'excellent': '🟢', 'good': '🟡', 'fair': '🟠', 'poor': '🔴'}.get(performance, '⚪')
+                typer.echo(f"  Performance: {rating_emoji} {performance.title()}")
+                if cpu_results.get('transcribed_text'):
+                    typer.echo(f"  Sample Text: {cpu_results.get('transcribed_text', 'N/A')}")
+            elif cpu_results and cpu_results.get('error'):
+                typer.echo(f"  Error: {cpu_results.get('error')}")
+            else:
+                typer.echo("  No CPU results available")
+
+            # Performance comparison
+            if gpu_results and cpu_results and not gpu_results.get('error') and not cpu_results.get('error'):
+                gpu_time = gpu_results.get('inference_time', 0)
+                cpu_time = cpu_results.get('inference_time', 0)
+                if gpu_time > 0 and cpu_time > 0:
+                    speedup = cpu_time / gpu_time
+                    typer.echo(f"\nGPU Speedup: {speedup:.1f}x faster than CPU")
+                
+                # Compare real-time factors
+                gpu_rtf = gpu_results.get('real_time_factor', 0)
+                cpu_rtf = cpu_results.get('real_time_factor', 0)
+                if gpu_rtf > 0 and cpu_rtf > 0:
+                    typer.echo(f"GPU processes audio {gpu_rtf:.1f}x real-time")
+                    typer.echo(f"CPU processes audio {cpu_rtf:.1f}x real-time")
 
         except Exception as e:
             display_error(f"Benchmark failed: {e}")
