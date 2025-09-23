@@ -120,14 +120,25 @@ class WhisperTranscriptionService(TranscriptionService):
         # Memory check before processing
         self._check_memory_usage(config.max_memory_mb, len(audio_data))
 
-        # Convert bytes to audio array for whisper
+        # Convert raw PCM bytes to proper WAV format for whisper
         import os
         import tempfile
+        import wave
 
-        # Write audio data to temporary file that whisper can read
+        # Convert raw PCM data to WAV format
+        sample_rate = 16000  # FFmpeg outputs 16kHz mono
+        channels = 1
+        sample_width = 2  # 16-bit audio
+
         with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
-            temp_file.write(audio_data)
             temp_file_path = temp_file.name
+
+        # Write proper WAV file with headers
+        with wave.open(temp_file_path, 'wb') as wav_file:
+            wav_file.setnchannels(channels)
+            wav_file.setsampwidth(sample_width)
+            wav_file.setframerate(sample_rate)
+            wav_file.writeframes(audio_data)
 
         try:
             options = {

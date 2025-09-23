@@ -86,7 +86,7 @@ class FFmpegAudioRecorder(AudioRecorder):
             if not error_queue.empty():
                 error = error_queue.get()
                 raise RuntimeError(error)
-            
+
             # Check if process is still alive after initial startup
             if proc.poll() is not None:
                 stderr = proc.stderr.read().decode('utf-8', errors='ignore')
@@ -323,9 +323,9 @@ class FFmpegAudioRecorder(AudioRecorder):
     def _list_linux_devices(self) -> list[AudioDeviceInfo]:
         try:
             result = subprocess.run(
-                ["pactl", "list", "short", "sources"], 
-                capture_output=True, 
-                text=True, 
+                ["pactl", "list", "short", "sources"],
+                capture_output=True,
+                text=True,
                 timeout=3
             )
             devices = []

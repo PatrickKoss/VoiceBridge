@@ -5,10 +5,10 @@ from voicebridge.ports.interfaces import AudioRecorder
 
 def create_audio_recorder() -> AudioRecorder:
     """Create the best audio recorder for the current environment."""
-    
+
     # Check if we're in WSL
     try:
-        with open("/proc/version", "r") as f:
+        with open("/proc/version") as f:
             if "microsoft" in f.read().lower():
                 # We're in WSL, try to use WSL audio recorder
                 try:
@@ -31,7 +31,7 @@ def create_audio_recorder() -> AudioRecorder:
                     print(f"WSL audio setup failed: {e}")
     except Exception:
         pass
-    
+
     # Fall back to regular FFmpeg audio recorder
     from voicebridge.adapters.audio import FFmpegAudioRecorder
     return FFmpegAudioRecorder()

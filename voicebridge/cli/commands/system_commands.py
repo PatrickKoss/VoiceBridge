@@ -66,16 +66,16 @@ class SystemCommands(BaseCommands):
         try:
             # Check for GPU availability first
             gpu_devices = self.system_service.detect_gpu_devices() if self.system_service else []
-            has_gpu = any(gpu.gpu_type.value != "none" for gpu in gpu_devices)
-            
+            any(gpu.gpu_type.value != "none" for gpu in gpu_devices)
+
             # Run GPU benchmark
             typer.echo("\n🚀 Running GPU benchmark:")
             gpu_results = self.performance_service.benchmark_model(model, use_gpu=True)
-            
+
             # Run CPU benchmark for comparison
             typer.echo("\n🖥️  Running CPU benchmark:")
             cpu_results = self.performance_service.benchmark_model(model, use_gpu=False)
-            
+
             typer.echo("\n📊 Results:")
 
             # Display results
@@ -132,7 +132,7 @@ class SystemCommands(BaseCommands):
                 if gpu_time > 0 and cpu_time > 0:
                     speedup = cpu_time / gpu_time
                     typer.echo(f"\nGPU Speedup: {speedup:.1f}x faster than CPU")
-                
+
                 # Compare real-time factors
                 gpu_rtf = gpu_results.get('real_time_factor', 0)
                 cpu_rtf = cpu_results.get('real_time_factor', 0)

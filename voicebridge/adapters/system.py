@@ -100,7 +100,7 @@ class PlatformClipboardService(ClipboardService):
                                 return True
                         except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
                             pass
-            except (OSError, IOError):
+            except OSError:
                 pass
 
         # Try Linux clipboard tools
@@ -110,9 +110,9 @@ class PlatformClipboardService(ClipboardService):
                 try:
                     # Use Popen to properly handle stdin closure for xclip
                     process = subprocess.Popen(
-                        cmd, 
-                        stdin=subprocess.PIPE, 
-                        stdout=subprocess.PIPE, 
+                        cmd,
+                        stdin=subprocess.PIPE,
+                        stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE
                     )
                     stdout, stderr = process.communicate(input=text.encode("utf-8"), timeout=5)

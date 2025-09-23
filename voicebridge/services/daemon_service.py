@@ -42,7 +42,7 @@ class WhisperDaemonService(DaemonService):
             raise RuntimeError("Daemon is already running")
 
         self.logger.info("Starting daemon...")
-        
+
         # Fork and detach to create a proper daemon process
         try:
             pid = os.fork()
@@ -57,23 +57,23 @@ class WhisperDaemonService(DaemonService):
         try:
             # Detach from parent environment
             os.setsid()
-            
+
             # Second fork to ensure daemon can't acquire terminal
             try:
                 pid = os.fork()
                 if pid > 0:
                     # First child exits
                     sys.exit(0)
-            except OSError as e:
+            except OSError:
                 sys.exit(1)
 
             # We're now in the daemon process
             self._setup_daemon_environment()
             self._register_cleanup()
-            
+
             # Run the actual daemon loop
             self._run_daemon_loop(config)
-            
+
         except Exception as e:
             self.logger.error(f"Daemon failed: {e}")
             sys.exit(1)
@@ -171,14 +171,14 @@ class WhisperDaemonService(DaemonService):
         # Redirect standard file descriptors
         sys.stdout.flush()
         sys.stderr.flush()
-        
+
         # Redirect to /dev/null
-        with open(os.devnull, 'r') as null_in:
+        with open(os.devnull) as null_in:
             os.dup2(null_in.fileno(), sys.stdin.fileno())
         with open(os.devnull, 'w') as null_out:
             os.dup2(null_out.fileno(), sys.stdout.fileno())
             os.dup2(null_out.fileno(), sys.stderr.fileno())
-        
+
         # Clean up any inherited audio resources to avoid PulseAudio issues
         # This is important because pygame initialization in the parent can cause
         # PulseAudio assertion errors when forked
@@ -192,25 +192,25 @@ class WhisperDaemonService(DaemonService):
     def _run_daemon_loop(self, config: WhisperConfig) -> None:
         """Main daemon loop - this is where the actual daemon work happens."""
         self.logger.info("Daemon loop started")
-        
+
         # Write our own PID to the file since we're now the daemon process
         self._write_pid_file()
-        
+
         try:
             # Set up signal handlers for graceful shutdown
             def signal_handler(signum, frame):
                 self.logger.info(f"Daemon received signal {signum}")
                 raise KeyboardInterrupt()
-            
+
             signal.signal(signal.SIGTERM, signal_handler)
             signal.signal(signal.SIGINT, signal_handler)
-            
+
             # For now, this is a simple daemon that just stays alive
             # In a real implementation, this would listen for transcription requests,
             # manage audio processing, etc.
             while True:
                 time.sleep(1)
-                    
+
         except KeyboardInterrupt:
             self.logger.info("Daemon received interrupt signal")
         except Exception as e:

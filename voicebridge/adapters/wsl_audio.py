@@ -1,8 +1,6 @@
 import queue
 import subprocess
 import threading
-import tempfile
-import os
 from collections.abc import Iterator
 from pathlib import Path
 
@@ -61,7 +59,7 @@ class WSLAudioRecorder(AudioRecorder):
     def _is_wsl(self) -> bool:
         """Check if running in WSL."""
         try:
-            with open("/proc/version", "r") as f:
+            with open("/proc/version") as f:
                 return "microsoft" in f.read().lower()
         except Exception:
             return False
@@ -83,7 +81,7 @@ class WSLAudioRecorder(AudioRecorder):
                 "No audio input device found on Windows. "
                 "Please ensure a microphone is connected and enabled in Windows audio settings."
             )
-        
+
         # Device selected for recording
 
         stop_event = threading.Event()
@@ -108,7 +106,7 @@ class WSLAudioRecorder(AudioRecorder):
         # Wait a moment for the process to start and potentially fail
         import time
         time.sleep(1.0)
-        
+
         # Check if process failed during startup
         if proc.poll() is not None:
             try:
@@ -121,7 +119,7 @@ class WSLAudioRecorder(AudioRecorder):
                 stderr = stderr.decode('utf-8', errors='ignore') if stderr else "Process killed due to timeout"
             except Exception as e:
                 stderr = f"Error reading process output: {e}"
-            
+
             # Provide specific error messages for common issues
             if "Could not enumerate audio only devices" in stderr or "Could not enumerate audio" in stderr:
                 raise RuntimeError(
@@ -156,7 +154,7 @@ class WSLAudioRecorder(AudioRecorder):
                 while True:
                     if stop_event.is_set():
                         break
-                    
+
                     data = proc.stdout.read(chunk_size)
                     if not data:
                         # Check if process failed
@@ -252,20 +250,12 @@ class WSLAudioRecorder(AudioRecorder):
 
             devices = []
             lines = result.stderr.split("\n")
-            in_audio_section = False
 
             for line in lines:
-                # Look for DirectShow audio devices
-                if '"DirectShow audio devices"' in line:
-                    in_audio_section = True
-                    continue
-                elif '"DirectShow video devices"' in line:
-                    in_audio_section = False
-                    continue
-
-                if in_audio_section and '"' in line and "Alternative name" not in line:
-                    # Parse device line: [dshow @ ...] "Device Name"
-                    if "] \"" in line and line.count('"') >= 2:
+                # Look for audio device lines: [dshow @ ...] "Device Name" (audio)
+                if '[dshow @' in line and '"' in line and '(audio)' in line and "Alternative name" not in line:
+                    # Parse device line: [dshow @ ...] "Device Name" (audio)
+                    if '] "' in line and line.count('"') >= 2:
                         start = line.find('] "') + 3
                         end = line.find('"', start)
                         if start > 2 and end > start:

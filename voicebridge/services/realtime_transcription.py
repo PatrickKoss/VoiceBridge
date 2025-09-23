@@ -67,14 +67,14 @@ class RealtimeTranscriptionService:
             startup_time = time.time()
             max_startup_wait = 5.0  # 5 seconds max wait for first audio
             first_chunk_received = False
-            
+
             while self.is_running:
                 try:
                     # Get audio chunk with timeout
                     chunk = audio_buffer.get(timeout=1.0)
                     if chunk is None:  # End signal
                         break
-                    
+
                     if not first_chunk_received:
                         self.logger.info("First audio chunk received")
                         first_chunk_received = True
