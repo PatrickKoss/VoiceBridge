@@ -247,43 +247,115 @@ class TranscriptionCommands(BaseCommands):
 
             def audio_processor():
                 """Process audio chunks in real-time."""
-                chunk_count = 0
-                for chunk in self.transcription_orchestrator.audio_recorder.record_stream():
-                    if stop_flag.is_set():
-                        break
+                import os
+                import tempfile
+                import time
+                import wave
 
-                    audio_buffer.append(chunk)
-                    chunk_count += 1
+                last_process_time = time.time()
+                segment_count = 0
+                chunks_received = 0
 
-                    # Process every N chunks based on chunk_duration
-                    chunks_per_segment = max(1, int(chunk_duration * 10))  # Assuming 10 chunks per second
+                typer.echo("🎙️  Audio processor started - waiting for audio...")
 
-                    if chunk_count % chunks_per_segment == 0:
-                        # Get audio segment
-                        segment_data = b''.join(audio_buffer[-chunks_per_segment:])
+                try:
+                    audio_stream = self.transcription_orchestrator.audio_recorder.record_stream(sample_rate=16000)
+                    typer.echo("🔊 Audio stream initialized, starting to read chunks...")
 
-                        # Transcribe segment
-                        try:
-                            result = self.transcription_orchestrator.transcription_service.transcribe(
-                                segment_data, config
-                            )
+                    for chunk in audio_stream:
+                        if stop_flag.is_set():
+                            break
 
-                            if result and result.text.strip():
-                                transcription_buffer.append(result.text.strip())
+                        chunks_received += 1
+                        print(f"🎧 Received audio chunk #{chunks_received}: {len(chunk):,} bytes")
+                        audio_buffer.append(chunk)
 
-                                if output_format == "live":
-                                    # Show live partial results
-                                    print(f"\r[{chunk_count//chunks_per_segment:03d}] {result.text.strip()}",
-                                          end="", flush=True)
-                                elif output_format == "segments":
-                                    # Show completed segments
-                                    typer.echo(f"[{chunk_count//chunks_per_segment:03d}] {result.text.strip()}")
+                        # Show periodic progress
+                        if chunks_received % 50 == 0:
+                            print(f"🔄 Received {chunks_received} audio chunks, buffer size: {len(b''.join(audio_buffer)):,} bytes")
 
-                        except Exception as e:
-                            if output_format == "live":
-                                print(f"\r[ERROR] Transcription failed: {e}", end="", flush=True)
+                        # Check if enough time has passed for the next segment
+                        current_time = time.time()
+                        if current_time - last_process_time >= chunk_duration:
+                            segment_count += 1
+
+                            # Get all accumulated audio data for this segment
+                            segment_data = b''.join(audio_buffer)
+
+                            # Clear buffer for next segment (or keep some overlap if desired)
+                            audio_buffer.clear()
+
+                            print(f"🎯 Processing segment {segment_count} with {len(segment_data):,} bytes of audio")
+
+                            # Only process if we have sufficient audio data
+                            if len(segment_data) > 1000:  # At least 1KB of audio
+                                try:
+                                    # Convert raw PCM to proper WAV format (same fix as listen mode)
+                                    sample_rate = 16000  # FFmpeg outputs 16kHz mono
+                                    channels = 1
+                                    sample_width = 2  # 16-bit audio
+
+                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+                                        temp_file_path = temp_file.name
+
+                                    # Write proper WAV file with headers
+                                    with wave.open(temp_file_path, 'wb') as wav_file:
+                                        wav_file.setnchannels(channels)
+                                        wav_file.setsampwidth(sample_width)
+                                        wav_file.setframerate(sample_rate)
+                                        wav_file.writeframes(segment_data)
+
+                                    # Transcribe using the WAV file
+                                    with open(temp_file_path, 'rb') as f:
+                                        wav_data = f.read()
+
+                                    print(f"🎵 Sending {len(wav_data):,} bytes to transcription service...")
+                                    result = self.transcription_orchestrator.transcription_service.transcribe(
+                                        wav_data, config
+                                    )
+
+                                    # Clean up temp file
+                                    if os.path.exists(temp_file_path):
+                                        os.unlink(temp_file_path)
+
+                                    print(f"📝 Transcription result: '{result.text.strip() if result and result.text else 'None'}'")
+
+                                    if result and result.text.strip():
+                                        transcription_buffer.append(result.text.strip())
+
+                                        if output_format == "live":
+                                            # Show live results with clear line management
+                                            print(f"[{segment_count:03d}] {result.text.strip()}")
+                                        elif output_format == "segments":
+                                            # Show completed segments
+                                            typer.echo(f"[{segment_count:03d}] {result.text.strip()}")
+                                    else:
+                                        if output_format == "live":
+                                            print(f"[{segment_count:03d}] (no speech detected)")
+                                        elif output_format == "segments":
+                                            typer.echo(f"[{segment_count:03d}] (no speech detected)")
+
+                                except Exception as e:
+                                    if output_format == "live":
+                                        print(f"\r[{segment_count:03d}] ERROR: {e}")
+                                    else:
+                                        typer.echo(f"[{segment_count:03d}] ERROR: {e}")
+
+                                    # Clean up temp file on error
+                                    try:
+                                        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+                                            os.unlink(temp_file_path)
+                                    except Exception:
+                                        pass
+
                             else:
-                                typer.echo(f"[ERROR] Transcription failed: {e}")
+                                print(f"⚠️  Segment {segment_count} too small ({len(segment_data):,} bytes), skipping...")
+
+                            last_process_time = current_time
+
+                except Exception as e:
+                    print(f"❌ Audio processor error: {e}")
+                    typer.echo(f"Audio processing failed: {e}")
 
             # Start audio processing thread
             audio_thread = threading.Thread(target=audio_processor, daemon=True)
@@ -421,7 +493,35 @@ class TranscriptionCommands(BaseCommands):
                 # Test transcription
                 display_progress("Testing transcription...")
                 config = self.config_repo.load()
-                result = self.transcription_orchestrator.transcription_service.transcribe(audio_data, config)
+
+                # Convert raw PCM to proper WAV format before transcription
+                import os
+                import tempfile
+                import wave
+
+                sample_rate = 16000  # FFmpeg outputs 16kHz mono
+                channels = 1
+                sample_width = 2  # 16-bit audio
+
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+                    temp_file_path = temp_file.name
+
+                # Write proper WAV file with headers
+                with wave.open(temp_file_path, 'wb') as wav_file:
+                    wav_file.setnchannels(channels)
+                    wav_file.setsampwidth(sample_width)
+                    wav_file.setframerate(sample_rate)
+                    wav_file.writeframes(audio_data)
+
+                # Read back the WAV file for transcription
+                with open(temp_file_path, 'rb') as f:
+                    wav_data = f.read()
+
+                # Clean up temp file
+                if os.path.exists(temp_file_path):
+                    os.unlink(temp_file_path)
+
+                result = self.transcription_orchestrator.transcription_service.transcribe(wav_data, config)
 
                 if result and result.text.strip():
                     display_progress("✓ Transcription successful", finished=True)
