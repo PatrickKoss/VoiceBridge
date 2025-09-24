@@ -34,6 +34,8 @@ from voicebridge.services.timestamp_service import DefaultTimestampService
 from voicebridge.services.transcription_service import WhisperTranscriptionOrchestrator
 from voicebridge.services.tts_service import TTSDaemonService, TTSOrchestrator
 from voicebridge.services.vocabulary_management_service import VocabularyManagementService
+from voicebridge.services.simple_post_processing_service import SimplePostProcessingService
+from voicebridge.services.simple_webhook_service import SimpleWebhookService
 
 
 def setup_dependencies(config_dir=None):
@@ -103,6 +105,10 @@ def setup_dependencies(config_dir=None):
     vocabulary_adapter = VocabularyAdapter(config_dir / "vocabulary")
     vocabulary_management_service = VocabularyManagementService(vocabulary_adapter, logger)
 
+    # Post-processing and webhook services
+    postprocessing_service = SimplePostProcessingService(config_dir)
+    webhook_service = SimpleWebhookService(config_dir)
+
     # TTS Services
     try:
         tts_service = VibeVoiceTTSAdapter()
@@ -157,6 +163,8 @@ def setup_dependencies(config_dir=None):
         tts_daemon_service=tts_daemon_service,
         # Advanced Services
         vocabulary_management_service=vocabulary_management_service,
+        postprocessing_service=postprocessing_service,
+        webhook_service=webhook_service,
     )
 
     return command_registry

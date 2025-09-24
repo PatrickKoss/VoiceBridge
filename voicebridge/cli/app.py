@@ -530,4 +530,72 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.vocabulary_export(file_path, profile)
 
+    # Post-processing Commands
+    postproc_app = typer.Typer(help="Text post-processing")
+    app.add_typer(postproc_app, name="postproc")
+
+    @postproc_app.command()
+    def config(
+        enable_spell_check: bool = typer.Option(None, "--spell-check/--no-spell-check", help="Enable spell checking"),
+        enable_grammar_check: bool = typer.Option(None, "--grammar-check/--no-grammar-check", help="Enable grammar checking"),
+        enable_punctuation: bool = typer.Option(None, "--punctuation/--no-punctuation", help="Enable punctuation correction"),
+        enable_capitalization: bool = typer.Option(None, "--capitalization/--no-capitalization", help="Enable capitalization correction"),
+        custom_rules: str = typer.Option(None, "--custom-rules", help="Comma-separated custom rules"),
+        profile: str = typer.Option("default", "--profile", help="Profile to use"),
+    ):
+        """Configure post-processing settings."""
+        advanced_commands = command_registry.get_command_group('advanced')
+        advanced_commands.postprocessing_config(
+            enable_spell_check, enable_grammar_check, enable_punctuation, 
+            enable_capitalization, custom_rules, profile
+        )
+
+    @postproc_app.command()
+    def test(
+        text: str = typer.Argument(..., help="Text to test post-processing on"),
+        profile: str = typer.Option("default", "--profile", help="Profile to use"),
+    ):
+        """Test post-processing on sample text."""
+        advanced_commands = command_registry.get_command_group('advanced')
+        advanced_commands.postprocessing_test(text, profile)
+
+    # Webhook Management Commands  
+    webhook_app = typer.Typer(help="Webhook management")
+    app.add_typer(webhook_app, name="webhook")
+
+    @webhook_app.command()
+    def add(
+        url: str = typer.Argument(..., help="Webhook URL"),
+        events: str = typer.Option("transcription_complete", "--events", help="Comma-separated event types"),
+        secret: str = typer.Option(None, "--secret", help="Webhook secret"),
+        timeout: int = typer.Option(30, "--timeout", help="Request timeout in seconds"),
+        retry_count: int = typer.Option(3, "--retry-count", help="Number of retries"),
+    ):
+        """Add a webhook for event notifications."""
+        advanced_commands = command_registry.get_command_group('advanced')
+        advanced_commands.webhook_add(url, events, secret, timeout, retry_count)
+
+    @webhook_app.command()
+    def remove(
+        url: str = typer.Argument(..., help="Webhook URL to remove"),
+    ):
+        """Remove a webhook."""
+        advanced_commands = command_registry.get_command_group('advanced')
+        advanced_commands.webhook_remove(url)
+
+    @webhook_app.command()
+    def list():
+        """List all configured webhooks."""
+        advanced_commands = command_registry.get_command_group('advanced')
+        advanced_commands.webhook_list()
+
+    @webhook_app.command()
+    def test(
+        url: str = typer.Argument(..., help="Webhook URL to test"),
+        event_type: str = typer.Option("transcription_complete", "--event-type", help="Event type to test"),
+    ):
+        """Test a webhook with sample data."""
+        advanced_commands = command_registry.get_command_group('advanced')
+        advanced_commands.webhook_test(url, event_type)
+
     return app
