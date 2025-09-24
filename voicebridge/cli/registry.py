@@ -103,7 +103,7 @@ class CommandRegistry:
             'system_service', 'daemon_service', 'session_service', 'performance_service',
             'audio_format_service', 'audio_preprocessing_service', 'audio_splitting_service',
             'batch_processing_service', 'export_service', 'resume_service',
-            'confidence_analyzer', 'vocabulary_service', 'postprocessing_service',
+            'confidence_analyzer', 'vocabulary_service', 'vocabulary_management_service', 'postprocessing_service',
             'webhook_service', 'progress_service', 'retry_service', 'circuit_breaker_service',
             'timestamp_service'
         ]
@@ -132,7 +132,7 @@ class CommandRegistry:
             'system': ['system_service', 'performance_service', 'session_service', 'progress_service', 'circuit_breaker_service'],
             'config': ['config_repo', 'profile_repo'],
             'export': ['export_service', 'confidence_analyzer', 'session_service'],
-            'advanced': ['vocabulary_service', 'postprocessing_service', 'webhook_service', 'progress_service'],
+            'advanced': ['vocabulary_management_service', 'postprocessing_service', 'webhook_service', 'progress_service'],
         }
 
         for group_name, deps in group_dependencies.items():

@@ -476,4 +476,58 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         export_commands = command_registry.get_command_group('export')
         export_commands.analyze_all_sessions(detailed, threshold)
 
+    # Vocabulary Management Commands
+    vocabulary_app = typer.Typer(help="Vocabulary management")
+    app.add_typer(vocabulary_app, name="vocabulary")
+
+    @vocabulary_app.command()
+    def add(
+        words: str = typer.Argument(..., help="Comma-separated words to add"),
+        vocabulary_type: str = typer.Option("custom", "--type", help="Vocabulary type: custom, proper_nouns, technical, or domain name"),
+        profile: str = typer.Option("default", "--profile", help="Profile to use"),
+        weight: float = typer.Option(1.0, "--weight", help="Word weight/importance"),
+    ):
+        """Add words to vocabulary for improved recognition."""
+        advanced_commands = command_registry.get_command_group('advanced')
+        advanced_commands.vocabulary_add(words, vocabulary_type, profile, weight)
+
+    @vocabulary_app.command()
+    def remove(
+        words: str = typer.Argument(..., help="Comma-separated words to remove"),
+        vocabulary_type: str = typer.Option("custom", "--type", help="Vocabulary type"),
+        profile: str = typer.Option("default", "--profile", help="Profile to use"),
+    ):
+        """Remove words from vocabulary."""
+        advanced_commands = command_registry.get_command_group('advanced')
+        advanced_commands.vocabulary_remove(words, vocabulary_type, profile)
+
+    @vocabulary_app.command()
+    def list(
+        vocabulary_type: str = typer.Option(None, "--type", help="Vocabulary type to list"),
+        profile: str = typer.Option("default", "--profile", help="Profile to use"),
+    ):
+        """List vocabulary words."""
+        advanced_commands = command_registry.get_command_group('advanced')
+        advanced_commands.vocabulary_list(vocabulary_type, profile)
+
+    @vocabulary_app.command(name="import")
+    def import_vocab(
+        file_path: str = typer.Argument(..., help="Path to vocabulary file"),
+        vocabulary_type: str = typer.Option("custom", "--type", help="Vocabulary type"),
+        profile: str = typer.Option("default", "--profile", help="Profile to use"),
+        format: str = typer.Option("txt", "--format", help="File format: txt or json"),
+    ):
+        """Import vocabulary from file."""
+        advanced_commands = command_registry.get_command_group('advanced')
+        advanced_commands.vocabulary_import(file_path, vocabulary_type, profile, format)
+
+    @vocabulary_app.command()
+    def export(
+        file_path: str = typer.Argument(..., help="Output file path"),
+        profile: str = typer.Option("default", "--profile", help="Profile to use"),
+    ):
+        """Export vocabulary to file."""
+        advanced_commands = command_registry.get_command_group('advanced')
+        advanced_commands.vocabulary_export(file_path, profile)
+
     return app

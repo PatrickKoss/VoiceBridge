@@ -20,7 +20,7 @@ class AdvancedCommands(BaseCommands):
         weight: float = 1.0,
     ):
         """Add words to vocabulary for improved recognition."""
-        if not self.vocabulary_service:
+        if not self.vocabulary_management_service:
             display_error("Vocabulary service not available")
             return
 
@@ -33,7 +33,7 @@ class AdvancedCommands(BaseCommands):
 
             display_progress(f"Adding {len(word_list)} words to {vocabulary_type} vocabulary...")
 
-            success = self.vocabulary_service.add_words(
+            success = self.vocabulary_management_service.add_words(
                 word_list, vocabulary_type, profile, weight
             )
 
@@ -55,7 +55,7 @@ class AdvancedCommands(BaseCommands):
         profile: str = "default",
     ):
         """Remove words from vocabulary."""
-        if not self.vocabulary_service:
+        if not self.vocabulary_management_service:
             display_error("Vocabulary service not available")
             return
 
@@ -68,7 +68,7 @@ class AdvancedCommands(BaseCommands):
 
             display_progress(f"Removing {len(word_list)} words from {vocabulary_type} vocabulary...")
 
-            success = self.vocabulary_service.remove_words(
+            success = self.vocabulary_management_service.remove_words(
                 word_list, vocabulary_type, profile
             )
 
@@ -82,12 +82,12 @@ class AdvancedCommands(BaseCommands):
 
     def vocabulary_list(self, vocabulary_type: str | None = None, profile: str = "default"):
         """List vocabulary words."""
-        if not self.vocabulary_service:
+        if not self.vocabulary_management_service:
             display_error("Vocabulary service not available")
             return
 
         try:
-            vocabularies = self.vocabulary_service.list_vocabularies(vocabulary_type, profile)
+            vocabularies = self.vocabulary_management_service.list_vocabularies(vocabulary_type, profile)
 
             if not vocabularies:
                 display_info("No vocabulary entries found")
@@ -120,7 +120,7 @@ class AdvancedCommands(BaseCommands):
         format: str = "txt",
     ):
         """Import vocabulary from file."""
-        if not self.vocabulary_service:
+        if not self.vocabulary_management_service:
             display_error("Vocabulary service not available")
             return
 
@@ -134,7 +134,7 @@ class AdvancedCommands(BaseCommands):
 
             display_progress(f"Importing vocabulary from {input_file.name}...")
 
-            success = self.vocabulary_service.import_vocabulary(
+            success = self.vocabulary_management_service.import_vocabulary(
                 str(input_file), vocabulary_type, profile, format
             )
 
@@ -148,14 +148,14 @@ class AdvancedCommands(BaseCommands):
 
     def vocabulary_export(self, file_path: str, profile: str = "default"):
         """Export vocabulary to file."""
-        if not self.vocabulary_service:
+        if not self.vocabulary_management_service:
             display_error("Vocabulary service not available")
             return
 
         try:
             display_progress(f"Exporting vocabulary to {file_path}...")
 
-            success = self.vocabulary_service.export_vocabulary(file_path, profile)
+            success = self.vocabulary_management_service.export_vocabulary(file_path, profile)
 
             if success:
                 display_progress(f"Vocabulary exported to {file_path}", finished=True)

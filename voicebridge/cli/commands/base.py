@@ -18,6 +18,7 @@ from voicebridge.ports.interfaces import (
     SystemService,
     TimestampService,
     VocabularyService,
+    VocabularyManagementService,
     WebhookService,
 )
 from voicebridge.services.confidence_service import ConfidenceAnalyzer
@@ -55,6 +56,7 @@ class BaseCommands:
         performance_service: PerformanceService | None = None,
         # Advanced services
         vocabulary_service: VocabularyService | None = None,
+        vocabulary_management_service: VocabularyManagementService | None = None,
         postprocessing_service: PostProcessingService | None = None,
         webhook_service: WebhookService | None = None,
         progress_service: ProgressService | None = None,
@@ -93,6 +95,7 @@ class BaseCommands:
 
         # Advanced services
         self.vocabulary_service = vocabulary_service
+        self.vocabulary_management_service = vocabulary_management_service
         self.postprocessing_service = postprocessing_service
         self.webhook_service = webhook_service
         self.progress_service = progress_service

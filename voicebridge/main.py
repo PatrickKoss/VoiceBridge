@@ -19,6 +19,7 @@ from voicebridge.adapters.system import PlatformClipboardService, StandardSystem
 from voicebridge.adapters.text_input import create_text_input_service
 from voicebridge.adapters.transcription import WhisperTranscriptionService
 from voicebridge.adapters.vibevoice_tts import VibeVoiceTTSAdapter
+from voicebridge.adapters.vocabulary import VocabularyAdapter
 from voicebridge.cli.app import create_app
 from voicebridge.cli.registry import CommandRegistry
 
@@ -32,6 +33,7 @@ from voicebridge.services.resume_service import TranscriptionResumeService
 from voicebridge.services.timestamp_service import DefaultTimestampService
 from voicebridge.services.transcription_service import WhisperTranscriptionOrchestrator
 from voicebridge.services.tts_service import TTSDaemonService, TTSOrchestrator
+from voicebridge.services.vocabulary_management_service import VocabularyManagementService
 
 
 def setup_dependencies(config_dir=None):
@@ -97,6 +99,10 @@ def setup_dependencies(config_dir=None):
     timestamp_service = DefaultTimestampService()
     confidence_analyzer = ConfidenceAnalyzer()
 
+    # Vocabulary management services
+    vocabulary_adapter = VocabularyAdapter(config_dir / "vocabulary")
+    vocabulary_management_service = VocabularyManagementService(vocabulary_adapter, logger)
+
     # TTS Services
     try:
         tts_service = VibeVoiceTTSAdapter()
@@ -149,6 +155,8 @@ def setup_dependencies(config_dir=None):
         # TTS Services
         tts_orchestrator=tts_orchestrator,
         tts_daemon_service=tts_daemon_service,
+        # Advanced Services
+        vocabulary_management_service=vocabulary_management_service,
     )
 
     return command_registry
