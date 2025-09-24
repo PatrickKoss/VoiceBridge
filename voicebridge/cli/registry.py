@@ -3,6 +3,7 @@ Command registry for organizing and managing CLI command groups.
 """
 
 from voicebridge.cli.commands.advanced_commands import AdvancedCommands
+from voicebridge.cli.commands.api_commands import APICommands
 from voicebridge.cli.commands.audio_commands import AudioCommands
 from voicebridge.cli.commands.base import BaseCommands
 from voicebridge.cli.commands.config_commands import ConfigCommands
@@ -26,6 +27,7 @@ class CommandRegistry:
         'config': ConfigCommands,
         'export': ExportCommands,
         'advanced': AdvancedCommands,
+        'api': APICommands,
     }
 
     def __init__(self, **service_dependencies):
@@ -133,6 +135,7 @@ class CommandRegistry:
             'config': ['config_repo', 'profile_repo'],
             'export': ['export_service', 'confidence_analyzer', 'session_service'],
             'advanced': ['vocabulary_management_service', 'postprocessing_service', 'webhook_service', 'progress_service'],
+            'api': ['transcription_orchestrator', 'vocabulary_service', 'postprocessing_service', 'webhook_service', 'progress_service'],
         }
 
         for group_name, deps in group_dependencies.items():

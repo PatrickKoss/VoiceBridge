@@ -598,4 +598,39 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.webhook_test(url, event_type)
 
+    # API Server Management Commands
+    api_app = typer.Typer(help="API server management")
+    app.add_typer(api_app, name="api")
+
+    @api_app.command()
+    def status():
+        """Show API server status."""
+        api_commands = command_registry.get_command_group('api')
+        api_commands.api_status()
+
+    @api_app.command()
+    def start(
+        host: str = typer.Option("localhost", "--host", help="Host to bind to"),
+        port: int = typer.Option(8000, "--port", help="Port to bind to"),
+        workers: int = typer.Option(1, "--workers", help="Number of worker processes"),
+        background: bool = typer.Option(False, "--background", help="Run in background"),
+    ):
+        """Start the API server."""
+        api_commands = command_registry.get_command_group('api')
+        api_commands.api_start(host, port, workers, background)
+
+    @api_app.command()
+    def stop(
+        port: int = typer.Option(8000, "--port", help="Port to stop server on"),
+    ):
+        """Stop the API server."""
+        api_commands = command_registry.get_command_group('api')
+        api_commands.api_stop(port)
+
+    @api_app.command()
+    def info():
+        """Show API server information and endpoints."""
+        api_commands = command_registry.get_command_group('api')
+        api_commands.api_info()
+
     return app
