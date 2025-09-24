@@ -314,6 +314,21 @@ class ProgressService(ABC):
     def get_tracker(self, operation_id: str) -> ProgressTracker | None:
         pass
 
+    @abstractmethod
+    def list_active_operations(self) -> list[dict]:
+        """List all active operations"""
+        pass
+
+    @abstractmethod
+    def cancel_operation(self, operation_id: str) -> bool:
+        """Cancel an operation and return success status"""
+        pass
+
+    @abstractmethod
+    def get_operation_status(self, operation_id: str) -> dict | None:
+        """Get operation status as a dictionary"""
+        pass
+
 
 class ExportService(ABC):
     @abstractmethod

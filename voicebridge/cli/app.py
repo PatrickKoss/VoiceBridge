@@ -342,6 +342,32 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         system_commands = command_registry.get_command_group('system')
         system_commands.performance_stats()
 
+    # Operations Management
+    operations_app = typer.Typer(help="Operation management")
+    app.add_typer(operations_app, name="operations")
+
+    @operations_app.command()
+    def list():
+        """List active operations."""
+        system_commands = command_registry.get_command_group('system')
+        system_commands.operations_list()
+
+    @operations_app.command()
+    def cancel(
+        operation_id: str = typer.Argument(..., help="Operation ID to cancel"),
+    ):
+        """Cancel a specific operation."""
+        system_commands = command_registry.get_command_group('system')
+        system_commands.operations_cancel(operation_id)
+
+    @operations_app.command()
+    def status(
+        operation_id: str = typer.Argument(..., help="Operation ID to check"),
+    ):
+        """Show status of a specific operation."""
+        system_commands = command_registry.get_command_group('system')
+        system_commands.operations_status(operation_id)
+
     # Session Management
     sessions_app = typer.Typer(help="Session management")
     app.add_typer(sessions_app, name="sessions")

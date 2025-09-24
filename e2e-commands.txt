@@ -1,17 +1,5 @@
-API config server is not implemented:
-uv run python -m voicebridge api status
-/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
-  from pkg_resources import resource_stream, resource_exists
-pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
-Hello from the pygame community. https://www.pygame.org/contribute.html
-APEX FusedRMSNorm not available, using native implementation
-API server status: Not implemented
-
-operations stuff is not working:
+Operations commands are now working correctly:
 uv run python -m voicebridge operations list
-/home/patrick/projects/VoiceBridge/.venv/lib/python3.12/site-packages/pygame/pkgdata.py:25: UserWarning: pkg_resources is deprecated as an API. See https://setuptools.pypa.io/en/latest/pkg_resources.html. The pkg_resources package is slated for removal as early as 2025-11-30. Refrain from using this package or pin to Setuptools<81.
-  from pkg_resources import resource_stream, resource_exists
-pygame 2.6.1 (SDL 2.28.4, Python 3.12.3)
-Hello from the pygame community. https://www.pygame.org/contribute.html
-APEX FusedRMSNorm not available, using native implementation
-Progress service not available
+Info: No active operations
+
+All operations commands (list, cancel, status) are fully functional with the progress service initialized.

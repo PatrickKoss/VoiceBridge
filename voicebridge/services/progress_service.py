@@ -77,10 +77,10 @@ class WhisperProgressService(ProgressService):
         # Trigger callbacks
         self._trigger_callbacks(operation_id, tracker)
 
-    def cancel_operation(self, operation_id: str) -> None:
+    def cancel_operation(self, operation_id: str) -> bool:
         tracker = self._trackers.get(operation_id)
         if not tracker:
-            return
+            return False
 
         tracker.status = "cancelled"
         tracker.current_step = "Cancelled"
@@ -88,16 +88,24 @@ class WhisperProgressService(ProgressService):
 
         # Trigger callbacks
         self._trigger_callbacks(operation_id, tracker)
+        return True
 
     def get_tracker(self, operation_id: str) -> ProgressTracker | None:
         return self._trackers.get(operation_id)
 
-    def list_active_operations(self) -> list[ProgressTracker]:
-        return [
+    def list_active_operations(self) -> list[dict]:
+        active_trackers = [
             tracker
             for tracker in self._trackers.values()
             if tracker.status in ["running", "paused"]
         ]
+        return [self._tracker_to_dict(tracker) for tracker in active_trackers]
+
+    def get_operation_status(self, operation_id: str) -> dict | None:
+        tracker = self._trackers.get(operation_id)
+        if not tracker:
+            return None
+        return self._tracker_to_dict(tracker)
 
     def get_operation_stats(self) -> dict[str, any]:
         total_operations = len(self._trackers)
@@ -165,6 +173,20 @@ class WhisperProgressService(ProgressService):
             operation_id, _ = completed_trackers[i]
             del self._trackers[operation_id]
             self._callbacks.pop(operation_id, None)
+
+    def _tracker_to_dict(self, tracker: ProgressTracker) -> dict:
+        """Convert a ProgressTracker to a dictionary for CLI display."""
+        return {
+            'id': tracker.operation_id,
+            'type': tracker.operation_type,
+            'progress': tracker.current_progress * 100,  # Convert to percentage
+            'status': tracker.status,
+            'eta_seconds': tracker.eta_seconds,
+            'started_at': tracker.start_time.isoformat() if tracker.start_time else None,
+            'current_step': tracker.current_step,
+            'steps_completed': tracker.steps_completed,
+            'total_steps': tracker.total_steps,
+        }
 
 
 class ProgressBar:

@@ -29,6 +29,7 @@ from voicebridge.services.confidence_service import ConfidenceAnalyzer
 from voicebridge.services.daemon_service import WhisperDaemonService
 from voicebridge.services.export_service import DefaultExportService
 from voicebridge.services.performance_service import WhisperPerformanceService
+from voicebridge.services.progress_service import WhisperProgressService
 from voicebridge.services.resume_service import TranscriptionResumeService
 from voicebridge.services.timestamp_service import DefaultTimestampService
 from voicebridge.services.transcription_service import WhisperTranscriptionOrchestrator
@@ -66,6 +67,7 @@ def setup_dependencies(config_dir=None):
     # Performance and session services
     performance_service = WhisperPerformanceService(system_service)
     session_service = FileSessionService(sessions_dir)
+    progress_service = WhisperProgressService()
 
     # Enhanced transcription service with performance monitoring
     transcription_service = WhisperTranscriptionService(
@@ -165,6 +167,7 @@ def setup_dependencies(config_dir=None):
         vocabulary_management_service=vocabulary_management_service,
         postprocessing_service=postprocessing_service,
         webhook_service=webhook_service,
+        progress_service=progress_service,
     )
 
     return command_registry
