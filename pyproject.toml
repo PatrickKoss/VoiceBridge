@@ -160,9 +160,14 @@ python_classes = "Test*"
 python_functions = "test_*"
 markers = [
     "unit: marks tests as unit tests",
-    "integration: marks tests as integration tests",
+    "integration: marks tests as integration tests", 
     "slow: marks tests as slow",
     "requires_audio: marks tests requiring audio hardware",
+    "e2e_slow: marks E2E tests as slow running",
+    "e2e_audio: marks E2E tests as requiring audio files",
+    "e2e_batch: marks E2E tests as batch processing tests",
+    "e2e_config: marks E2E tests as configuration tests", 
+    "e2e_session: marks E2E tests as session management tests",
 ]
 
 [tool.coverage.run]

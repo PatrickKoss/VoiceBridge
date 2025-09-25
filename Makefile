@@ -9,8 +9,9 @@ help:
 	@echo "  lint         - Run ruff linting and fix issues"
 	@echo "  test         - Run all tests with coverage"
 	@echo "  test-fast    - Run tests without coverage"
-	@echo "  test-e2e     - Run end-to-end CLI tests"
+	@echo "  test-e2e     - Run comprehensive end-to-end CLI tests"
 	@echo "  test-e2e-smoke - Run quick E2E smoke tests"
+	@echo "  test-e2e-stt - Run STT command E2E tests only"
 	@echo "  run          - Run the VoiceBridge CLI"
 	@echo "  clean        - Clean up cache files and virtual environment"
 
@@ -64,14 +65,15 @@ test-fast: check-venv
 	.venv/bin/pytest voicebridge/tests/
 
 test-e2e: check-venv
-	@echo "Running end-to-end CLI tests..."
+	@echo "Running comprehensive end-to-end CLI tests..."
 	@export VOICEBRIDGE_DISABLE_AUDIO=1; \
-	 .venv/bin/pytest --disable-warnings voicebridge/tests/test_e2e_simple.py -q; \
+	 export VOICEBRIDGE_TEST_MODE=1; \
+	 .venv/bin/pytest --disable-warnings voicebridge/tests/e2e_tests/ -v --tb=short; \
 	 status=$$?; \
 	 if [ $$status -eq 0 ]; then \
-	   echo "✅ E2E tests passed"; \
+	   echo "✅ Comprehensive E2E tests passed"; \
 	 else \
-	   echo "❌ E2E tests failed"; \
+	   echo "❌ Comprehensive E2E tests failed"; \
 	 fi; \
 	 exit $$status
 
@@ -84,6 +86,19 @@ test-e2e-smoke: check-venv
 	   echo "✅ E2E smoke tests passed"; \
 	 else \
 	   echo "❌ E2E smoke tests failed"; \
+	 fi; \
+	 exit $$status
+
+test-e2e-stt: check-venv
+	@echo "Running STT command E2E tests..."
+	@export VOICEBRIDGE_DISABLE_AUDIO=1; \
+	 export VOICEBRIDGE_TEST_MODE=1; \
+	 .venv/bin/pytest --disable-warnings voicebridge/tests/e2e_tests/test_stt_*.py -v --tb=short; \
+	 status=$$?; \
+	 if [ $$status -eq 0 ]; then \
+	   echo "✅ STT E2E tests passed"; \
+	 else \
+	   echo "❌ STT E2E tests failed"; \
 	 fi; \
 	 exit $$status
 
