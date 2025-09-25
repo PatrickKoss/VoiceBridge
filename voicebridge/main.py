@@ -31,12 +31,16 @@ from voicebridge.services.export_service import DefaultExportService
 from voicebridge.services.performance_service import WhisperPerformanceService
 from voicebridge.services.progress_service import WhisperProgressService
 from voicebridge.services.resume_service import TranscriptionResumeService
+from voicebridge.services.simple_post_processing_service import (
+    SimplePostProcessingService,
+)
+from voicebridge.services.simple_webhook_service import SimpleWebhookService
 from voicebridge.services.timestamp_service import DefaultTimestampService
 from voicebridge.services.transcription_service import WhisperTranscriptionOrchestrator
 from voicebridge.services.tts_service import TTSDaemonService, TTSOrchestrator
-from voicebridge.services.vocabulary_management_service import VocabularyManagementService
-from voicebridge.services.simple_post_processing_service import SimplePostProcessingService
-from voicebridge.services.simple_webhook_service import SimpleWebhookService
+from voicebridge.services.vocabulary_management_service import (
+    VocabularyManagementService,
+)
 
 
 def setup_dependencies(config_dir=None):

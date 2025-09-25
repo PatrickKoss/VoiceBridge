@@ -1,12 +1,14 @@
-import asyncio
-import os
 import threading
 import time
 
 import typer
 
 from voicebridge.cli.commands.base import BaseCommands
-from voicebridge.cli.utils.command_helpers import display_error, display_info, display_progress
+from voicebridge.cli.utils.command_helpers import (
+    display_error,
+    display_info,
+    display_progress,
+)
 
 
 class APICommands(BaseCommands):
@@ -21,17 +23,17 @@ class APICommands(BaseCommands):
         """Show API server status."""
         try:
             import requests
-            
+
             # Check if server is running on default port
             try:
                 response = requests.get("http://localhost:8000/health", timeout=5)
                 if response.status_code == 200:
                     health_data = response.json()
                     typer.echo("API Server Status: Running")
-                    typer.echo(f"  URL: http://localhost:8000")
+                    typer.echo("  URL: http://localhost:8000")
                     typer.echo(f"  Status: {health_data.get('status', 'unknown')}")
                     typer.echo(f"  Timestamp: {health_data.get('timestamp', 'unknown')}")
-                    
+
                     # Service availability
                     services = health_data.get('services', {})
                     typer.echo("\nService Availability:")
@@ -41,15 +43,15 @@ class APICommands(BaseCommands):
                 else:
                     typer.echo("API Server Status: Error")
                     typer.echo(f"  HTTP Status: {response.status_code}")
-            
+
             except requests.exceptions.ConnectionError:
                 typer.echo("API Server Status: Not Running")
                 typer.echo("  Use 'voicebridge api start' to start the server")
-            
+
             except requests.exceptions.Timeout:
                 typer.echo("API Server Status: Unresponsive")
                 typer.echo("  Server may be starting or overloaded")
-                
+
         except ImportError:
             display_error("requests library not available. Install with: pip install requests")
         except Exception as e:
@@ -67,6 +69,7 @@ class APICommands(BaseCommands):
             # Check if FastAPI/uvicorn are available
             try:
                 import uvicorn
+
                 from voicebridge.adapters.api_endpoints import create_api_app
             except ImportError:
                 display_error("FastAPI and uvicorn are required for the API server.")
@@ -103,10 +106,10 @@ class APICommands(BaseCommands):
 
                 self._server_thread = threading.Thread(target=run_server, daemon=True)
                 self._server_thread.start()
-                
+
                 # Wait a moment to see if it starts successfully
                 time.sleep(2)
-                
+
                 try:
                     import requests
                     response = requests.get(f"http://{host}:{port}/health", timeout=5)
@@ -123,7 +126,7 @@ class APICommands(BaseCommands):
                 typer.echo(f"API server will start on http://{host}:{port}")
                 typer.echo(f"API documentation available at: http://{host}:{port}/docs")
                 typer.echo("Press Ctrl+C to stop the server")
-                
+
                 try:
                     uvicorn.run(
                         app,
@@ -151,15 +154,15 @@ class APICommands(BaseCommands):
             # For external processes, try to find and stop them
             try:
                 import psutil
-                
+
                 # Find processes using the port
                 connections = psutil.net_connections()
                 pids = []
-                
+
                 for conn in connections:
                     if conn.laddr.port == port and conn.status == 'LISTEN':
                         pids.append(conn.pid)
-                
+
                 if pids:
                     for pid in pids:
                         try:
@@ -167,7 +170,7 @@ class APICommands(BaseCommands):
                             if 'uvicorn' in ' '.join(process.cmdline()).lower():
                                 display_info(f"Stopping API server process (PID: {pid})")
                                 process.terminate()
-                                
+
                                 # Wait for graceful shutdown
                                 try:
                                     process.wait(timeout=5)
@@ -179,12 +182,12 @@ class APICommands(BaseCommands):
                             continue
                 else:
                     display_info(f"No API server found running on port {port}")
-                    
+
             except ImportError:
                 display_error("psutil library not available for process management")
                 display_info("Install with: pip install psutil")
                 display_info("Or manually stop the server with Ctrl+C if running in foreground")
-                
+
         except Exception as e:
             display_error(f"Error stopping API server: {e}")
 
@@ -192,7 +195,7 @@ class APICommands(BaseCommands):
         """Show API server information and endpoints."""
         typer.echo("VoiceBridge API Server Information")
         typer.echo("=" * 40)
-        
+
         typer.echo("\nMain Endpoints:")
         typer.echo("  POST /transcribe           - Submit audio for transcription")
         typer.echo("  GET  /transcribe/{id}      - Get transcription result")
@@ -201,7 +204,7 @@ class APICommands(BaseCommands):
         typer.echo("  DELETE /operations/{id}    - Cancel an operation")
         typer.echo("  POST /webhook/register     - Register webhook URL")
         typer.echo("  GET  /health               - Health check")
-        
+
         typer.echo("\nUsage Examples:")
         typer.echo("  # Start server")
         typer.echo("  voicebridge api start")
@@ -214,7 +217,7 @@ class APICommands(BaseCommands):
         typer.echo("  ")
         typer.echo("  # Check server status")
         typer.echo("  voicebridge api status")
-        
+
         typer.echo("\nAPI Documentation:")
         typer.echo("  When server is running, visit:")
         typer.echo("  http://localhost:8000/docs      - Interactive API docs")

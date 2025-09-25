@@ -17,8 +17,8 @@ from voicebridge.ports.interfaces import (
     SessionService,
     SystemService,
     TimestampService,
-    VocabularyService,
     VocabularyManagementService,
+    VocabularyService,
     WebhookService,
 )
 from voicebridge.services.confidence_service import ConfidenceAnalyzer

@@ -215,7 +215,7 @@ class VocabularyService(ABC):
 
 class VocabularyManagementService(ABC):
     """Abstract interface for vocabulary management operations from CLI"""
-    
+
     @abstractmethod
     def add_words(self, words: list[str], vocabulary_type: str = "custom", profile: str = "default", weight: float = 1.0) -> bool:
         pass

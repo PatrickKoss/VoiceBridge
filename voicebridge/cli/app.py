@@ -22,8 +22,12 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         help="VoiceBridge - Comprehensive bidirectional voice-text CLI tool"
     )
 
-    # Speech Recognition Commands
-    @app.command()
+    # Create STT (Speech-to-Text) sub-application
+    stt_app = typer.Typer(help="Speech-to-Text commands")
+    app.add_typer(stt_app, name="stt")
+
+    # Speech Recognition Commands (moved to STT)
+    @stt_app.command()
     def listen(
         model: str | None = typer.Option(None, "--model", "-m", help="Whisper model to use"),
         language: str | None = typer.Option(None, "--language", "-l", help="Language code"),
@@ -43,7 +47,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             paste_stream, copy_stream, paste_final, copy_final, debug
         )
 
-    @app.command()
+    @stt_app.command()
     def interactive(
         model: str | None = typer.Option(None, "--model", "-m", help="Whisper model to use"),
         language: str | None = typer.Option(None, "--language", "-l", help="Language code"),
@@ -63,7 +67,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             paste_stream, copy_stream, paste_final, copy_final, debug
         )
 
-    @app.command()
+    @stt_app.command()
     def hotkey(
         key: str = typer.Option("f9", "--key", help="Hotkey to use"),
         mode: str = typer.Option("toggle", "--mode", help="Hotkey mode: toggle or hold"),
@@ -85,8 +89,8 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             paste_stream, copy_stream, paste_final, copy_final, debug
         )
 
-    # File Transcription Commands
-    @app.command()
+    # File Transcription Commands (moved to STT)
+    @stt_app.command()
     def transcribe(
         file_path: str = typer.Argument(..., help="Path to audio file"),
         output_path: str | None = typer.Option(None, "--output", "-o", help="Output file path"),
@@ -101,7 +105,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             file_path, output_path, model, language, temperature, format_output
         )
 
-    @app.command(name="batch-transcribe")
+    @stt_app.command(name="batch-transcribe")
     def batch_transcribe(
         input_dir: str = typer.Argument(..., help="Input directory"),
         output_dir: str = typer.Option("transcriptions", "--output-dir", help="Output directory"),
@@ -115,7 +119,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             input_dir, output_dir, workers, file_pattern, model
         )
 
-    @app.command(name="listen-resumable")
+    @stt_app.command(name="listen-resumable")
     def listen_resumable(
         file_path: str = typer.Argument(..., help="Path to audio file"),
         session_name: str | None = typer.Option(None, "--session-name", help="Session name"),
@@ -132,7 +136,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             file_path, session_name, model, language, temperature, profile, chunk_size, overlap
         )
 
-    @app.command()
+    @stt_app.command()
     def realtime(
         chunk_duration: float = typer.Option(2.0, "--chunk-duration", help="Chunk duration in seconds"),
         output_format: str = typer.Option("live", "--output-format", help="Output format: live or segments"),
@@ -286,8 +290,8 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         max_size_mb: float = typer.Option(25.0, "--max-size-mb", help="Maximum size in MB"),
     ):
         """Split audio file into chunks."""
-        transcription_commands = command_registry.get_command_group('transcription')
-        transcription_commands.split_audio(
+        audio_commands = command_registry.get_command_group('audio')
+        audio_commands.audio_split(
             file_path, output_dir, method, chunk_duration, silence_threshold, max_size_mb
         )
 
@@ -315,44 +319,27 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         transcription_commands = command_registry.get_command_group('transcription')
         transcription_commands.test_audio_setup()
 
-    # System Commands
-    gpu_app = typer.Typer(help="GPU and system commands")
-    app.add_typer(gpu_app, name="gpu")
+    # STT Performance and System Commands (moved to STT)
+    stt_performance_app = typer.Typer(help="STT Performance monitoring")
+    stt_app.add_typer(stt_performance_app, name="performance")
 
-    @gpu_app.command()
-    def status():  # noqa: F811
-        """Show GPU status."""
-        system_commands = command_registry.get_command_group('system')
-        system_commands.gpu_status()
-
-    @gpu_app.command()
-    def benchmark(
-        model: str = typer.Option("base", "--model", help="Model to benchmark"),
-    ):
-        """Benchmark GPU performance."""
-        system_commands = command_registry.get_command_group('system')
-        system_commands.gpu_benchmark(model)
-
-    performance_app = typer.Typer(help="Performance monitoring")
-    app.add_typer(performance_app, name="performance")
-
-    @performance_app.command()
+    @stt_performance_app.command()
     def stats():
         """Show performance statistics."""
         system_commands = command_registry.get_command_group('system')
         system_commands.performance_stats()
 
-    # Operations Management
-    operations_app = typer.Typer(help="Operation management")
-    app.add_typer(operations_app, name="operations")
+    # Operations Management (moved to STT)
+    stt_operations_app = typer.Typer(help="STT Operation management")
+    stt_app.add_typer(stt_operations_app, name="operations")
 
-    @operations_app.command()
+    @stt_operations_app.command()
     def list():
         """List active operations."""
         system_commands = command_registry.get_command_group('system')
         system_commands.operations_list()
 
-    @operations_app.command()
+    @stt_operations_app.command()
     def cancel(
         operation_id: str = typer.Argument(..., help="Operation ID to cancel"),
     ):
@@ -360,7 +347,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         system_commands = command_registry.get_command_group('system')
         system_commands.operations_cancel(operation_id)
 
-    @operations_app.command()
+    @stt_operations_app.command()
     def status(
         operation_id: str = typer.Argument(..., help="Operation ID to check"),
     ):
@@ -368,17 +355,17 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         system_commands = command_registry.get_command_group('system')
         system_commands.operations_status(operation_id)
 
-    # Session Management
-    sessions_app = typer.Typer(help="Session management")
-    app.add_typer(sessions_app, name="sessions")
+    # Session Management (moved to STT)
+    stt_sessions_app = typer.Typer(help="STT Session management")
+    stt_app.add_typer(stt_sessions_app, name="sessions")
 
-    @sessions_app.command()
+    @stt_sessions_app.command()
     def list():
         """List all sessions."""
         system_commands = command_registry.get_command_group('system')
         system_commands.sessions_list()
 
-    @sessions_app.command()
+    @stt_sessions_app.command()
     def resume(
         session_id: str | None = typer.Option(None, "--session-id", help="Session ID"),
         session_name: str | None = typer.Option(None, "--session-name", help="Session name"),
@@ -387,13 +374,13 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         system_commands = command_registry.get_command_group('system')
         system_commands.sessions_resume(session_id, session_name)
 
-    @sessions_app.command()
+    @stt_sessions_app.command()
     def cleanup():
         """Clean up old sessions."""
         system_commands = command_registry.get_command_group('system')
         system_commands.sessions_cleanup()
 
-    @sessions_app.command()
+    @stt_sessions_app.command()
     def delete(
         session_id: str = typer.Argument(..., help="Session ID to delete"),
     ):
@@ -401,18 +388,18 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         system_commands = command_registry.get_command_group('system')
         system_commands.sessions_delete(session_id)
 
-    # Configuration Commands
-    config_app = typer.Typer(help="Configuration management")
-    app.add_typer(config_app, name="config")
+    # Configuration Commands (moved to STT)
+    stt_config_app = typer.Typer(help="STT Configuration management")
+    stt_app.add_typer(stt_config_app, name="config")
 
-    @config_app.command()
-    def show():  # noqa: F811
+    @stt_config_app.command()
+    def show():
         """Show current configuration."""
         config_commands = command_registry.get_command_group('config')
         config_commands.config_show()
 
-    @config_app.command()
-    def set(  # noqa: F811
+    @stt_config_app.command()
+    def set(
         key: str = typer.Argument(..., help="Configuration key"),
         value: str = typer.Argument(..., help="Configuration value"),
     ):
@@ -420,11 +407,11 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         config_commands = command_registry.get_command_group('config')
         config_commands.config_set(key, value)
 
-    # Profile management
-    profile_app = typer.Typer(help="Profile management")
-    app.add_typer(profile_app, name="profile")
+    # Profile management (moved to STT)
+    stt_profile_app = typer.Typer(help="STT Profile management")
+    stt_app.add_typer(stt_profile_app, name="profile")
 
-    @profile_app.command()
+    @stt_profile_app.command()
     def save(
         name: str = typer.Argument(..., help="Profile name"),
     ):
@@ -432,7 +419,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         config_commands = command_registry.get_command_group('config')
         config_commands.profile_save(name)
 
-    @profile_app.command()
+    @stt_profile_app.command()
     def load(
         name: str = typer.Argument(..., help="Profile name"),
     ):
@@ -440,25 +427,25 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         config_commands = command_registry.get_command_group('config')
         config_commands.profile_load(name)
 
-    @profile_app.command()
-    def list():  # noqa: F811
+    @stt_profile_app.command()
+    def list():
         """List all profiles."""
         config_commands = command_registry.get_command_group('config')
         config_commands.profile_list()
 
-    @profile_app.command()
-    def delete(  # noqa: F811
+    @stt_profile_app.command()
+    def delete(
         name: str = typer.Argument(..., help="Profile name"),
     ):
         """Delete a profile."""
         config_commands = command_registry.get_command_group('config')
         config_commands.profile_delete(name)
 
-    # Export Commands
-    export_app = typer.Typer(help="Export and analysis")
-    app.add_typer(export_app, name="export")
+    # Export Commands (moved to STT)
+    stt_export_app = typer.Typer(help="STT Export and analysis")
+    stt_app.add_typer(stt_export_app, name="export")
 
-    @export_app.command()
+    @stt_export_app.command()
     def session(
         session_id: str = typer.Argument(..., help="Session ID"),
         format: str = typer.Option("txt", "--format", help="Export format"),
@@ -473,17 +460,17 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             session_id, format, output_file, include_timestamps, include_confidence, timestamp_mode
         )
 
-    @export_app.command()
-    def formats():  # noqa: F811
+    @stt_export_app.command()
+    def formats():
         """List export formats."""
         export_commands = command_registry.get_command_group('export')
         export_commands.list_export_formats()
 
-    # Confidence Analysis
-    confidence_app = typer.Typer(help="Confidence analysis")
-    app.add_typer(confidence_app, name="confidence")
+    # Confidence Analysis (moved to STT)
+    stt_confidence_app = typer.Typer(help="STT Confidence analysis")
+    stt_app.add_typer(stt_confidence_app, name="confidence")
 
-    @confidence_app.command()
+    @stt_confidence_app.command()
     def analyze(
         session_id: str = typer.Argument(..., help="Session ID"),
         detailed: bool = typer.Option(False, "--detailed", help="Detailed analysis"),
@@ -493,7 +480,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         export_commands = command_registry.get_command_group('export')
         export_commands.analyze_confidence(session_id, detailed, threshold)
 
-    @confidence_app.command(name="analyze-all")
+    @stt_confidence_app.command(name="analyze-all")
     def analyze_all(
         detailed: bool = typer.Option(False, "--detailed", help="Detailed analysis"),
         threshold: float = typer.Option(0.7, "--threshold", help="Confidence threshold"),
@@ -502,11 +489,11 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         export_commands = command_registry.get_command_group('export')
         export_commands.analyze_all_sessions(detailed, threshold)
 
-    # Vocabulary Management Commands
-    vocabulary_app = typer.Typer(help="Vocabulary management")
-    app.add_typer(vocabulary_app, name="vocabulary")
+    # Vocabulary Management Commands (moved to STT)
+    stt_vocabulary_app = typer.Typer(help="STT Vocabulary management")
+    stt_app.add_typer(stt_vocabulary_app, name="vocabulary")
 
-    @vocabulary_app.command()
+    @stt_vocabulary_app.command()
     def add(
         words: str = typer.Argument(..., help="Comma-separated words to add"),
         vocabulary_type: str = typer.Option("custom", "--type", help="Vocabulary type: custom, proper_nouns, technical, or domain name"),
@@ -517,7 +504,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.vocabulary_add(words, vocabulary_type, profile, weight)
 
-    @vocabulary_app.command()
+    @stt_vocabulary_app.command()
     def remove(
         words: str = typer.Argument(..., help="Comma-separated words to remove"),
         vocabulary_type: str = typer.Option("custom", "--type", help="Vocabulary type"),
@@ -527,7 +514,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.vocabulary_remove(words, vocabulary_type, profile)
 
-    @vocabulary_app.command()
+    @stt_vocabulary_app.command()
     def list(
         vocabulary_type: str = typer.Option(None, "--type", help="Vocabulary type to list"),
         profile: str = typer.Option("default", "--profile", help="Profile to use"),
@@ -536,7 +523,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.vocabulary_list(vocabulary_type, profile)
 
-    @vocabulary_app.command(name="import")
+    @stt_vocabulary_app.command(name="import")
     def import_vocab(
         file_path: str = typer.Argument(..., help="Path to vocabulary file"),
         vocabulary_type: str = typer.Option("custom", "--type", help="Vocabulary type"),
@@ -547,7 +534,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.vocabulary_import(file_path, vocabulary_type, profile, format)
 
-    @vocabulary_app.command()
+    @stt_vocabulary_app.command()
     def export(
         file_path: str = typer.Argument(..., help="Output file path"),
         profile: str = typer.Option("default", "--profile", help="Profile to use"),
@@ -556,11 +543,11 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.vocabulary_export(file_path, profile)
 
-    # Post-processing Commands
-    postproc_app = typer.Typer(help="Text post-processing")
-    app.add_typer(postproc_app, name="postproc")
+    # Post-processing Commands (moved to STT)
+    stt_postproc_app = typer.Typer(help="STT Text post-processing")
+    stt_app.add_typer(stt_postproc_app, name="postproc")
 
-    @postproc_app.command()
+    @stt_postproc_app.command()
     def config(
         enable_spell_check: bool = typer.Option(None, "--spell-check/--no-spell-check", help="Enable spell checking"),
         enable_grammar_check: bool = typer.Option(None, "--grammar-check/--no-grammar-check", help="Enable grammar checking"),
@@ -572,11 +559,11 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         """Configure post-processing settings."""
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.postprocessing_config(
-            enable_spell_check, enable_grammar_check, enable_punctuation, 
+            enable_spell_check, enable_grammar_check, enable_punctuation,
             enable_capitalization, custom_rules, profile
         )
 
-    @postproc_app.command()
+    @stt_postproc_app.command()
     def test(
         text: str = typer.Argument(..., help="Text to test post-processing on"),
         profile: str = typer.Option("default", "--profile", help="Profile to use"),
@@ -585,11 +572,11 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.postprocessing_test(text, profile)
 
-    # Webhook Management Commands  
-    webhook_app = typer.Typer(help="Webhook management")
-    app.add_typer(webhook_app, name="webhook")
+    # Webhook Management Commands (moved to STT)
+    stt_webhook_app = typer.Typer(help="STT Webhook management")
+    stt_app.add_typer(stt_webhook_app, name="webhook")
 
-    @webhook_app.command()
+    @stt_webhook_app.command()
     def add(
         url: str = typer.Argument(..., help="Webhook URL"),
         events: str = typer.Option("transcription_complete", "--events", help="Comma-separated event types"),
@@ -601,7 +588,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.webhook_add(url, events, secret, timeout, retry_count)
 
-    @webhook_app.command()
+    @stt_webhook_app.command()
     def remove(
         url: str = typer.Argument(..., help="Webhook URL to remove"),
     ):
@@ -609,13 +596,13 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.webhook_remove(url)
 
-    @webhook_app.command()
+    @stt_webhook_app.command()
     def list():
         """List all configured webhooks."""
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.webhook_list()
 
-    @webhook_app.command()
+    @stt_webhook_app.command()
     def test(
         url: str = typer.Argument(..., help="Webhook URL to test"),
         event_type: str = typer.Option("transcription_complete", "--event-type", help="Event type to test"),
@@ -623,6 +610,24 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         """Test a webhook with sample data."""
         advanced_commands = command_registry.get_command_group('advanced')
         advanced_commands.webhook_test(url, event_type)
+
+    # System Commands
+    gpu_app = typer.Typer(help="GPU and system commands")
+    app.add_typer(gpu_app, name="gpu")
+
+    @gpu_app.command()
+    def status():
+        """Show GPU status."""
+        system_commands = command_registry.get_command_group('system')
+        system_commands.gpu_status()
+
+    @gpu_app.command()
+    def benchmark(
+        model: str = typer.Option("base", "--model", help="Model to benchmark"),
+    ):
+        """Benchmark GPU performance."""
+        system_commands = command_registry.get_command_group('system')
+        system_commands.gpu_benchmark(model)
 
     # API Server Management Commands
     api_app = typer.Typer(help="API server management")
