@@ -35,7 +35,9 @@ class TranscriptionCommands(BaseCommands):
 
         if not self.audio_format_service.is_supported_format(input_file):
             supported = ", ".join(self.audio_format_service.get_supported_formats())
-            display_error(f"Unsupported file format: {input_file.suffix}. Supported: {supported}")
+            display_error(
+                f"Unsupported file format: {input_file.suffix}. Supported: {supported}"
+            )
             return
 
         # Load config and override with parameters
@@ -76,7 +78,9 @@ class TranscriptionCommands(BaseCommands):
                 output_file = Path(output_path)
                 with open(output_file, "w", encoding="utf-8") as f:
                     f.write(output_text)
-                display_progress(f"Transcription saved to: {output_file}", finished=True)
+                display_progress(
+                    f"Transcription saved to: {output_file}", finished=True
+                )
             else:
                 typer.echo(output_text)
 
@@ -114,7 +118,9 @@ class TranscriptionCommands(BaseCommands):
         display_info(f"Workers: {workers}")
 
         # Estimate processing time
-        files = self.batch_processing_service.get_processable_files(input_path, patterns)
+        files = self.batch_processing_service.get_processable_files(
+            input_path, patterns
+        )
         estimated_time = self.batch_processing_service.estimate_batch_time(files)
 
         display_info(f"Found {len(files)} files to process")
@@ -179,11 +185,15 @@ class TranscriptionCommands(BaseCommands):
             # Monitor progress
             while not session.is_complete:
                 progress = session.progress
-                typer.echo(f"Progress: {progress.completed_chunks}/{progress.total_chunks} chunks "
-                          f"({progress.completion_percentage:.1f}%)")
+                typer.echo(
+                    f"Progress: {progress.completed_chunks}/{progress.total_chunks} chunks "
+                    f"({progress.completion_percentage:.1f}%)"
+                )
 
                 if progress.estimated_time_remaining:
-                    typer.echo(f"Estimated time remaining: {format_duration(progress.estimated_time_remaining)}")
+                    typer.echo(
+                        f"Estimated time remaining: {format_duration(progress.estimated_time_remaining)}"
+                    )
 
                 time.sleep(2)
 
@@ -202,7 +212,9 @@ class TranscriptionCommands(BaseCommands):
                 display_error("Failed to get transcription result")
 
         except KeyboardInterrupt:
-            display_info(f"Transcription paused. Resume with: listen-resumable --session-name {session_name}")
+            display_info(
+                f"Transcription paused. Resume with: listen-resumable --session-name {session_name}"
+            )
         except Exception as e:
             display_error(f"Transcription failed: {e}")
 
@@ -259,20 +271,30 @@ class TranscriptionCommands(BaseCommands):
                 typer.echo("🎙️  Audio processor started - waiting for audio...")
 
                 try:
-                    audio_stream = self.transcription_orchestrator.audio_recorder.record_stream(sample_rate=16000)
-                    typer.echo("🔊 Audio stream initialized, starting to read chunks...")
+                    audio_stream = (
+                        self.transcription_orchestrator.audio_recorder.record_stream(
+                            sample_rate=16000
+                        )
+                    )
+                    typer.echo(
+                        "🔊 Audio stream initialized, starting to read chunks..."
+                    )
 
                     for chunk in audio_stream:
                         if stop_flag.is_set():
                             break
 
                         chunks_received += 1
-                        print(f"🎧 Received audio chunk #{chunks_received}: {len(chunk):,} bytes")
+                        print(
+                            f"🎧 Received audio chunk #{chunks_received}: {len(chunk):,} bytes"
+                        )
                         audio_buffer.append(chunk)
 
                         # Show periodic progress
                         if chunks_received % 50 == 0:
-                            print(f"🔄 Received {chunks_received} audio chunks, buffer size: {len(b''.join(audio_buffer)):,} bytes")
+                            print(
+                                f"🔄 Received {chunks_received} audio chunks, buffer size: {len(b''.join(audio_buffer)):,} bytes"
+                            )
 
                         # Check if enough time has passed for the next segment
                         current_time = time.time()
@@ -280,12 +302,14 @@ class TranscriptionCommands(BaseCommands):
                             segment_count += 1
 
                             # Get all accumulated audio data for this segment
-                            segment_data = b''.join(audio_buffer)
+                            segment_data = b"".join(audio_buffer)
 
                             # Clear buffer for next segment (or keep some overlap if desired)
                             audio_buffer.clear()
 
-                            print(f"🎯 Processing segment {segment_count} with {len(segment_data):,} bytes of audio")
+                            print(
+                                f"🎯 Processing segment {segment_count} with {len(segment_data):,} bytes of audio"
+                            )
 
                             # Only process if we have sufficient audio data
                             if len(segment_data) > 1000:  # At least 1KB of audio
@@ -295,21 +319,25 @@ class TranscriptionCommands(BaseCommands):
                                     channels = 1
                                     sample_width = 2  # 16-bit audio
 
-                                    with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+                                    with tempfile.NamedTemporaryFile(
+                                        delete=False, suffix=".wav"
+                                    ) as temp_file:
                                         temp_file_path = temp_file.name
 
                                     # Write proper WAV file with headers
-                                    with wave.open(temp_file_path, 'wb') as wav_file:
+                                    with wave.open(temp_file_path, "wb") as wav_file:
                                         wav_file.setnchannels(channels)
                                         wav_file.setsampwidth(sample_width)
                                         wav_file.setframerate(sample_rate)
                                         wav_file.writeframes(segment_data)
 
                                     # Transcribe using the WAV file
-                                    with open(temp_file_path, 'rb') as f:
+                                    with open(temp_file_path, "rb") as f:
                                         wav_data = f.read()
 
-                                    print(f"🎵 Sending {len(wav_data):,} bytes to transcription service...")
+                                    print(
+                                        f"🎵 Sending {len(wav_data):,} bytes to transcription service..."
+                                    )
                                     result = self.transcription_orchestrator.transcription_service.transcribe(
                                         wav_data, config
                                     )
@@ -318,22 +346,32 @@ class TranscriptionCommands(BaseCommands):
                                     if os.path.exists(temp_file_path):
                                         os.unlink(temp_file_path)
 
-                                    print(f"📝 Transcription result: '{result.text.strip() if result and result.text else 'None'}'")
+                                    print(
+                                        f"📝 Transcription result: '{result.text.strip() if result and result.text else 'None'}'"
+                                    )
 
                                     if result and result.text.strip():
                                         transcription_buffer.append(result.text.strip())
 
                                         if output_format == "live":
                                             # Show live results with clear line management
-                                            print(f"[{segment_count:03d}] {result.text.strip()}")
+                                            print(
+                                                f"[{segment_count:03d}] {result.text.strip()}"
+                                            )
                                         elif output_format == "segments":
                                             # Show completed segments
-                                            typer.echo(f"[{segment_count:03d}] {result.text.strip()}")
+                                            typer.echo(
+                                                f"[{segment_count:03d}] {result.text.strip()}"
+                                            )
                                     else:
                                         if output_format == "live":
-                                            print(f"[{segment_count:03d}] (no speech detected)")
+                                            print(
+                                                f"[{segment_count:03d}] (no speech detected)"
+                                            )
                                         elif output_format == "segments":
-                                            typer.echo(f"[{segment_count:03d}] (no speech detected)")
+                                            typer.echo(
+                                                f"[{segment_count:03d}] (no speech detected)"
+                                            )
 
                                 except Exception as e:
                                     if output_format == "live":
@@ -343,13 +381,18 @@ class TranscriptionCommands(BaseCommands):
 
                                     # Clean up temp file on error
                                     try:
-                                        if 'temp_file_path' in locals() and os.path.exists(temp_file_path):
+                                        if (
+                                            "temp_file_path" in locals()
+                                            and os.path.exists(temp_file_path)
+                                        ):
                                             os.unlink(temp_file_path)
                                     except Exception:
                                         pass
 
                             else:
-                                print(f"⚠️  Segment {segment_count} too small ({len(segment_data):,} bytes), skipping...")
+                                print(
+                                    f"⚠️  Segment {segment_count} too small ({len(segment_data):,} bytes), skipping..."
+                                )
 
                             last_process_time = current_time
 
@@ -387,7 +430,7 @@ class TranscriptionCommands(BaseCommands):
 
                 # Save audio if requested
                 if save_audio and output_file and audio_buffer:
-                    audio_file = Path(output_file).with_suffix('.wav')
+                    audio_file = Path(output_file).with_suffix(".wav")
                     # Note: This would need proper WAV file writing implementation
                     display_info(f"Audio saved to: {audio_file}")
 
@@ -474,8 +517,13 @@ class TranscriptionCommands(BaseCommands):
             def record_test():
                 nonlocal audio_data
                 start_time = time.time()
-                for chunk in self.transcription_orchestrator.audio_recorder.record_stream():
-                    if stop_recording.is_set() or time.time() - start_time > test_duration:
+                for (
+                    chunk
+                ) in self.transcription_orchestrator.audio_recorder.record_stream():
+                    if (
+                        stop_recording.is_set()
+                        or time.time() - start_time > test_duration
+                    ):
                         break
                     audio_data += chunk
 
@@ -503,25 +551,31 @@ class TranscriptionCommands(BaseCommands):
                 channels = 1
                 sample_width = 2  # 16-bit audio
 
-                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as temp_file:
+                with tempfile.NamedTemporaryFile(
+                    delete=False, suffix=".wav"
+                ) as temp_file:
                     temp_file_path = temp_file.name
 
                 # Write proper WAV file with headers
-                with wave.open(temp_file_path, 'wb') as wav_file:
+                with wave.open(temp_file_path, "wb") as wav_file:
                     wav_file.setnchannels(channels)
                     wav_file.setsampwidth(sample_width)
                     wav_file.setframerate(sample_rate)
                     wav_file.writeframes(audio_data)
 
                 # Read back the WAV file for transcription
-                with open(temp_file_path, 'rb') as f:
+                with open(temp_file_path, "rb") as f:
                     wav_data = f.read()
 
                 # Clean up temp file
                 if os.path.exists(temp_file_path):
                     os.unlink(temp_file_path)
 
-                result = self.transcription_orchestrator.transcription_service.transcribe(wav_data, config)
+                result = (
+                    self.transcription_orchestrator.transcription_service.transcribe(
+                        wav_data, config
+                    )
+                )
 
                 if result and result.text.strip():
                     display_progress("✓ Transcription successful", finished=True)
@@ -540,9 +594,13 @@ class TranscriptionCommands(BaseCommands):
                 display_progress("Testing GPU availability...")
                 gpu_devices = self.system_service.detect_gpu_devices()
                 gpu_info = gpu_devices[0] if gpu_devices else None
-                if gpu_info and gpu_info.gpu_type.value != 'none':
-                    display_progress(f"✓ GPU available: {gpu_info.device_name}", finished=True)
-                    display_info(f"Memory: {gpu_info.memory_total:.1f}MB total, {gpu_info.memory_available:.1f}MB available")
+                if gpu_info and gpu_info.gpu_type.value != "none":
+                    display_progress(
+                        f"✓ GPU available: {gpu_info.device_name}", finished=True
+                    )
+                    display_info(
+                        f"Memory: {gpu_info.memory_total:.1f}MB total, {gpu_info.memory_available:.1f}MB available"
+                    )
                 else:
                     display_info("⚠ No GPU available, using CPU")
             except Exception as e:

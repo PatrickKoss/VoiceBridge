@@ -32,10 +32,12 @@ class APICommands(BaseCommands):
                     typer.echo("API Server Status: Running")
                     typer.echo("  URL: http://localhost:8000")
                     typer.echo(f"  Status: {health_data.get('status', 'unknown')}")
-                    typer.echo(f"  Timestamp: {health_data.get('timestamp', 'unknown')}")
+                    typer.echo(
+                        f"  Timestamp: {health_data.get('timestamp', 'unknown')}"
+                    )
 
                     # Service availability
-                    services = health_data.get('services', {})
+                    services = health_data.get("services", {})
                     typer.echo("\nService Availability:")
                     for service, available in services.items():
                         status = "✓ Available" if available else "✗ Unavailable"
@@ -53,7 +55,9 @@ class APICommands(BaseCommands):
                 typer.echo("  Server may be starting or overloaded")
 
         except ImportError:
-            display_error("requests library not available. Install with: pip install requests")
+            display_error(
+                "requests library not available. Install with: pip install requests"
+            )
         except Exception as e:
             display_error(f"Error checking API status: {e}")
 
@@ -79,6 +83,7 @@ class APICommands(BaseCommands):
             # Check if server is already running
             try:
                 import requests
+
                 response = requests.get(f"http://{host}:{port}/health", timeout=2)
                 if response.status_code == 200:
                     display_error(f"API server is already running on {host}:{port}")
@@ -97,11 +102,7 @@ class APICommands(BaseCommands):
                 # Start server in background thread
                 def run_server():
                     uvicorn.run(
-                        app,
-                        host=host,
-                        port=port,
-                        workers=workers,
-                        log_level="info"
+                        app, host=host, port=port, workers=workers, log_level="info"
                     )
 
                 self._server_thread = threading.Thread(target=run_server, daemon=True)
@@ -112,9 +113,13 @@ class APICommands(BaseCommands):
 
                 try:
                     import requests
+
                     response = requests.get(f"http://{host}:{port}/health", timeout=5)
                     if response.status_code == 200:
-                        display_progress(f"API server started in background on {host}:{port}", finished=True)
+                        display_progress(
+                            f"API server started in background on {host}:{port}",
+                            finished=True,
+                        )
                         typer.echo(f"  Health check: http://{host}:{port}/health")
                         typer.echo(f"  API docs: http://{host}:{port}/docs")
                     else:
@@ -129,11 +134,7 @@ class APICommands(BaseCommands):
 
                 try:
                     uvicorn.run(
-                        app,
-                        host=host,
-                        port=port,
-                        workers=workers,
-                        log_level="info"
+                        app, host=host, port=port, workers=workers, log_level="info"
                     )
                 except KeyboardInterrupt:
                     display_info("API server stopped")
@@ -160,24 +161,30 @@ class APICommands(BaseCommands):
                 pids = []
 
                 for conn in connections:
-                    if conn.laddr.port == port and conn.status == 'LISTEN':
+                    if conn.laddr.port == port and conn.status == "LISTEN":
                         pids.append(conn.pid)
 
                 if pids:
                     for pid in pids:
                         try:
                             process = psutil.Process(pid)
-                            if 'uvicorn' in ' '.join(process.cmdline()).lower():
-                                display_info(f"Stopping API server process (PID: {pid})")
+                            if "uvicorn" in " ".join(process.cmdline()).lower():
+                                display_info(
+                                    f"Stopping API server process (PID: {pid})"
+                                )
                                 process.terminate()
 
                                 # Wait for graceful shutdown
                                 try:
                                     process.wait(timeout=5)
-                                    display_progress("API server stopped", finished=True)
+                                    display_progress(
+                                        "API server stopped", finished=True
+                                    )
                                 except psutil.TimeoutExpired:
                                     process.kill()
-                                    display_progress("API server forcibly stopped", finished=True)
+                                    display_progress(
+                                        "API server forcibly stopped", finished=True
+                                    )
                         except psutil.NoSuchProcess:
                             continue
                 else:
@@ -186,7 +193,9 @@ class APICommands(BaseCommands):
             except ImportError:
                 display_error("psutil library not available for process management")
                 display_info("Install with: pip install psutil")
-                display_info("Or manually stop the server with Ctrl+C if running in foreground")
+                display_info(
+                    "Or manually stop the server with Ctrl+C if running in foreground"
+                )
 
         except Exception as e:
             display_error(f"Error stopping API server: {e}")
@@ -226,9 +235,9 @@ class APICommands(BaseCommands):
     def _get_api_services(self) -> dict:
         """Get available services for the API."""
         return {
-            'transcription_service': self.transcription_orchestrator,
-            'vocabulary_service': self.vocabulary_service,
-            'post_processing_service': self.postprocessing_service,
-            'webhook_service': self.webhook_service,
-            'progress_service': self.progress_service,
+            "transcription_service": self.transcription_orchestrator,
+            "vocabulary_service": self.vocabulary_service,
+            "post_processing_service": self.postprocessing_service,
+            "webhook_service": self.webhook_service,
+            "progress_service": self.progress_service,
         }

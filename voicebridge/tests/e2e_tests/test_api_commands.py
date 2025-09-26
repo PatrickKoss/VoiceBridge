@@ -4,8 +4,6 @@ import socket
 
 import pytest
 
-from .conftest_e2e import *
-
 
 class TestAPICommands:
     """Test API server management command functionality."""
@@ -29,9 +27,18 @@ class TestAPICommands:
 
         # Should show API server status (running or not running)
         output_lower = result.stdout.lower()
-        assert any(status in output_lower for status in [
-            "status", "running", "not running", "stopped", "active", "inactive", "server"
-        ])
+        assert any(
+            status in output_lower
+            for status in [
+                "status",
+                "running",
+                "not running",
+                "stopped",
+                "active",
+                "inactive",
+                "server",
+            ]
+        )
 
     def test_api_info_command(self, cli_runner):
         """Test API info command."""
@@ -41,9 +48,10 @@ class TestAPICommands:
 
         # Should show API server information and endpoints
         output_lower = result.stdout.lower()
-        assert any(info in output_lower for info in [
-            "api", "server", "endpoint", "port", "host", "url", "info"
-        ])
+        assert any(
+            info in output_lower
+            for info in ["api", "server", "endpoint", "port", "host", "url", "info"]
+        )
 
     def test_api_start_command_structure(self, cli_runner):
         """Test API start command structure and validation."""
@@ -68,14 +76,16 @@ class TestAPICommands:
         # Should either stop server or indicate no server running
         if result.failed:
             error_lower = result.stderr.lower()
-            assert any(msg in error_lower for msg in [
-                "not running", "no server", "already stopped", "stop"
-            ])
+            assert any(
+                msg in error_lower
+                for msg in ["not running", "no server", "already stopped", "stop"]
+            )
         else:
             output_lower = result.stdout.lower()
-            assert any(info in output_lower for info in [
-                "stop", "server", "stopped", "shutdown", "not running"
-            ])
+            assert any(
+                info in output_lower
+                for info in ["stop", "server", "stopped", "shutdown", "not running"]
+            )
 
     def test_api_start_help_shows_port_parameter(self, cli_runner):
         """Test API start help shows port parameter."""
@@ -88,7 +98,7 @@ class TestAPICommands:
     def _find_available_port(self):
         """Find an available port for testing."""
         with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
-            s.bind(('', 0))
+            s.bind(("", 0))
             s.listen(1)
             port = s.getsockname()[1]
         return port
@@ -116,12 +126,15 @@ class TestAPICommandsValidation:
     def test_api_subcommand_availability(self, cli_runner):
         """Test that API subcommands are properly available."""
         # Test invalid subcommand
-        result = cli_runner.run("api invalid_subcommand", timeout=10, expect_failure=True)
+        result = cli_runner.run(
+            "api invalid_subcommand", timeout=10, expect_failure=True
+        )
 
         assert result.failed, "Should fail with invalid subcommand"
-        assert any(msg in result.stderr.lower() for msg in [
-            "no such command", "invalid", "not found", "available commands"
-        ])
+        assert any(
+            msg in result.stderr.lower()
+            for msg in ["no such command", "invalid", "not found", "available commands"]
+        )
 
 
 class TestAPICommandsSmokeTests:
@@ -181,9 +194,13 @@ class TestAPIServerLifecycle:
 
         # Should indicate server is not running
         output_lower = result.stdout.lower()
-        assert any(status in output_lower for status in [
-            "not running", "stopped", "inactive", "down"
-        ]) or "running" not in output_lower
+        assert (
+            any(
+                status in output_lower
+                for status in ["not running", "stopped", "inactive", "down"]
+            )
+            or "running" not in output_lower
+        )
 
     def test_api_stop_when_not_running(self, cli_runner):
         """Test API stop when no server is running."""
@@ -192,14 +209,22 @@ class TestAPIServerLifecycle:
         # Should handle gracefully (either succeed with message or fail informatively)
         if result.failed:
             error_lower = result.stderr.lower()
-            assert any(msg in error_lower for msg in [
-                "not running", "no server", "already stopped"
-            ])
+            assert any(
+                msg in error_lower
+                for msg in ["not running", "no server", "already stopped"]
+            )
         else:
             output_lower = result.stdout.lower()
-            assert any(msg in output_lower for msg in [
-                "not running", "already stopped", "no server", "stopped", "no api server found"
-            ])
+            assert any(
+                msg in output_lower
+                for msg in [
+                    "not running",
+                    "already stopped",
+                    "no server",
+                    "stopped",
+                    "no api server found",
+                ]
+            )
 
     def test_api_server_help_workflow(self, cli_runner):
         """Test API server help commands workflow."""
@@ -211,7 +236,7 @@ class TestAPIServerLifecycle:
             "api status --help",
             "api start --help",
             "api stop --help",
-            "api info --help"
+            "api info --help",
         ]
 
         for cmd in help_commands:

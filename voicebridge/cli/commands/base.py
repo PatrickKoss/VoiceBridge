@@ -1,4 +1,3 @@
-
 from voicebridge.ports.interfaces import (
     AudioFormatService,
     AudioPreprocessingService,
@@ -144,7 +143,7 @@ class BaseCommands:
             language=language,
             initial_prompt=initial_prompt,
             temperature=temperature,
-            **kwargs
+            **kwargs,
         )
 
         # Merge configurations

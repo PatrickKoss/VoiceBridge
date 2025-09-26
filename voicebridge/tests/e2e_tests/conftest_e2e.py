@@ -20,7 +20,7 @@ def e2e_test_session_dir():
 @pytest.fixture(scope="function")
 def e2e_test_env(tmp_path):
     """Create an isolated test environment for E2E tests.
-    
+
     This fixture:
     - Creates isolated temp directory for each test
     - Sets environment variables for testing
@@ -77,22 +77,11 @@ def sample_config():
             "model": "tiny",
             "language": "en",
             "temperature": 0.0,
-            "use_gpu": False
+            "use_gpu": False,
         },
-        "tts": {
-            "default_voice": None,
-            "streaming": False,
-            "cfg_scale": 1.0
-        },
-        "audio": {
-            "sample_rate": 16000,
-            "channels": 1,
-            "chunk_duration": 2.0
-        },
-        "performance": {
-            "memory_limit_mb": 1024,
-            "parallel_workers": 1
-        }
+        "tts": {"default_voice": None, "streaming": False, "cfg_scale": 1.0},
+        "audio": {"sample_rate": 16000, "channels": 1, "chunk_duration": 2.0},
+        "performance": {"memory_limit_mb": 1024, "parallel_workers": 1},
     }
 
 
@@ -100,10 +89,18 @@ def sample_config():
 def pytest_configure(config):
     """Configure E2E-specific pytest markers."""
     config.addinivalue_line("markers", "e2e_slow: mark E2E test as slow running")
-    config.addinivalue_line("markers", "e2e_audio: mark E2E test as requiring audio files")
-    config.addinivalue_line("markers", "e2e_batch: mark E2E test as batch processing test")
-    config.addinivalue_line("markers", "e2e_config: mark E2E test as configuration test")
-    config.addinivalue_line("markers", "e2e_session: mark E2E test as session management test")
+    config.addinivalue_line(
+        "markers", "e2e_audio: mark E2E test as requiring audio files"
+    )
+    config.addinivalue_line(
+        "markers", "e2e_batch: mark E2E test as batch processing test"
+    )
+    config.addinivalue_line(
+        "markers", "e2e_config: mark E2E test as configuration test"
+    )
+    config.addinivalue_line(
+        "markers", "e2e_session: mark E2E test as session management test"
+    )
 
 
 def pytest_collection_modifyitems(config, items):
@@ -149,17 +146,14 @@ def e2e_test_cleanup():
 
     # Kill any stray processes that might have been started
     import subprocess
+
     try:
         # Kill VoiceBridge daemon processes
         subprocess.run(
-            ["pkill", "-f", "voicebridge.*daemon"],
-            stderr=subprocess.DEVNULL,
-            timeout=2
+            ["pkill", "-f", "voicebridge.*daemon"], stderr=subprocess.DEVNULL, timeout=2
         )
         subprocess.run(
-            ["pkill", "-f", "voicebridge.*hotkey"],
-            stderr=subprocess.DEVNULL,
-            timeout=2
+            ["pkill", "-f", "voicebridge.*hotkey"], stderr=subprocess.DEVNULL, timeout=2
         )
     except Exception:
         pass  # Ignore cleanup errors
@@ -178,9 +172,9 @@ def mock_whisper_model():
                 "start": 0.0,
                 "end": 3.0,
                 "text": "This is a test transcription.",
-                "confidence": 0.95
+                "confidence": 0.95,
             }
-        ]
+        ],
     }
 
     with patch("whisper.load_model", return_value=mock_model):
@@ -192,8 +186,10 @@ def mock_gpu_unavailable():
     """Mock GPU as unavailable for testing."""
     from unittest.mock import patch
 
-    with patch("torch.cuda.is_available", return_value=False), \
-         patch("torch.backends.mps.is_available", return_value=False):
+    with (
+        patch("torch.cuda.is_available", return_value=False),
+        patch("torch.backends.mps.is_available", return_value=False),
+    ):
         yield
 
 

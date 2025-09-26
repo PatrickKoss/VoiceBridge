@@ -1,9 +1,6 @@
 """E2E tests for TTS (Text-to-Speech) commands."""
 
-
 import pytest
-
-from .conftest_e2e import *
 
 
 class TestTTSCommands:
@@ -30,9 +27,16 @@ class TestTTSCommands:
         if result.failed:
             # Allow graceful failure if no voices configured
             error_lower = result.stderr.lower()
-            assert any(msg in error_lower for msg in [
-                "no voices", "not found", "not available", "model", "download"
-            ])
+            assert any(
+                msg in error_lower
+                for msg in [
+                    "no voices",
+                    "not found",
+                    "not available",
+                    "model",
+                    "download",
+                ]
+            )
         else:
             assert result.success, f"TTS voices failed: {result.stderr}"
             # Should show voices or indicate status
@@ -56,9 +60,10 @@ class TestTTSCommands:
         # Should either show config or indicate no config
         if result.failed:
             error_lower = result.stderr.lower()
-            assert any(msg in error_lower for msg in [
-                "config", "not found", "default", "setup"
-            ])
+            assert any(
+                msg in error_lower
+                for msg in ["config", "not found", "default", "setup"]
+            )
         else:
             assert result.success, f"TTS config show failed: {result.stderr}"
             assert len(result.stdout.strip()) > 0
@@ -70,15 +75,17 @@ class TestTTSCommands:
         # Should show daemon status (running or not running)
         if result.failed:
             error_lower = result.stderr.lower()
-            assert any(msg in error_lower for msg in [
-                "daemon", "not running", "status", "unavailable"
-            ])
+            assert any(
+                msg in error_lower
+                for msg in ["daemon", "not running", "status", "unavailable"]
+            )
         else:
             assert result.success, f"TTS daemon status failed: {result.stderr}"
             output_lower = result.stdout.lower()
-            assert any(status in output_lower for status in [
-                "status", "running", "not running", "stopped", "daemon"
-            ])
+            assert any(
+                status in output_lower
+                for status in ["status", "running", "not running", "stopped", "daemon"]
+            )
 
     def test_tts_listen_clipboard_help(self, cli_runner):
         """Test TTS listen-clipboard help command."""
@@ -107,25 +114,33 @@ class TestTTSCommandsValidation:
         result = cli_runner.run("tts generate", timeout=10, expect_failure=True)
 
         assert result.failed, "Should fail without text argument"
-        assert any(msg in result.stderr.lower() for msg in ["missing", "required", "text"])
+        assert any(
+            msg in result.stderr.lower() for msg in ["missing", "required", "text"]
+        )
 
     def test_tts_daemon_invalid_subcommand(self, cli_runner):
         """Test TTS daemon with invalid subcommand."""
-        result = cli_runner.run("tts daemon invalid_command", timeout=10, expect_failure=True)
+        result = cli_runner.run(
+            "tts daemon invalid_command", timeout=10, expect_failure=True
+        )
 
         assert result.failed, "Should fail with invalid daemon subcommand"
-        assert any(msg in result.stderr.lower() for msg in [
-            "no such command", "invalid", "not found", "available commands"
-        ])
+        assert any(
+            msg in result.stderr.lower()
+            for msg in ["no such command", "invalid", "not found", "available commands"]
+        )
 
     def test_tts_config_invalid_subcommand(self, cli_runner):
         """Test TTS config with invalid subcommand."""
-        result = cli_runner.run("tts config invalid_command", timeout=10, expect_failure=True)
+        result = cli_runner.run(
+            "tts config invalid_command", timeout=10, expect_failure=True
+        )
 
         assert result.failed, "Should fail with invalid config subcommand"
-        assert any(msg in result.stderr.lower() for msg in [
-            "no such command", "invalid", "not found", "available commands"
-        ])
+        assert any(
+            msg in result.stderr.lower()
+            for msg in ["no such command", "invalid", "not found", "available commands"]
+        )
 
     def test_tts_daemon_help_validation(self, cli_runner):
         """Test TTS daemon help shows proper validation info."""
@@ -152,7 +167,14 @@ class TestTTSCommandsSmokeTests:
 
     def test_all_tts_subcommands_help(self, cli_runner):
         """Test that all TTS subcommands have working help."""
-        subcommands = ["generate", "voices", "daemon", "config", "listen-clipboard", "listen-selection"]
+        subcommands = [
+            "generate",
+            "voices",
+            "daemon",
+            "config",
+            "listen-clipboard",
+            "listen-selection",
+        ]
 
         for cmd in subcommands:
             result = cli_runner.run(["tts", cmd, "--help"], timeout=10)
@@ -166,7 +188,14 @@ class TestTTSCommandsSmokeTests:
         assert result.success, f"TTS command structure test failed: {result.stderr}"
 
         # Verify all expected subcommands are listed
-        expected_commands = ["generate", "voices", "daemon", "config", "listen-clipboard", "listen-selection"]
+        expected_commands = [
+            "generate",
+            "voices",
+            "daemon",
+            "config",
+            "listen-clipboard",
+            "listen-selection",
+        ]
         for cmd in expected_commands:
             assert cmd in result.stdout, f"Missing TTS subcommand: {cmd}"
 
@@ -178,9 +207,10 @@ class TestTTSCommandsSmokeTests:
         if result.failed:
             # Check for expected failure reasons
             error_lower = result.stderr.lower()
-            assert any(msg in error_lower for msg in [
-                "no voices", "model", "download", "not available"
-            ])
+            assert any(
+                msg in error_lower
+                for msg in ["no voices", "model", "download", "not available"]
+            )
         else:
             # Should produce some output about voices
             assert len(result.stdout.strip()) >= 0  # Allow empty but valid output
@@ -192,9 +222,7 @@ class TestTTSCommandsSmokeTests:
         # Should either succeed or fail gracefully
         if result.failed:
             error_lower = result.stderr.lower()
-            assert any(msg in error_lower for msg in [
-                "config", "not found", "default"
-            ])
+            assert any(msg in error_lower for msg in ["config", "not found", "default"])
         else:
             # Should produce some output about config
             assert len(result.stdout.strip()) >= 0  # Allow empty but valid output
@@ -207,28 +235,48 @@ class TestTTSIntegrationSlow:
     def test_tts_generate_basic(self, cli_runner):
         """Test basic TTS generation with very short text."""
         # Use very short text and disable audio playback to minimize execution time
-        result = cli_runner.run([
-            "tts", "generate",
-            "Hi",  # Very short text
-            "--no-play",  # Don't play audio
-            "--use-gpu", "false"  # Force CPU to avoid GPU setup time
-        ], timeout=60)  # Longer timeout for model loading
+        result = cli_runner.run(
+            [
+                "tts",
+                "generate",
+                "Hi",  # Very short text
+                "--no-play",  # Don't play audio
+                "--use-gpu",
+                "false",  # Force CPU to avoid GPU setup time
+            ],
+            timeout=60,
+        )  # Longer timeout for model loading
 
         # Should either succeed or fail gracefully
         if result.failed:
             # Check for expected failure reasons (model not available, etc.)
             error_lower = result.stderr.lower()
-            assert any(msg in error_lower for msg in [
-                "model", "download", "not available", "error", "failed",
-                "memory", "torch", "transformers", "hub", "network"
-            ]), f"Unexpected error: {result.stderr}"
+            assert any(
+                msg in error_lower
+                for msg in [
+                    "model",
+                    "download",
+                    "not available",
+                    "error",
+                    "failed",
+                    "memory",
+                    "torch",
+                    "transformers",
+                    "hub",
+                    "network",
+                ]
+            ), f"Unexpected error: {result.stderr}"
         else:
             assert result.success, f"TTS generate failed: {result.stderr}"
             # Should indicate TTS generation occurred
             output_lower = result.stdout.lower()
-            assert any(info in output_lower for info in [
-                "generated", "tts", "audio", "speech", "complete"
-            ]) or len(result.stdout.strip()) > 0
+            assert (
+                any(
+                    info in output_lower
+                    for info in ["generated", "tts", "audio", "speech", "complete"]
+                )
+                or len(result.stdout.strip()) > 0
+            )
 
     @pytest.mark.e2e_slow
     def test_tts_daemon_workflow(self, cli_runner):
@@ -239,16 +287,22 @@ class TestTTSIntegrationSlow:
         # Status command should work
         if status_result.failed:
             error_lower = status_result.stderr.lower()
-            assert any(msg in error_lower for msg in [
-                "daemon", "not available", "status"
-            ])
+            assert any(
+                msg in error_lower for msg in ["daemon", "not available", "status"]
+            )
         else:
-            assert status_result.success, f"Daemon status check failed: {status_result.stderr}"
+            assert status_result.success, (
+                f"Daemon status check failed: {status_result.stderr}"
+            )
 
         # Test daemon help commands work
         for subcmd in ["start", "stop", "status"]:
-            help_result = cli_runner.run(["tts", "daemon", subcmd, "--help"], timeout=10)
-            assert help_result.success, f"Daemon {subcmd} help failed: {help_result.stderr}"
+            help_result = cli_runner.run(
+                ["tts", "daemon", subcmd, "--help"], timeout=10
+            )
+            assert help_result.success, (
+                f"Daemon {subcmd} help failed: {help_result.stderr}"
+            )
 
     @pytest.mark.e2e_slow
     def test_tts_config_workflow(self, cli_runner):
@@ -258,16 +312,21 @@ class TestTTSIntegrationSlow:
 
         if show_result.failed:
             error_lower = show_result.stderr.lower()
-            assert any(msg in error_lower for msg in [
-                "config", "not found", "default", "setup"
-            ])
+            assert any(
+                msg in error_lower
+                for msg in ["config", "not found", "default", "setup"]
+            )
         else:
             assert show_result.success, f"Config show failed: {show_result.stderr}"
 
         # Test config help commands work
         for subcmd in ["show", "set"]:
-            help_result = cli_runner.run(["tts", "config", subcmd, "--help"], timeout=10)
-            assert help_result.success, f"Config {subcmd} help failed: {help_result.stderr}"
+            help_result = cli_runner.run(
+                ["tts", "config", subcmd, "--help"], timeout=10
+            )
+            assert help_result.success, (
+                f"Config {subcmd} help failed: {help_result.stderr}"
+            )
 
     def test_tts_daemon_stop_when_not_running(self, cli_runner):
         """Test TTS daemon stop when no daemon is running."""
@@ -276,14 +335,16 @@ class TestTTSIntegrationSlow:
         # Should handle gracefully (either succeed with message or fail informatively)
         if result.failed:
             error_lower = result.stderr.lower()
-            assert any(msg in error_lower for msg in [
-                "not running", "no daemon", "already stopped", "not found"
-            ])
+            assert any(
+                msg in error_lower
+                for msg in ["not running", "no daemon", "already stopped", "not found"]
+            )
         else:
             output_lower = result.stdout.lower()
-            assert any(msg in output_lower for msg in [
-                "not running", "already stopped", "no daemon", "stopped"
-            ])
+            assert any(
+                msg in output_lower
+                for msg in ["not running", "already stopped", "no daemon", "stopped"]
+            )
 
 
 class TestTTSSystemIntegration:
@@ -315,9 +376,10 @@ class TestTTSSystemIntegration:
         if result.failed:
             error_lower = result.stderr.lower()
             # Should provide actionable error message
-            assert any(keyword in error_lower for keyword in [
-                "voice", "model", "download", "setup", "available"
-            ])
+            assert any(
+                keyword in error_lower
+                for keyword in ["voice", "model", "download", "setup", "available"]
+            )
         else:
             # If successful, should provide voice information
             assert len(result.stdout.strip()) >= 0  # Allow empty but structured output

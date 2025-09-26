@@ -175,7 +175,7 @@ class WhisperDaemonService(DaemonService):
         # Redirect to /dev/null
         with open(os.devnull) as null_in:
             os.dup2(null_in.fileno(), sys.stdin.fileno())
-        with open(os.devnull, 'w') as null_out:
+        with open(os.devnull, "w") as null_out:
             os.dup2(null_out.fileno(), sys.stdout.fileno())
             os.dup2(null_out.fileno(), sys.stderr.fileno())
 
@@ -184,6 +184,7 @@ class WhisperDaemonService(DaemonService):
         # PulseAudio assertion errors when forked
         try:
             import pygame
+
             if pygame.get_init():
                 pygame.quit()
         except (ImportError, AttributeError):

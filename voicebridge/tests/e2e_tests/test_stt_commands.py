@@ -1,9 +1,6 @@
 """E2E tests for STT (Speech-to-Text) CLI commands."""
 
-
 import pytest
-
-from .conftest_e2e import *  # Import fixtures
 
 
 class TestSTTBasicCommands:
@@ -22,7 +19,7 @@ class TestSTTBasicCommands:
             "hotkey",
             "realtime",
             "config",
-            "sessions"
+            "sessions",
         ]
         for cmd in expected_commands:
             assert cmd in result.stdout
@@ -58,8 +55,7 @@ class TestSTTTranscribeCommand:
     def test_transcribe_missing_file(self, cli_runner, assertions):
         """Test transcribe with missing input file."""
         result = cli_runner.run_stt(
-            "transcribe", "nonexistent.wav",
-            expect_failure=True
+            "transcribe", "nonexistent.wav", expect_failure=True
         )
         assertions.assert_command_failure(result)
 
@@ -67,9 +63,7 @@ class TestSTTTranscribeCommand:
         """Test transcribe command structure validation."""
         # Test with non-existent file to get quick error response
         result = cli_runner.run_stt(
-            "transcribe", "nonexistent_file.wav",
-            expect_failure=True,
-            timeout=10
+            "transcribe", "nonexistent_file.wav", expect_failure=True, timeout=10
         )
         # Should fail quickly with file not found error
         assertions.assert_command_failure(result)
@@ -78,60 +72,72 @@ class TestSTTTranscribeCommand:
         """Test transcribe command with output file option."""
         with cli_runner.temp_file(suffix=".txt") as output_file:
             result = cli_runner.run_stt(
-                "transcribe", "nonexistent.wav",
-                "--output", str(output_file),
+                "transcribe",
+                "nonexistent.wav",
+                "--output",
+                str(output_file),
                 expect_failure=True,
-                timeout=10
+                timeout=10,
             )
             assertions.assert_command_failure(result)
 
     def test_transcribe_json_format(self, cli_runner, assertions):
         """Test transcribe with JSON output format option."""
         result = cli_runner.run_stt(
-            "transcribe", "nonexistent.wav",
-            "--format", "json",
+            "transcribe",
+            "nonexistent.wav",
+            "--format",
+            "json",
             expect_failure=True,
-            timeout=10
+            timeout=10,
         )
         assertions.assert_command_failure(result)
 
     def test_transcribe_srt_format(self, cli_runner, assertions):
         """Test transcribe with SRT format option."""
         result = cli_runner.run_stt(
-            "transcribe", "nonexistent.wav",
-            "--format", "srt",
+            "transcribe",
+            "nonexistent.wav",
+            "--format",
+            "srt",
             expect_failure=True,
-            timeout=10
+            timeout=10,
         )
         assertions.assert_command_failure(result)
 
     def test_transcribe_vtt_format(self, cli_runner, assertions):
         """Test transcribe with VTT format option."""
         result = cli_runner.run_stt(
-            "transcribe", "nonexistent.wav",
-            "--format", "vtt",
+            "transcribe",
+            "nonexistent.wav",
+            "--format",
+            "vtt",
             expect_failure=True,
-            timeout=10
+            timeout=10,
         )
         assertions.assert_command_failure(result)
 
     def test_transcribe_with_model_option(self, cli_runner, assertions):
         """Test transcribe with specific model option."""
         result = cli_runner.run_stt(
-            "transcribe", "nonexistent.wav",
-            "--model", "tiny",
+            "transcribe",
+            "nonexistent.wav",
+            "--model",
+            "tiny",
             expect_failure=True,
-            timeout=10
+            timeout=10,
         )
         assertions.assert_command_failure(result)
 
     def test_transcribe_with_language_option(self, cli_runner, assertions):
         """Test transcribe with specific language option."""
         result = cli_runner.run_stt(
-            "transcribe", "nonexistent.wav",
-            "--language", "en",
+            "transcribe",
+            "nonexistent.wav",
+            "--language",
+            "en",
             expect_failure=True,
-            timeout=10
+            timeout=10,
         )
         assertions.assert_command_failure(result)
 
@@ -139,10 +145,12 @@ class TestSTTTranscribeCommand:
     def test_transcribe_with_temperature(self, cli_runner, assertions):
         """Test transcribe with temperature setting option."""
         result = cli_runner.run_stt(
-            "transcribe", "nonexistent.wav",
-            "--temperature", "0.2",
+            "transcribe",
+            "nonexistent.wav",
+            "--temperature",
+            "0.2",
             expect_failure=True,
-            timeout=10
+            timeout=10,
         )
         assertions.assert_command_failure(result)
 
@@ -163,8 +171,7 @@ class TestSTTBatchTranscribe:
     def test_batch_transcribe_missing_directory(self, cli_runner, assertions):
         """Test batch-transcribe with missing directory."""
         result = cli_runner.run_stt(
-            "batch-transcribe", "nonexistent_dir",
-            expect_failure=True
+            "batch-transcribe", "nonexistent_dir", expect_failure=True
         )
         assertions.assert_command_failure(result)
 
@@ -184,9 +191,7 @@ class TestSTTBatchTranscribe:
         """Test batch-transcribe command structure validation."""
         # Test with non-existent directory to get quick error response
         result = cli_runner.run_stt(
-            "batch-transcribe", "nonexistent_directory",
-            expect_failure=True,
-            timeout=10
+            "batch-transcribe", "nonexistent_directory", expect_failure=True, timeout=10
         )
         assertions.assert_command_failure(result)
 
@@ -195,10 +200,12 @@ class TestSTTBatchTranscribe:
         """Test batch-transcribe with output directory option."""
         with cli_runner.temp_dir() as output_dir:
             result = cli_runner.run_stt(
-                "batch-transcribe", "nonexistent_directory",
-                "--output-dir", str(output_dir),
+                "batch-transcribe",
+                "nonexistent_directory",
+                "--output-dir",
+                str(output_dir),
                 expect_failure=True,
-                timeout=10
+                timeout=10,
             )
             assertions.assert_command_failure(result)
 
@@ -206,10 +213,12 @@ class TestSTTBatchTranscribe:
     def test_batch_transcribe_with_workers(self, cli_runner, assertions):
         """Test batch-transcribe with worker specification option."""
         result = cli_runner.run_stt(
-            "batch-transcribe", "nonexistent_directory",
-            "--workers", "1",
+            "batch-transcribe",
+            "nonexistent_directory",
+            "--workers",
+            "1",
             expect_failure=True,
-            timeout=10
+            timeout=10,
         )
         assertions.assert_command_failure(result)
 
@@ -229,16 +238,12 @@ class TestSTTConfigCommands:
 
     def test_config_set_model(self, cli_runner, assertions):
         """Test setting configuration values."""
-        result = cli_runner.run_stt(
-            "config", "set", "model", "tiny"
-        )
+        result = cli_runner.run_stt("config", "set", "model", "tiny")
         assertions.assert_command_success(result)
 
     def test_config_set_language(self, cli_runner, assertions):
         """Test setting language configuration."""
-        result = cli_runner.run_stt(
-            "config", "set", "language", "en"
-        )
+        result = cli_runner.run_stt("config", "set", "language", "en")
         assertions.assert_command_success(result)
 
 
@@ -263,9 +268,9 @@ class TestSTTSessionCommands:
             assertions.assert_command_success(result)
         else:
             # Check that it's a known implementation issue, not a command syntax error
-            assert "cleanup_sessions" in result.stderr or "AttributeError" in result.stderr, (
-                f"Unexpected error type in cleanup command: {result.stderr}"
-            )
+            assert (
+                "cleanup_sessions" in result.stderr or "AttributeError" in result.stderr
+            ), f"Unexpected error type in cleanup command: {result.stderr}"
 
 
 class TestSTTPerformanceCommands:

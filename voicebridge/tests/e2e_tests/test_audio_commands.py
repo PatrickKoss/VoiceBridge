@@ -5,8 +5,6 @@ from pathlib import Path
 
 import pytest
 
-from .conftest_e2e import *
-
 
 class TestAudioCommands:
     """Test audio processing command functionality."""
@@ -44,15 +42,22 @@ class TestAudioCommands:
         assert result.success, f"Audio info failed: {result.stderr}"
         # Should show audio file information
         output_lower = result.stdout.lower()
-        assert any(info in output_lower for info in ["duration", "sample", "channel", "format"])
+        assert any(
+            info in output_lower for info in ["duration", "sample", "channel", "format"]
+        )
 
     def test_audio_info_with_nonexistent_file(self, cli_runner):
         """Test audio info command with non-existent file."""
-        result = cli_runner.run_audio("info", "nonexistent_audio.wav", timeout=10, expect_failure=True)
+        result = cli_runner.run_audio(
+            "info", "nonexistent_audio.wav", timeout=10, expect_failure=True
+        )
 
         assert result.failed, "Should fail with non-existent file"
         error_lower = result.stderr.lower()
-        assert any(err in error_lower for err in ["not found", "no such file", "does not exist"])
+        assert any(
+            err in error_lower
+            for err in ["not found", "no such file", "does not exist"]
+        )
 
     @pytest.mark.e2e_slow
     def test_audio_split_by_duration(self, cli_runner):
@@ -68,19 +73,34 @@ class TestAudioCommands:
             result = cli_runner.run_audio(
                 "split",
                 str(voice_file),
-                "--method", "duration",
-                "--chunk-duration", "2",
-                "--output-dir", str(output_dir),
-                timeout=30
+                "--method",
+                "duration",
+                "--chunk-duration",
+                "2",
+                "--output-dir",
+                str(output_dir),
+                timeout=30,
             )
 
             # Command should execute (even if it creates only one chunk for short files)
             if result.failed:
                 # Check if it's a reasonable failure (file too short, implementation bug, etc.)
-                assert any(msg in result.stderr.lower() for msg in [
-                    "too short", "single chunk", "no split needed", "duration",
-                    "error", "failed", "mkdir", "splitting failed"
-                ]) or result.success
+                assert (
+                    any(
+                        msg in result.stderr.lower()
+                        for msg in [
+                            "too short",
+                            "single chunk",
+                            "no split needed",
+                            "duration",
+                            "error",
+                            "failed",
+                            "mkdir",
+                            "splitting failed",
+                        ]
+                    )
+                    or result.success
+                )
 
     @pytest.mark.e2e_slow
     def test_audio_preprocess_basic(self, cli_runner):
@@ -98,16 +118,21 @@ class TestAudioCommands:
                 "preprocess",
                 str(voice_file),
                 str(output_path),
-                "--noise-reduction", "0.5",
-                timeout=30
+                "--noise-reduction",
+                "0.5",
+                timeout=30,
             )
 
             # Should succeed or give reasonable error
             if result.failed:
                 # Check for expected processing limitations
-                assert any(msg in result.stderr.lower() for msg in [
-                    "processing", "enhancement", "noise", "audio"
-                ]) or "not supported" in result.stderr.lower()
+                assert (
+                    any(
+                        msg in result.stderr.lower()
+                        for msg in ["processing", "enhancement", "noise", "audio"]
+                    )
+                    or "not supported" in result.stderr.lower()
+                )
             else:
                 assert result.success, f"Audio preprocess failed: {result.stderr}"
 
@@ -121,9 +146,10 @@ class TestAudioCommands:
         # In test environment with VOICEBRIDGE_DISABLE_AUDIO=1, this should
         # either succeed with disabled audio message or fail gracefully
         if result.failed:
-            assert any(msg in result.stderr.lower() for msg in [
-                "audio disabled", "test mode", "no audio", "setup"
-            ])
+            assert any(
+                msg in result.stderr.lower()
+                for msg in ["audio disabled", "test mode", "no audio", "setup"]
+            )
         else:
             assert "audio" in result.stdout.lower()
 
@@ -136,7 +162,9 @@ class TestAudioCommandsValidation:
         result = cli_runner.run_audio("info", timeout=10, expect_failure=True)
 
         assert result.failed, "Should fail without file argument"
-        assert any(msg in result.stderr.lower() for msg in ["missing", "required", "argument"])
+        assert any(
+            msg in result.stderr.lower() for msg in ["missing", "required", "argument"]
+        )
 
     def test_audio_split_invalid_method(self, cli_runner):
         """Test audio split with invalid method."""
@@ -147,13 +175,16 @@ class TestAudioCommandsValidation:
         result = cli_runner.run_audio(
             "split",
             str(voice_file),
-            "--method", "invalid_method",
+            "--method",
+            "invalid_method",
             timeout=10,
-            expect_failure=True
+            expect_failure=True,
         )
 
         assert result.failed, "Should fail with invalid split method"
-        assert any(msg in result.stderr.lower() for msg in ["invalid", "method", "choice"])
+        assert any(
+            msg in result.stderr.lower() for msg in ["invalid", "method", "choice"]
+        )
 
     def test_audio_preprocess_missing_output(self, cli_runner):
         """Test audio preprocess without output file."""
@@ -162,14 +193,13 @@ class TestAudioCommandsValidation:
             pytest.skip("Test audio file not available")
 
         result = cli_runner.run_audio(
-            "preprocess",
-            str(voice_file),
-            timeout=10,
-            expect_failure=True
+            "preprocess", str(voice_file), timeout=10, expect_failure=True
         )
 
         assert result.failed, "Should fail without output file"
-        assert any(msg in result.stderr.lower() for msg in ["missing", "required", "output"])
+        assert any(
+            msg in result.stderr.lower() for msg in ["missing", "required", "output"]
+        )
 
 
 class TestAudioCommandsSmokeTests:

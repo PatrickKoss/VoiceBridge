@@ -33,14 +33,16 @@ class FFmpegAudioRecorder(AudioRecorder):
             proc = subprocess.Popen(
                 cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
             )
-        except FileNotFoundError:
+        except FileNotFoundError as e:
             with self._state_lock:
                 self._current_stop_event = None
-            raise RuntimeError("FFmpeg not found. Please install FFmpeg to record audio.")
+            raise RuntimeError(
+                "FFmpeg not found. Please install FFmpeg to record audio."
+            ) from e
         except Exception as e:
             with self._state_lock:
                 self._current_stop_event = None
-            raise RuntimeError(f"Failed to start audio recording: {e}")
+            raise RuntimeError(f"Failed to start audio recording: {e}") from e
 
         with self._state_lock:
             self._current_process = proc
@@ -61,7 +63,7 @@ class FFmpegAudioRecorder(AudioRecorder):
                     if not data:
                         # Check if process failed
                         if proc.poll() is not None:
-                            stderr = proc.stderr.read().decode('utf-8', errors='ignore')
+                            stderr = proc.stderr.read().decode("utf-8", errors="ignore")
                             if stderr:
                                 error_queue.put(f"FFmpeg error: {stderr}")
                         break
@@ -80,6 +82,7 @@ class FFmpegAudioRecorder(AudioRecorder):
         try:
             # Wait a moment for the process to start
             import time
+
             time.sleep(0.1)
 
             # Check for immediate errors
@@ -89,7 +92,7 @@ class FFmpegAudioRecorder(AudioRecorder):
 
             # Check if process is still alive after initial startup
             if proc.poll() is not None:
-                stderr = proc.stderr.read().decode('utf-8', errors='ignore')
+                stderr = proc.stderr.read().decode("utf-8", errors="ignore")
                 raise RuntimeError(f"FFmpeg process died immediately. Error: {stderr}")
 
             while True:
@@ -104,7 +107,7 @@ class FFmpegAudioRecorder(AudioRecorder):
                     # Check for errors during recording
                     if not error_queue.empty():
                         error = error_queue.get()
-                        raise RuntimeError(error)
+                        raise RuntimeError(error) from None
                     continue
         finally:
             self._finalize_recording(proc, stop_event)
@@ -173,29 +176,47 @@ class FFmpegAudioRecorder(AudioRecorder):
             if self.system_info.platform == PlatformType.LINUX:
                 try:
                     import subprocess
+
                     result = subprocess.run(
-                        ["timeout", "2", "ffmpeg", "-f", "pulse", "-i", "default", "-t", "0.1", "-f", "null", "-"],
+                        [
+                            "timeout",
+                            "2",
+                            "ffmpeg",
+                            "-f",
+                            "pulse",
+                            "-i",
+                            "default",
+                            "-t",
+                            "0.1",
+                            "-f",
+                            "null",
+                            "-",
+                        ],
                         capture_output=True,
-                        timeout=3
+                        timeout=3,
                     )
                     if result.returncode != 0:
                         raise RuntimeError(
                             "Audio input not available. This commonly occurs in WSL or environments without audio support. "
                             "Real-time transcription requires an audio input device."
                         )
-                except subprocess.TimeoutExpired:
+                except subprocess.TimeoutExpired as e:
                     raise RuntimeError(
                         "Audio system timeout. PulseAudio may not be running or available. "
                         "Real-time transcription is not supported in this environment."
-                    )
-                except FileNotFoundError:
-                    raise RuntimeError("FFmpeg not found. Please install FFmpeg to record audio.")
+                    ) from e
+                except FileNotFoundError as e:
+                    raise RuntimeError(
+                        "FFmpeg not found. Please install FFmpeg to record audio."
+                    ) from e
             return None
 
         # For Linux/PulseAudio, prefer non-monitor devices (actual input devices)
         if self.system_info.platform == PlatformType.LINUX:
             # Look for devices that don't have ".monitor" in their ID
-            input_devices = [d for d in devices if ".monitor" not in d.device_id.lower()]
+            input_devices = [
+                d for d in devices if ".monitor" not in d.device_id.lower()
+            ]
             if input_devices:
                 return input_devices[0].device_id
 
@@ -326,7 +347,7 @@ class FFmpegAudioRecorder(AudioRecorder):
                 ["pactl", "list", "short", "sources"],
                 capture_output=True,
                 text=True,
-                timeout=3
+                timeout=3,
             )
             devices = []
             for line in result.stdout.split("\n"):

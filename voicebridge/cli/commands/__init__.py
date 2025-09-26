@@ -16,13 +16,13 @@ from voicebridge.cli.commands.transcription_commands import TranscriptionCommand
 from voicebridge.cli.commands.tts_commands import TTSCommands
 
 __all__ = [
-    'BaseCommands',
-    'SpeechCommands',
-    'TranscriptionCommands',
-    'TTSCommands',
-    'AudioCommands',
-    'SystemCommands',
-    'ConfigCommands',
-    'ExportCommands',
-    'AdvancedCommands',
+    "BaseCommands",
+    "SpeechCommands",
+    "TranscriptionCommands",
+    "TTSCommands",
+    "AudioCommands",
+    "SystemCommands",
+    "ConfigCommands",
+    "ExportCommands",
+    "AdvancedCommands",
 ]

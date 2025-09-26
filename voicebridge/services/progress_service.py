@@ -177,15 +177,17 @@ class WhisperProgressService(ProgressService):
     def _tracker_to_dict(self, tracker: ProgressTracker) -> dict:
         """Convert a ProgressTracker to a dictionary for CLI display."""
         return {
-            'id': tracker.operation_id,
-            'type': tracker.operation_type,
-            'progress': tracker.current_progress * 100,  # Convert to percentage
-            'status': tracker.status,
-            'eta_seconds': tracker.eta_seconds,
-            'started_at': tracker.start_time.isoformat() if tracker.start_time else None,
-            'current_step': tracker.current_step,
-            'steps_completed': tracker.steps_completed,
-            'total_steps': tracker.total_steps,
+            "id": tracker.operation_id,
+            "type": tracker.operation_type,
+            "progress": tracker.current_progress * 100,  # Convert to percentage
+            "status": tracker.status,
+            "eta_seconds": tracker.eta_seconds,
+            "started_at": tracker.start_time.isoformat()
+            if tracker.start_time
+            else None,
+            "current_step": tracker.current_step,
+            "steps_completed": tracker.steps_completed,
+            "total_steps": tracker.total_steps,
         }
 
 

@@ -94,17 +94,20 @@ class WSLAudioRecorder(AudioRecorder):
 
         try:
             # Start recording process that outputs to stdout
-            proc = subprocess.Popen(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0)
+            proc = subprocess.Popen(
+                cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, bufsize=0
+            )
         except Exception as e:
             with self._state_lock:
                 self._current_stop_event = None
-            raise RuntimeError(f"Failed to start Windows audio recording: {e}")
+            raise RuntimeError(f"Failed to start Windows audio recording: {e}") from e
 
         with self._state_lock:
             self._current_process = proc
 
         # Wait a moment for the process to start and potentially fail
         import time
+
         time.sleep(1.0)
 
         # Check if process failed during startup
@@ -112,16 +115,27 @@ class WSLAudioRecorder(AudioRecorder):
             try:
                 # Use communicate() to get stderr
                 _, stderr = proc.communicate(timeout=5)
-                stderr = stderr.decode('utf-8', errors='ignore') if stderr else "No error output available"
+                stderr = (
+                    stderr.decode("utf-8", errors="ignore")
+                    if stderr
+                    else "No error output available"
+                )
             except subprocess.TimeoutExpired:
                 proc.kill()
                 _, stderr = proc.communicate()
-                stderr = stderr.decode('utf-8', errors='ignore') if stderr else "Process killed due to timeout"
+                stderr = (
+                    stderr.decode("utf-8", errors="ignore")
+                    if stderr
+                    else "Process killed due to timeout"
+                )
             except Exception as e:
                 stderr = f"Error reading process output: {e}"
 
             # Provide specific error messages for common issues
-            if "Could not enumerate audio only devices" in stderr or "Could not enumerate audio" in stderr:
+            if (
+                "Could not enumerate audio only devices" in stderr
+                or "Could not enumerate audio" in stderr
+            ):
                 raise RuntimeError(
                     "Windows audio devices not accessible. This usually means:\n"
                     "1. Microphone privacy settings are blocking access\n"
@@ -190,7 +204,7 @@ class WSLAudioRecorder(AudioRecorder):
                     # Check for errors during recording
                     if not error_queue.empty():
                         error = error_queue.get()
-                        raise RuntimeError(error)
+                        raise RuntimeError(error) from None
                     continue
         finally:
             self._finalize_recording(proc, stop_event)
@@ -212,7 +226,10 @@ class WSLAudioRecorder(AudioRecorder):
 
         # Prefer USB or built-in microphones
         for device in devices:
-            if any(keyword in device.name.lower() for keyword in ["microphone", "mic", "usb", "built-in"]):
+            if any(
+                keyword in device.name.lower()
+                for keyword in ["microphone", "mic", "usb", "built-in"]
+            ):
                 return device.device_id
 
         # Return first available device
@@ -222,11 +239,16 @@ class WSLAudioRecorder(AudioRecorder):
         """Build FFmpeg command to record from Windows audio device."""
         return [
             self._windows_ffmpeg_path,
-            "-f", "dshow",
-            "-i", f"audio={device}",
-            "-ar", str(sample_rate),
-            "-ac", "1",
-            "-f", "s16le",  # Raw 16-bit little-endian audio
+            "-f",
+            "dshow",
+            "-i",
+            f"audio={device}",
+            "-ar",
+            str(sample_rate),
+            "-ac",
+            "1",
+            "-f",
+            "s16le",  # Raw 16-bit little-endian audio
             "pipe:1",  # Output to stdout
         ]
 
@@ -239,9 +261,12 @@ class WSLAudioRecorder(AudioRecorder):
             result = subprocess.run(
                 [
                     self._windows_ffmpeg_path,
-                    "-list_devices", "true",
-                    "-f", "dshow",
-                    "-i", "dummy",
+                    "-list_devices",
+                    "true",
+                    "-f",
+                    "dshow",
+                    "-i",
+                    "dummy",
                 ],
                 capture_output=True,
                 text=True,
@@ -253,7 +278,12 @@ class WSLAudioRecorder(AudioRecorder):
 
             for line in lines:
                 # Look for audio device lines: [dshow @ ...] "Device Name" (audio)
-                if '[dshow @' in line and '"' in line and '(audio)' in line and "Alternative name" not in line:
+                if (
+                    "[dshow @" in line
+                    and '"' in line
+                    and "(audio)" in line
+                    and "Alternative name" not in line
+                ):
                     # Parse device line: [dshow @ ...] "Device Name" (audio)
                     if '] "' in line and line.count('"') >= 2:
                         start = line.find('] "') + 3
@@ -295,7 +325,9 @@ class WSLAudioRecorder(AudioRecorder):
 
         self._clear_recording_state(proc, stop_event)
 
-    def _finalize_recording(self, proc: subprocess.Popen, stop_event: threading.Event) -> None:
+    def _finalize_recording(
+        self, proc: subprocess.Popen, stop_event: threading.Event
+    ) -> None:
         """Clean up recording resources."""
         try:
             if proc:
@@ -315,9 +347,12 @@ class WSLAudioRecorder(AudioRecorder):
         """Clear the current recording state."""
         reader_thread: threading.Thread | None = None
         with self._state_lock:
-            matches_proc = expected_proc is None or self._current_process is expected_proc
+            matches_proc = (
+                expected_proc is None or self._current_process is expected_proc
+            )
             matches_event = (
-                expected_stop_event is None or self._current_stop_event is expected_stop_event
+                expected_stop_event is None
+                or self._current_stop_event is expected_stop_event
             )
             if matches_proc and matches_event:
                 reader_thread = self._current_reader_thread

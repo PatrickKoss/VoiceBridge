@@ -17,10 +17,14 @@ def common_whisper_options():
 def common_output_options():
     """Common output and clipboard options."""
     return {
-        "paste_stream": typer.Option(False, "--paste-stream", help="Paste streaming text"),
+        "paste_stream": typer.Option(
+            False, "--paste-stream", help="Paste streaming text"
+        ),
         "copy_stream": typer.Option(False, "--copy-stream", help="Copy streaming text"),
         "paste_final": typer.Option(False, "--paste-final", help="Paste final text"),
-        "copy_final": typer.Option(True, "--copy-final/--no-copy-final", help="Copy final text"),
+        "copy_final": typer.Option(
+            True, "--copy-final/--no-copy-final", help="Copy final text"
+        ),
     }
 
 
@@ -45,7 +49,11 @@ def common_tts_options():
 def common_batch_options():
     """Common batch processing options."""
     return {
-        "workers": typer.Option(4, "--workers", "-w", help="Number of parallel workers"),
-        "recursive": typer.Option(False, "--recursive", "-r", help="Process directories recursively"),
+        "workers": typer.Option(
+            4, "--workers", "-w", help="Number of parallel workers"
+        ),
+        "recursive": typer.Option(
+            False, "--recursive", "-r", help="Process directories recursively"
+        ),
         "output_dir": typer.Option(".", "--output-dir", help="Output directory"),
     }

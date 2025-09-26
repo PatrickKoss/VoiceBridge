@@ -13,25 +13,22 @@ class MockSystemServices:
     def mock_gpu_unavailable():
         """Mock GPU as unavailable."""
         return patch.multiple(
-            'torch',
+            "torch",
             cuda=patch(is_available=lambda: False),
-            backends=patch(mps=patch(is_available=lambda: False))
+            backends=patch(mps=patch(is_available=lambda: False)),
         )
 
     @staticmethod
     def mock_no_audio_devices():
         """Mock no audio devices available."""
-        return patch.dict(os.environ, {
-            'VOICEBRIDGE_DISABLE_AUDIO': '1',
-            'VOICEBRIDGE_NO_AUDIO': '1'
-        })
+        return patch.dict(
+            os.environ, {"VOICEBRIDGE_DISABLE_AUDIO": "1", "VOICEBRIDGE_NO_AUDIO": "1"}
+        )
 
     @staticmethod
     def mock_clipboard_unavailable():
         """Mock clipboard as unavailable."""
-        return patch.dict(os.environ, {
-            'VOICEBRIDGE_NO_CLIPBOARD': '1'
-        })
+        return patch.dict(os.environ, {"VOICEBRIDGE_NO_CLIPBOARD": "1"})
 
 
 class E2ETestRunner:
@@ -53,29 +50,53 @@ class E2ETestRunner:
         try:
             # Short audio (2 seconds, 440Hz tone)
             short_audio = fixtures_dir / "short_test.wav"
-            subprocess.run([
-                "ffmpeg", "-f", "lavfi",
-                "-i", "sine=frequency=440:duration=2:sample_rate=16000",
-                "-y", str(short_audio)
-            ], check=True, capture_output=True)
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-f",
+                    "lavfi",
+                    "-i",
+                    "sine=frequency=440:duration=2:sample_rate=16000",
+                    "-y",
+                    str(short_audio),
+                ],
+                check=True,
+                capture_output=True,
+            )
             fixtures["short_audio"] = short_audio
 
             # Medium audio (5 seconds, 880Hz tone)
             medium_audio = fixtures_dir / "medium_test.wav"
-            subprocess.run([
-                "ffmpeg", "-f", "lavfi",
-                "-i", "sine=frequency=880:duration=5:sample_rate=16000",
-                "-y", str(medium_audio)
-            ], check=True, capture_output=True)
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-f",
+                    "lavfi",
+                    "-i",
+                    "sine=frequency=880:duration=5:sample_rate=16000",
+                    "-y",
+                    str(medium_audio),
+                ],
+                check=True,
+                capture_output=True,
+            )
             fixtures["medium_audio"] = medium_audio
 
             # Long audio (10 seconds, 660Hz tone)
             long_audio = fixtures_dir / "long_test.wav"
-            subprocess.run([
-                "ffmpeg", "-f", "lavfi",
-                "-i", "sine=frequency=660:duration=10:sample_rate=16000",
-                "-y", str(long_audio)
-            ], check=True, capture_output=True)
+            subprocess.run(
+                [
+                    "ffmpeg",
+                    "-f",
+                    "lavfi",
+                    "-i",
+                    "sine=frequency=660:duration=10:sample_rate=16000",
+                    "-y",
+                    str(long_audio),
+                ],
+                check=True,
+                capture_output=True,
+            )
             fixtures["long_audio"] = long_audio
 
             # Voice sample (copy from project if available)
@@ -85,6 +106,7 @@ class E2ETestRunner:
                     if "alice" in voice_file.name.lower():
                         voice_sample = fixtures_dir / "voice_sample.wav"
                         import shutil
+
                         shutil.copy2(voice_file, voice_sample)
                         fixtures["voice_sample"] = voice_sample
                         break
@@ -110,11 +132,13 @@ class PerformanceProfiler:
     def start(self):
         """Start profiling."""
         import time
+
         self.start_time = time.time()
 
     def stop(self):
         """Stop profiling."""
         import time
+
         self.end_time = time.time()
 
     def get_duration(self) -> float:

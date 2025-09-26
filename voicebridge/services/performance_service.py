@@ -155,9 +155,13 @@ class WhisperPerformanceService(PerformanceService):
             if use_gpu:
                 try:
                     import torch
+
                     if torch.cuda.is_available():
                         device = "cuda"
-                    elif hasattr(torch.backends, 'mps') and torch.backends.mps.is_available():
+                    elif (
+                        hasattr(torch.backends, "mps")
+                        and torch.backends.mps.is_available()
+                    ):
                         device = "mps"
                 except ImportError:
                     pass
@@ -182,15 +186,17 @@ class WhisperPerformanceService(PerformanceService):
             memory_used = post_load_memory - initial_memory
 
             # Find and load real speech samples
-            voices_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "voices")
+            voices_dir = os.path.join(
+                os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "voices"
+            )
             print(f"  ► Loading real speech samples from {voices_dir}...")
 
             if not os.path.exists(voices_dir):
                 raise FileNotFoundError(f"Voices directory not found: {voices_dir}")
 
             # Get available wav files, prioritizing English samples for benchmarking
-            wav_files = [f for f in os.listdir(voices_dir) if f.endswith('.wav')]
-            english_files = [f for f in wav_files if f.startswith('en-')]
+            wav_files = [f for f in os.listdir(voices_dir) if f.endswith(".wav")]
+            english_files = [f for f in wav_files if f.startswith("en-")]
 
             if not wav_files:
                 raise FileNotFoundError("No audio files found in voices directory")
@@ -208,20 +214,25 @@ class WhisperPerformanceService(PerformanceService):
             test_audio = whisper.load_audio(test_audio_path)
             duration = len(test_audio) / whisper.audio.SAMPLE_RATE
 
-            print(f"  ► Running transcription on {device.upper()} (audio: {duration:.1f}s)...")
+            print(
+                f"  ► Running transcription on {device.upper()} (audio: {duration:.1f}s)..."
+            )
             inference_start = time.time()
 
             # For GPU transcription, ensure we use proper parameters
             transcribe_options = {
-                'verbose': False,  # Disable verbose to prevent hanging, we'll add our own progress
-                'fp16': use_gpu and device == 'cuda',  # Use FP16 only on CUDA
-                'language': 'english' if test_file.startswith('en-') else None,  # Auto-detect for non-English
+                "verbose": False,  # Disable verbose to prevent hanging, we'll add our own progress
+                "fp16": use_gpu and device == "cuda",  # Use FP16 only on CUDA
+                "language": "english"
+                if test_file.startswith("en-")
+                else None,  # Auto-detect for non-English
             }
 
             # Add progress tracking with threading
             import sys
             import threading
-            progress_chars = ['|', '/', '-', '\\']
+
+            progress_chars = ["|", "/", "-", "\\"]
             progress_counter = 0
             progress_active = True
 
@@ -231,7 +242,9 @@ class WhisperPerformanceService(PerformanceService):
                     char = progress_chars[progress_counter % len(progress_chars)]
                     elapsed = time.time() - inference_start
                     # Show progress with audio context
-                    sys.stdout.write(f'\r  {char} Transcribing {duration:.1f}s audio... ({elapsed:.1f}s)')
+                    sys.stdout.write(
+                        f"\r  {char} Transcribing {duration:.1f}s audio... ({elapsed:.1f}s)"
+                    )
                     sys.stdout.flush()
                     progress_counter += 1
                     time.sleep(0.3)
@@ -249,7 +262,9 @@ class WhisperPerformanceService(PerformanceService):
                     raise TimeoutError("Transcription timed out after 60 seconds")
 
                 # Set timeout based on audio duration (minimum 60 seconds)
-                timeout_duration = max(60, int(duration * 10))  # 10x audio duration or 60s minimum
+                timeout_duration = max(
+                    60, int(duration * 10)
+                )  # 10x audio duration or 60s minimum
                 signal.signal(signal.SIGALRM, timeout_handler)
                 signal.alarm(timeout_duration)
 
@@ -266,15 +281,17 @@ class WhisperPerformanceService(PerformanceService):
                 time.sleep(0.1)  # Give progress thread time to finish
 
                 inference_time = time.time() - inference_start
-                sys.stdout.write('\r' + ' ' * 60 + '\r')  # Clear progress line
+                sys.stdout.write("\r" + " " * 60 + "\r")  # Clear progress line
                 print(f"  ✓ Transcription completed in {inference_time:.2f}s")
 
             except TimeoutError as e:
                 # Stop progress updates
                 progress_active = False
                 time.sleep(0.1)  # Give progress thread time to finish
-                sys.stdout.write('\r' + ' ' * 60 + '\r')  # Clear progress line
-                print("  ⚠ Transcription timed out - this may indicate performance issues")
+                sys.stdout.write("\r" + " " * 60 + "\r")  # Clear progress line
+                print(
+                    "  ⚠ Transcription timed out - this may indicate performance issues"
+                )
                 benchmark_results["error"] = f"Timeout: {e}"
                 return benchmark_results
 
@@ -282,13 +299,15 @@ class WhisperPerformanceService(PerformanceService):
                 # Stop progress updates
                 progress_active = False
                 time.sleep(0.1)  # Give progress thread time to finish
-                sys.stdout.write('\r' + ' ' * 60 + '\r')  # Clear progress line
+                sys.stdout.write("\r" + " " * 60 + "\r")  # Clear progress line
                 print(f"  ✗ Transcription failed: {e}")
                 raise
 
             # Calculate meaningful speech processing metrics
             real_time_factor = duration / inference_time if inference_time > 0 else 0
-            throughput_factor = 1 / real_time_factor if real_time_factor > 0 else 0  # How many audio seconds per wall-clock second
+            throughput_factor = (
+                1 / real_time_factor if real_time_factor > 0 else 0
+            )  # How many audio seconds per wall-clock second
 
             # GPU memory usage (if applicable)
             gpu_memory_mb = 0.0
@@ -296,6 +315,7 @@ class WhisperPerformanceService(PerformanceService):
                 try:
                     if device == "cuda":
                         import torch
+
                         gpu_memory_mb = torch.cuda.memory_allocated() / 1024 / 1024
                     # For MPS, we can't easily get memory usage, so estimate
                     elif device == "mps":
@@ -306,29 +326,41 @@ class WhisperPerformanceService(PerformanceService):
             # Extract meaningful transcription info
             transcribed_text = result.get("text", "").strip()
             word_count = len(transcribed_text.split()) if transcribed_text else 0
-            words_per_minute = (word_count / (inference_time / 60)) if inference_time > 0 else 0
+            words_per_minute = (
+                (word_count / (inference_time / 60)) if inference_time > 0 else 0
+            )
 
             # Performance assessment
-            performance_rating = "excellent" if real_time_factor > 10 else \
-                               "good" if real_time_factor > 5 else \
-                               "fair" if real_time_factor > 1 else "poor"
+            performance_rating = (
+                "excellent"
+                if real_time_factor > 10
+                else "good"
+                if real_time_factor > 5
+                else "fair"
+                if real_time_factor > 1
+                else "poor"
+            )
 
-            benchmark_results.update({
-                "model_load_time": load_time,
-                "inference_time": inference_time,
-                "memory_usage_mb": memory_used,
-                "gpu_memory_mb": gpu_memory_mb if use_gpu else None,
-                "device": device,
-                "actual_device": model_device,
-                "audio_file": test_file,
-                "audio_duration": duration,
-                "real_time_factor": real_time_factor,
-                "throughput_factor": throughput_factor,
-                "words_transcribed": word_count,
-                "words_per_minute_processing": words_per_minute,
-                "performance_rating": performance_rating,
-                "transcribed_text": transcribed_text[:100] + "..." if len(transcribed_text) > 100 else transcribed_text,
-            })
+            benchmark_results.update(
+                {
+                    "model_load_time": load_time,
+                    "inference_time": inference_time,
+                    "memory_usage_mb": memory_used,
+                    "gpu_memory_mb": gpu_memory_mb if use_gpu else None,
+                    "device": device,
+                    "actual_device": model_device,
+                    "audio_file": test_file,
+                    "audio_duration": duration,
+                    "real_time_factor": real_time_factor,
+                    "throughput_factor": throughput_factor,
+                    "words_transcribed": word_count,
+                    "words_per_minute_processing": words_per_minute,
+                    "performance_rating": performance_rating,
+                    "transcribed_text": transcribed_text[:100] + "..."
+                    if len(transcribed_text) > 100
+                    else transcribed_text,
+                }
+            )
 
         except ImportError as e:
             benchmark_results["error"] = f"Missing dependency: {e}"

@@ -57,7 +57,7 @@ class TTSCommands(BaseCommands):
         )
         tts_config.auto_play = auto_play
 
-        preview_text = text[:100] + ('...' if len(text) > 100 else '')
+        preview_text = text[:100] + ("..." if len(text) > 100 else "")
         display_progress(f"Generating TTS for: {preview_text}")
 
         try:
@@ -141,7 +141,9 @@ class TTSCommands(BaseCommands):
         display_info(f"Voice: {tts_config.default_voice}")
         display_info(f"Generate hotkey: {tts_config.tts_generate_key}")
         display_info(f"Stop hotkey: {tts_config.tts_stop_key}")
-        typer.echo("Select text and press hotkey to generate TTS. Press Ctrl+C to stop.")
+        typer.echo(
+            "Select text and press hotkey to generate TTS. Press Ctrl+C to stop."
+        )
 
         try:
             self.tts_orchestrator.start_tts_mode(tts_config)
@@ -202,9 +204,16 @@ class TTSCommands(BaseCommands):
             import sys
 
             cmd = [
-                sys.executable, "-m", "voicebridge", "tts", "daemon", "start",
-                "--mode", mode,
-                "--voice", voice or tts_config.default_voice,
+                sys.executable,
+                "-m",
+                "voicebridge",
+                "tts",
+                "daemon",
+                "start",
+                "--mode",
+                mode,
+                "--voice",
+                voice or tts_config.default_voice,
             ]
 
             if streaming:
@@ -222,9 +231,12 @@ class TTSCommands(BaseCommands):
                     env=env,
                     stdout=subprocess.DEVNULL,
                     stderr=subprocess.DEVNULL,
-                    start_new_session=True
+                    start_new_session=True,
                 )
-                display_progress(f"TTS daemon started in background (PID: {process.pid})", finished=True)
+                display_progress(
+                    f"TTS daemon started in background (PID: {process.pid})",
+                    finished=True,
+                )
                 return
             except Exception as e:
                 display_error(f"Failed to start daemon in background: {e}")
@@ -283,17 +295,21 @@ class TTSCommands(BaseCommands):
             typer.echo("TTS Daemon Status:")
             typer.echo(f"  Running: {'Yes' if status.get('running', False) else 'No'}")
 
-            if status.get('running'):
+            if status.get("running"):
                 typer.echo(f"  PID: {status.get('pid', 'Unknown')}")
                 typer.echo(f"  Mode: {status.get('mode', 'Unknown')}")
                 typer.echo(f"  Voice: {status.get('voice', 'Unknown')}")
                 typer.echo(f"  Uptime: {status.get('uptime', 'Unknown')}")
 
                 # Show performance stats if available
-                if 'stats' in status:
-                    stats = status['stats']
-                    typer.echo(f"  Requests processed: {stats.get('requests_processed', 0)}")
-                    typer.echo(f"  Audio generated: {stats.get('audio_generated_seconds', 0):.1f}s")
+                if "stats" in status:
+                    stats = status["stats"]
+                    typer.echo(
+                        f"  Requests processed: {stats.get('requests_processed', 0)}"
+                    )
+                    typer.echo(
+                        f"  Audio generated: {stats.get('audio_generated_seconds', 0):.1f}s"
+                    )
                     typer.echo(f"  Errors: {stats.get('errors', 0)}")
 
         except Exception as e:
@@ -323,7 +339,9 @@ class TTSCommands(BaseCommands):
                     typer.echo(f"    Sample: {info.file_path}")
                     typer.echo()
             else:
-                display_info("No TTS voices found. Please add voice samples to the voices directory.")
+                display_info(
+                    "No TTS voices found. Please add voice samples to the voices directory."
+                )
 
         except Exception as e:
             display_error(f"Error listing voices: {e}")

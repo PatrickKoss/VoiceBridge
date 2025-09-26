@@ -1,4 +1,3 @@
-
 import typer
 
 from voicebridge.cli.commands.base import BaseCommands
@@ -27,7 +26,7 @@ class ConfigCommands(BaseCommands):
             typer.echo(f"  Paste final: {config.paste_final}")
 
             # Show TTS config if available
-            if hasattr(config, 'tts_config') and config.tts_config:
+            if hasattr(config, "tts_config") and config.tts_config:
                 tts = config.tts_config
                 typer.echo("\nTTS Configuration:")
                 typer.echo(f"  Default voice: {tts.default_voice}")
@@ -46,14 +45,20 @@ class ConfigCommands(BaseCommands):
             config = self.config_repo.load()
 
             # Handle different value types
-            if key in ['use_gpu', 'copy_final', 'paste_final', 'copy_stream', 'paste_stream']:
+            if key in [
+                "use_gpu",
+                "copy_final",
+                "paste_final",
+                "copy_stream",
+                "paste_stream",
+            ]:
                 # Boolean values
-                bool_value = value.lower() in ('true', '1', 'yes', 'on')
+                bool_value = value.lower() in ("true", "1", "yes", "on")
                 setattr(config, key, bool_value)
-            elif key in ['temperature']:
+            elif key in ["temperature"]:
                 # Float values
                 setattr(config, key, float(value))
-            elif key in ['sample_rate', 'inference_steps']:
+            elif key in ["sample_rate", "inference_steps"]:
                 # Integer values
                 setattr(config, key, int(value))
             else:
@@ -116,7 +121,9 @@ class ConfigCommands(BaseCommands):
         """Delete a configuration profile."""
         try:
             # Confirm deletion
-            typer.confirm(f"Delete profile '{name}'? This cannot be undone.", abort=True)
+            typer.confirm(
+                f"Delete profile '{name}'? This cannot be undone.", abort=True
+            )
 
             success = self.profile_repo.delete_profile(name)
 
@@ -142,7 +149,9 @@ class ConfigCommands(BaseCommands):
             success = self.profile_repo.save_profile(target, source_config)
 
             if success:
-                display_progress(f"Profile copied: '{source}' -> '{target}'", finished=True)
+                display_progress(
+                    f"Profile copied: '{source}' -> '{target}'", finished=True
+                )
             else:
                 display_error("Failed to copy profile")
 
@@ -165,7 +174,9 @@ class ConfigCommands(BaseCommands):
             if success:
                 # Delete old profile
                 self.profile_repo.delete_profile(old_name)
-                display_progress(f"Profile renamed: '{old_name}' -> '{new_name}'", finished=True)
+                display_progress(
+                    f"Profile renamed: '{old_name}' -> '{new_name}'", finished=True
+                )
             else:
                 display_error("Failed to rename profile")
 
@@ -184,7 +195,9 @@ class ConfigCommands(BaseCommands):
             success = self.profile_repo.export_profile(name, file_path)
 
             if success:
-                display_progress(f"Profile '{name}' exported to {file_path}", finished=True)
+                display_progress(
+                    f"Profile '{name}' exported to {file_path}", finished=True
+                )
             else:
                 display_error("Failed to export profile")
 
@@ -209,7 +222,10 @@ class ConfigCommands(BaseCommands):
         """Reset configuration to defaults."""
         try:
             # Confirm reset
-            typer.confirm("Reset configuration to defaults? This will overwrite your current settings.", abort=True)
+            typer.confirm(
+                "Reset configuration to defaults? This will overwrite your current settings.",
+                abort=True,
+            )
 
             success = self.config_repo.reset_to_defaults()
 
@@ -228,13 +244,16 @@ class ConfigCommands(BaseCommands):
         try:
             if not file_path:
                 import datetime
+
                 timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
                 file_path = f"voicebridge_config_backup_{timestamp}.json"
 
             success = self.config_repo.backup_config(file_path)
 
             if success:
-                display_progress(f"Configuration backed up to {file_path}", finished=True)
+                display_progress(
+                    f"Configuration backed up to {file_path}", finished=True
+                )
             else:
                 display_error("Failed to backup configuration")
 
@@ -245,12 +264,17 @@ class ConfigCommands(BaseCommands):
         """Restore configuration from backup."""
         try:
             # Confirm restore
-            typer.confirm(f"Restore configuration from {file_path}? This will overwrite your current settings.", abort=True)
+            typer.confirm(
+                f"Restore configuration from {file_path}? This will overwrite your current settings.",
+                abort=True,
+            )
 
             success = self.config_repo.restore_config(file_path)
 
             if success:
-                display_progress(f"Configuration restored from {file_path}", finished=True)
+                display_progress(
+                    f"Configuration restored from {file_path}", finished=True
+                )
             else:
                 display_error(f"Failed to restore configuration from {file_path}")
 
@@ -268,7 +292,7 @@ class ConfigCommands(BaseCommands):
             issues = []
 
             # Check model availability
-            if hasattr(config, 'model_name'):
+            if hasattr(config, "model_name"):
                 # This would need access to model service
                 pass
 
@@ -280,12 +304,15 @@ class ConfigCommands(BaseCommands):
                     issues.append("GPU acceleration enabled but no GPU available")
 
             # Check TTS configuration
-            if hasattr(config, 'tts_config') and config.tts_config:
+            if hasattr(config, "tts_config") and config.tts_config:
                 tts = config.tts_config
                 if tts.voice_samples_path:
                     from pathlib import Path
+
                     if not Path(tts.voice_samples_path).exists():
-                        issues.append(f"TTS voice samples path not found: {tts.voice_samples_path}")
+                        issues.append(
+                            f"TTS voice samples path not found: {tts.voice_samples_path}"
+                        )
 
             # Report results
             if issues:

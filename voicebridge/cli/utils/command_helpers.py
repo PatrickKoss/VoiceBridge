@@ -31,7 +31,7 @@ def build_whisper_config(
     initial_prompt: str | None = None,
     temperature: float = 0.0,
     use_gpu: bool | None = None,
-    **kwargs
+    **kwargs,
 ) -> dict[str, Any]:
     """Build a Whisper configuration dictionary from command options."""
     config = {}
@@ -59,7 +59,9 @@ def handle_profile_config(profile_name: str | None, config_repo, profile_repo):
             if profile_config:
                 return profile_config
             else:
-                typer.echo(f"Warning: Profile '{profile_name}' not found, using default config")
+                typer.echo(
+                    f"Warning: Profile '{profile_name}' not found, using default config"
+                )
         except Exception as e:
             typer.echo(f"Error loading profile '{profile_name}': {e}", err=True)
 
@@ -107,7 +109,7 @@ def format_duration(seconds: float) -> str:
 
 def format_file_size(bytes_size: int) -> str:
     """Format file size in bytes to human readable format."""
-    for unit in ['B', 'KB', 'MB', 'GB']:
+    for unit in ["B", "KB", "MB", "GB"]:
         if bytes_size < 1024.0:
             return f"{bytes_size:.1f} {unit}"
         bytes_size /= 1024.0

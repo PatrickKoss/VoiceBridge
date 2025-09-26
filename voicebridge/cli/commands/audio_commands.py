@@ -39,11 +39,11 @@ class AudioCommands(BaseCommands):
                 typer.echo(f"  File Size: {format_file_size(info.get('file_size', 0))}")
 
                 # Show codec information if available
-                if 'codec' in info:
+                if "codec" in info:
                     typer.echo(f"  Codec: {info['codec']}")
 
                 # Show quality metrics if available
-                if 'quality_score' in info:
+                if "quality_score" in info:
                     typer.echo(f"  Quality Score: {info['quality_score']:.1f}/10")
             else:
                 display_error("Could not read audio file information")
@@ -91,7 +91,7 @@ class AudioCommands(BaseCommands):
 
         # Determine output format from file extension if not specified
         if not format:
-            format = output_path.suffix.lstrip('.')
+            format = output_path.suffix.lstrip(".")
 
         try:
             display_progress(f"Converting {input_path.name} to {format.upper()}...")
@@ -142,12 +142,12 @@ class AudioCommands(BaseCommands):
 
             # Build preprocessing options
             options = {
-                'noise_reduction': noise_reduction,
-                'normalize': normalize,
-                'trim_silence': trim_silence,
-                'silence_threshold': silence_threshold,
-                'fade_in': fade_in,
-                'fade_out': fade_out,
+                "noise_reduction": noise_reduction,
+                "normalize": normalize,
+                "trim_silence": trim_silence,
+                "silence_threshold": silence_threshold,
+                "fade_in": fade_in,
+                "fade_out": fade_out,
             }
 
             success = self.audio_preprocessing_service.preprocess_audio(
@@ -155,7 +155,9 @@ class AudioCommands(BaseCommands):
             )
 
             if success:
-                display_progress(f"Preprocessing completed: {output_path}", finished=True)
+                display_progress(
+                    f"Preprocessing completed: {output_path}", finished=True
+                )
 
                 # Show processing results
                 if output_path.exists():
@@ -229,7 +231,9 @@ class AudioCommands(BaseCommands):
             for i, chunk_path in enumerate(chunks, 1):
                 chunk_size = chunk_path.stat().st_size
                 total_size += chunk_size
-                typer.echo(f"  {i:02d}: {chunk_path.name} ({format_file_size(chunk_size)})")
+                typer.echo(
+                    f"  {i:02d}: {chunk_path.name} ({format_file_size(chunk_size)})"
+                )
 
             typer.echo(f"\nTotal output size: {format_file_size(total_size)}")
 
@@ -256,7 +260,9 @@ class AudioCommands(BaseCommands):
             if sort_by == "name":
                 audio_files = sorted(input_path.glob(pattern))
             elif sort_by == "date":
-                audio_files = sorted(input_path.glob(pattern), key=lambda p: p.stat().st_mtime)
+                audio_files = sorted(
+                    input_path.glob(pattern), key=lambda p: p.stat().st_mtime
+                )
             else:
                 audio_files = list(input_path.glob(pattern))
 
@@ -267,7 +273,9 @@ class AudioCommands(BaseCommands):
             display_info(f"Found {len(audio_files)} files to merge")
             display_progress("Merging audio files...")
 
-            success = self.audio_format_service.merge_audio_files(audio_files, output_path)
+            success = self.audio_format_service.merge_audio_files(
+                audio_files, output_path
+            )
 
             if success:
                 display_progress(f"Audio merged: {output_path}", finished=True)
@@ -302,10 +310,10 @@ class AudioCommands(BaseCommands):
             display_progress(f"Enhancing audio: {input_path.name}")
 
             enhancement_options = {
-                'enhance_speech': enhance_speech,
-                'remove_noise': remove_noise,
-                'amplify': amplify,
-                'equalize': equalize,
+                "enhance_speech": enhance_speech,
+                "remove_noise": remove_noise,
+                "amplify": amplify,
+                "equalize": equalize,
             }
 
             success = self.audio_preprocessing_service.enhance_for_transcription(
@@ -316,11 +324,17 @@ class AudioCommands(BaseCommands):
                 display_progress(f"Audio enhanced: {output_path}", finished=True)
 
                 # Show quality comparison if available
-                original_quality = self.audio_preprocessing_service.assess_quality(input_path)
-                enhanced_quality = self.audio_preprocessing_service.assess_quality(output_path)
+                original_quality = self.audio_preprocessing_service.assess_quality(
+                    input_path
+                )
+                enhanced_quality = self.audio_preprocessing_service.assess_quality(
+                    output_path
+                )
 
                 if original_quality and enhanced_quality:
-                    typer.echo(f"  Quality improvement: {original_quality:.1f} -> {enhanced_quality:.1f}")
+                    typer.echo(
+                        f"  Quality improvement: {original_quality:.1f} -> {enhanced_quality:.1f}"
+                    )
             else:
                 display_error("Audio enhancement failed")
 
@@ -338,7 +352,9 @@ class AudioCommands(BaseCommands):
         try:
             display_progress(f"Analyzing audio: {input_file.name}")
 
-            analysis = self.audio_preprocessing_service.analyze_audio(input_file, detailed)
+            analysis = self.audio_preprocessing_service.analyze_audio(
+                input_file, detailed
+            )
 
             if analysis:
                 typer.echo(f"\nAudio Analysis: {input_file.name}")
@@ -346,36 +362,52 @@ class AudioCommands(BaseCommands):
 
                 # Basic metrics
                 typer.echo(f"Quality Score: {analysis.get('quality_score', 0):.1f}/10")
-                typer.echo(f"Transcription Suitability: {analysis.get('transcription_score', 0):.1f}/10")
+                typer.echo(
+                    f"Transcription Suitability: {analysis.get('transcription_score', 0):.1f}/10"
+                )
 
                 # Audio characteristics
-                if 'characteristics' in analysis:
-                    char = analysis['characteristics']
+                if "characteristics" in analysis:
+                    char = analysis["characteristics"]
                     typer.echo(f"Signal-to-Noise Ratio: {char.get('snr', 0):.1f} dB")
-                    typer.echo(f"Speech Percentage: {char.get('speech_percentage', 0):.1%}")
-                    typer.echo(f"Silence Percentage: {char.get('silence_percentage', 0):.1%}")
-                    typer.echo(f"Background Noise Level: {char.get('noise_level', 'Unknown')}")
+                    typer.echo(
+                        f"Speech Percentage: {char.get('speech_percentage', 0):.1%}"
+                    )
+                    typer.echo(
+                        f"Silence Percentage: {char.get('silence_percentage', 0):.1%}"
+                    )
+                    typer.echo(
+                        f"Background Noise Level: {char.get('noise_level', 'Unknown')}"
+                    )
 
                 # Recommendations
-                if 'recommendations' in analysis:
+                if "recommendations" in analysis:
                     typer.echo("\nRecommendations:")
-                    for rec in analysis['recommendations']:
+                    for rec in analysis["recommendations"]:
                         typer.echo(f"  • {rec}")
 
                 # Detailed analysis
-                if detailed and 'detailed' in analysis:
-                    detailed_info = analysis['detailed']
+                if detailed and "detailed" in analysis:
+                    detailed_info = analysis["detailed"]
                     typer.echo("\nDetailed Analysis:")
 
-                    if 'frequency_analysis' in detailed_info:
-                        freq = detailed_info['frequency_analysis']
-                        typer.echo(f"  Frequency Range: {freq.get('min_freq', 0):.0f} - {freq.get('max_freq', 0):.0f} Hz")
-                        typer.echo(f"  Dominant Frequency: {freq.get('dominant_freq', 0):.0f} Hz")
+                    if "frequency_analysis" in detailed_info:
+                        freq = detailed_info["frequency_analysis"]
+                        typer.echo(
+                            f"  Frequency Range: {freq.get('min_freq', 0):.0f} - {freq.get('max_freq', 0):.0f} Hz"
+                        )
+                        typer.echo(
+                            f"  Dominant Frequency: {freq.get('dominant_freq', 0):.0f} Hz"
+                        )
 
-                    if 'temporal_analysis' in detailed_info:
-                        temp = detailed_info['temporal_analysis']
-                        typer.echo(f"  Speech Segments: {temp.get('speech_segments', 0)}")
-                        typer.echo(f"  Average Segment Length: {format_duration(temp.get('avg_segment_length', 0))}")
+                    if "temporal_analysis" in detailed_info:
+                        temp = detailed_info["temporal_analysis"]
+                        typer.echo(
+                            f"  Speech Segments: {temp.get('speech_segments', 0)}"
+                        )
+                        typer.echo(
+                            f"  Average Segment Length: {format_duration(temp.get('avg_segment_length', 0))}"
+                        )
                         typer.echo(f"  Silence Gaps: {temp.get('silence_gaps', 0)}")
 
             else:
@@ -393,19 +425,23 @@ class AudioCommands(BaseCommands):
         input_file = validate_file_path(file_path, must_exist=True)
 
         try:
-            validation = self.audio_format_service.validate_for_transcription(input_file)
+            validation = self.audio_format_service.validate_for_transcription(
+                input_file
+            )
 
             typer.echo(f"Audio Validation: {input_file.name}")
             typer.echo("=" * 50)
 
-            if validation.get('valid', False):
-                display_progress("✓ Audio file is valid for transcription", finished=True)
+            if validation.get("valid", False):
+                display_progress(
+                    "✓ Audio file is valid for transcription", finished=True
+                )
             else:
                 typer.echo("✗ Audio file has issues:")
 
             # Show validation details
-            issues = validation.get('issues', [])
-            warnings = validation.get('warnings', [])
+            issues = validation.get("issues", [])
+            warnings = validation.get("warnings", [])
 
             if issues:
                 typer.echo("\nIssues (must be fixed):")
@@ -418,7 +454,7 @@ class AudioCommands(BaseCommands):
                     typer.echo(f"  ⚠️ {warning}")
 
             # Show recommendations
-            recommendations = validation.get('recommendations', [])
+            recommendations = validation.get("recommendations", [])
             if recommendations:
                 typer.echo("\nRecommendations:")
                 for rec in recommendations:

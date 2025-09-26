@@ -19,15 +19,15 @@ class CommandRegistry:
 
     # Map command group names to their classes
     COMMAND_GROUPS: dict[str, type[BaseCommands]] = {
-        'speech': SpeechCommands,
-        'transcription': TranscriptionCommands,
-        'tts': TTSCommands,
-        'audio': AudioCommands,
-        'system': SystemCommands,
-        'config': ConfigCommands,
-        'export': ExportCommands,
-        'advanced': AdvancedCommands,
-        'api': APICommands,
+        "speech": SpeechCommands,
+        "transcription": TranscriptionCommands,
+        "tts": TTSCommands,
+        "audio": AudioCommands,
+        "system": SystemCommands,
+        "config": ConfigCommands,
+        "export": ExportCommands,
+        "advanced": AdvancedCommands,
+        "api": APICommands,
     }
 
     def __init__(self, **service_dependencies):
@@ -54,8 +54,10 @@ class CommandRegistry:
             ValueError: If command group is not registered
         """
         if group_name not in self.COMMAND_GROUPS:
-            available = ', '.join(self.COMMAND_GROUPS.keys())
-            raise ValueError(f"Unknown command group '{group_name}'. Available: {available}")
+            available = ", ".join(self.COMMAND_GROUPS.keys())
+            raise ValueError(
+                f"Unknown command group '{group_name}'. Available: {available}"
+            )
 
         if group_name not in self._command_instances:
             command_class = self.COMMAND_GROUPS[group_name]
@@ -71,8 +73,7 @@ class CommandRegistry:
             Dictionary mapping group names to instances
         """
         return {
-            name: self.get_command_group(name)
-            for name in self.COMMAND_GROUPS.keys()
+            name: self.get_command_group(name) for name in self.COMMAND_GROUPS.keys()
         }
 
     def list_command_groups(self) -> list[str]:
@@ -92,26 +93,45 @@ class CommandRegistry:
             Dictionary mapping dependency names to availability status
         """
         # Core dependencies that should always be present
-        required_deps = ['config_repo', 'profile_repo', 'logger']
+        required_deps = ["config_repo", "profile_repo", "logger"]
 
         validation_results = {}
 
         for dep in required_deps:
-            validation_results[dep] = dep in self.dependencies and self.dependencies[dep] is not None
+            validation_results[dep] = (
+                dep in self.dependencies and self.dependencies[dep] is not None
+            )
 
         # Optional dependencies
         optional_deps = [
-            'transcription_orchestrator', 'tts_orchestrator', 'tts_daemon_service',
-            'system_service', 'daemon_service', 'session_service', 'performance_service',
-            'audio_format_service', 'audio_preprocessing_service', 'audio_splitting_service',
-            'batch_processing_service', 'export_service', 'resume_service',
-            'confidence_analyzer', 'vocabulary_service', 'vocabulary_management_service', 'postprocessing_service',
-            'webhook_service', 'progress_service', 'retry_service', 'circuit_breaker_service',
-            'timestamp_service'
+            "transcription_orchestrator",
+            "tts_orchestrator",
+            "tts_daemon_service",
+            "system_service",
+            "daemon_service",
+            "session_service",
+            "performance_service",
+            "audio_format_service",
+            "audio_preprocessing_service",
+            "audio_splitting_service",
+            "batch_processing_service",
+            "export_service",
+            "resume_service",
+            "confidence_analyzer",
+            "vocabulary_service",
+            "vocabulary_management_service",
+            "postprocessing_service",
+            "webhook_service",
+            "progress_service",
+            "retry_service",
+            "circuit_breaker_service",
+            "timestamp_service",
         ]
 
         for dep in optional_deps:
-            validation_results[dep] = dep in self.dependencies and self.dependencies[dep] is not None
+            validation_results[dep] = (
+                dep in self.dependencies and self.dependencies[dep] is not None
+            )
 
         return validation_results
 
@@ -127,23 +147,49 @@ class CommandRegistry:
 
         # Define which dependencies each command group needs
         group_dependencies = {
-            'speech': ['transcription_orchestrator', 'system_service'],
-            'transcription': ['transcription_orchestrator', 'audio_format_service', 'batch_processing_service', 'resume_service'],
-            'tts': ['tts_orchestrator', 'tts_daemon_service'],
-            'audio': ['audio_format_service', 'audio_preprocessing_service', 'audio_splitting_service'],
-            'system': ['system_service', 'performance_service', 'session_service', 'progress_service', 'circuit_breaker_service'],
-            'config': ['config_repo', 'profile_repo'],
-            'export': ['export_service', 'confidence_analyzer', 'session_service'],
-            'advanced': ['vocabulary_management_service', 'postprocessing_service', 'webhook_service', 'progress_service'],
-            'api': ['transcription_orchestrator', 'vocabulary_service', 'postprocessing_service', 'webhook_service', 'progress_service'],
+            "speech": ["transcription_orchestrator", "system_service"],
+            "transcription": [
+                "transcription_orchestrator",
+                "audio_format_service",
+                "batch_processing_service",
+                "resume_service",
+            ],
+            "tts": ["tts_orchestrator", "tts_daemon_service"],
+            "audio": [
+                "audio_format_service",
+                "audio_preprocessing_service",
+                "audio_splitting_service",
+            ],
+            "system": [
+                "system_service",
+                "performance_service",
+                "session_service",
+                "progress_service",
+                "circuit_breaker_service",
+            ],
+            "config": ["config_repo", "profile_repo"],
+            "export": ["export_service", "confidence_analyzer", "session_service"],
+            "advanced": [
+                "vocabulary_management_service",
+                "postprocessing_service",
+                "webhook_service",
+                "progress_service",
+            ],
+            "api": [
+                "transcription_orchestrator",
+                "vocabulary_service",
+                "postprocessing_service",
+                "webhook_service",
+                "progress_service",
+            ],
         }
 
         for group_name, deps in group_dependencies.items():
             available = sum(1 for dep in deps if validation.get(dep, False))
             summary[group_name] = {
-                'available': available,
-                'total': len(deps),
-                'percentage': (available / len(deps)) * 100 if deps else 0
+                "available": available,
+                "total": len(deps),
+                "percentage": (available / len(deps)) * 100 if deps else 0,
             }
 
         return summary

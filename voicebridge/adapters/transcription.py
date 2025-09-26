@@ -134,7 +134,7 @@ class WhisperTranscriptionService(TranscriptionService):
             temp_file_path = temp_file.name
 
         # Write proper WAV file with headers
-        with wave.open(temp_file_path, 'wb') as wav_file:
+        with wave.open(temp_file_path, "wb") as wav_file:
             wav_file.setnchannels(channels)
             wav_file.setsampwidth(sample_width)
             wav_file.setframerate(sample_rate)

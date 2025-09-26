@@ -31,14 +31,14 @@ class SimplePostProcessingService:
                 "grammar_check": False,
                 "punctuation": True,
                 "capitalization": True,
-                "custom_rules": []
+                "custom_rules": [],
             }
         }
 
     def _save_configs(self):
         """Save configuration to file."""
         self.config_dir.mkdir(parents=True, exist_ok=True)
-        with open(self.config_file, 'w') as f:
+        with open(self.config_file, "w") as f:
             json.dump(self._configs, f, indent=2)
 
     def get_config(self, profile: str = "default") -> dict[str, Any]:
@@ -68,22 +68,26 @@ class SimplePostProcessingService:
             original = processed_text
             processed_text = self._fix_punctuation(processed_text)
             if processed_text != original:
-                changes.append({
-                    "type": "punctuation",
-                    "original": original,
-                    "corrected": processed_text
-                })
+                changes.append(
+                    {
+                        "type": "punctuation",
+                        "original": original,
+                        "corrected": processed_text,
+                    }
+                )
 
         # Apply capitalization fixes
         if config.get("capitalization", True):
             original = processed_text
             processed_text = self._fix_capitalization(processed_text)
             if processed_text != original:
-                changes.append({
-                    "type": "capitalization",
-                    "original": original,
-                    "corrected": processed_text
-                })
+                changes.append(
+                    {
+                        "type": "capitalization",
+                        "original": original,
+                        "corrected": processed_text,
+                    }
+                )
 
         # Apply custom rules
         custom_rules = config.get("custom_rules", [])
@@ -91,50 +95,53 @@ class SimplePostProcessingService:
             original = processed_text
             processed_text = self._apply_custom_rules(processed_text, custom_rules)
             if processed_text != original:
-                changes.append({
-                    "type": "custom_rules",
-                    "original": original,
-                    "corrected": processed_text
-                })
+                changes.append(
+                    {
+                        "type": "custom_rules",
+                        "original": original,
+                        "corrected": processed_text,
+                    }
+                )
 
         # Note: spell_check and grammar_check would require external libraries
         # For now, just acknowledge they're enabled but don't process
         if config.get("spell_check", False):
-            changes.append({
-                "type": "info",
-                "original": "",
-                "corrected": "Spell check enabled (not implemented)"
-            })
+            changes.append(
+                {
+                    "type": "info",
+                    "original": "",
+                    "corrected": "Spell check enabled (not implemented)",
+                }
+            )
 
         if config.get("grammar_check", False):
-            changes.append({
-                "type": "info",
-                "original": "",
-                "corrected": "Grammar check enabled (not implemented)"
-            })
+            changes.append(
+                {
+                    "type": "info",
+                    "original": "",
+                    "corrected": "Grammar check enabled (not implemented)",
+                }
+            )
 
-        return {
-            "text": processed_text,
-            "changes": changes
-        }
+        return {"text": processed_text, "changes": changes}
 
     def _fix_punctuation(self, text: str) -> str:
         """Basic punctuation fixes."""
         import re
 
         # Remove extra spaces before punctuation
-        text = re.sub(r'\s+([,.!?;:])', r'\1', text)
+        text = re.sub(r"\s+([,.!?;:])", r"\1", text)
 
         # Add space after punctuation if missing
-        text = re.sub(r'([,.!?;:])([a-zA-Z])', r'\1 \2', text)
+        text = re.sub(r"([,.!?;:])([a-zA-Z])", r"\1 \2", text)
 
         # Fix multiple spaces
-        text = re.sub(r'\s+', ' ', text)
+        text = re.sub(r"\s+", " ", text)
 
         # Ensure text ends with punctuation
         text = text.strip()
-        if text and text[-1] not in '.!?':
-            text += '.'
+        if text and text[-1] not in ".!?":
+            text += "."
 
         return text
 
@@ -143,7 +150,7 @@ class SimplePostProcessingService:
         import re
 
         # Capitalize first letter of sentences
-        sentences = re.split(r'([.!?]+\s*)', text)
+        sentences = re.split(r"([.!?]+\s*)", text)
         capitalized_sentences = []
 
         for i, sentence in enumerate(sentences):
@@ -152,19 +159,19 @@ class SimplePostProcessingService:
                 if sentence:
                     sentence = sentence[0].upper() + sentence[1:]
                     # Capitalize "I"
-                    sentence = re.sub(r'\bi\b', 'I', sentence)
+                    sentence = re.sub(r"\bi\b", "I", sentence)
                 capitalized_sentences.append(sentence)
             else:
                 capitalized_sentences.append(sentence)
 
-        return ''.join(capitalized_sentences)
+        return "".join(capitalized_sentences)
 
     def _apply_custom_rules(self, text: str, rules: list[str]) -> str:
         """Apply custom replacement rules."""
         # Rules format: "old->new"
         for rule in rules:
-            if '->' in rule:
-                old, new = rule.split('->', 1)
+            if "->" in rule:
+                old, new = rule.split("->", 1)
                 text = text.replace(old.strip(), new.strip())
 
         return text

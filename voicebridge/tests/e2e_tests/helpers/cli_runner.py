@@ -12,8 +12,14 @@ from typing import Any
 class CLIResult:
     """Result of a CLI command execution."""
 
-    def __init__(self, returncode: int, stdout: str, stderr: str,
-                 command: list[str], execution_time: float):
+    def __init__(
+        self,
+        returncode: int,
+        stdout: str,
+        stderr: str,
+        command: list[str],
+        execution_time: float,
+    ):
         self.returncode = returncode
         self.stdout = stdout
         self.stderr = stderr
@@ -63,7 +69,7 @@ class CLIRunner:
 
     def __init__(self, test_dir: Path, timeout: float = 30.0):
         """Initialize CLI runner.
-        
+
         Args:
             test_dir: Isolated test directory
             timeout: Default timeout for commands
@@ -75,38 +81,43 @@ class CLIRunner:
     def _setup_environment(self):
         """Set up test environment."""
         self.env = dict(os.environ)
-        self.env.update({
-            "VOICEBRIDGE_TEST_MODE": "1",
-            "VOICEBRIDGE_DISABLE_AUDIO": "1",
-            "VOICEBRIDGE_NO_GUI": "1",
-            "HOME": str(self.test_dir),
-            "XDG_CONFIG_HOME": str(self.test_dir / ".config"),
-            "XDG_DATA_HOME": str(self.test_dir / ".local" / "share"),
-            # Disable colored output for predictable parsing
-            "NO_COLOR": "1",
-            "FORCE_COLOR": "0",
-            "TERM": "dumb",  # Disable rich formatting
-            "_TYPER_STANDARD_TRACEBACK": "1",  # Disable rich tracebacks
-        })
+        self.env.update(
+            {
+                "VOICEBRIDGE_TEST_MODE": "1",
+                "VOICEBRIDGE_DISABLE_AUDIO": "1",
+                "VOICEBRIDGE_NO_GUI": "1",
+                "HOME": str(self.test_dir),
+                "XDG_CONFIG_HOME": str(self.test_dir / ".config"),
+                "XDG_DATA_HOME": str(self.test_dir / ".local" / "share"),
+                # Disable colored output for predictable parsing
+                "NO_COLOR": "1",
+                "FORCE_COLOR": "0",
+                "TERM": "dumb",  # Disable rich formatting
+                "_TYPER_STANDARD_TRACEBACK": "1",  # Disable rich tracebacks
+            }
+        )
 
         # Create config directories
         (self.test_dir / ".config").mkdir(parents=True, exist_ok=True)
         (self.test_dir / ".local" / "share").mkdir(parents=True, exist_ok=True)
 
-    def run(self, command: str | list[str],
-            timeout: float | None = None,
-            cwd: Path | None = None,
-            input_data: str | None = None,
-            expect_failure: bool = False) -> CLIResult:
+    def run(
+        self,
+        command: str | list[str],
+        timeout: float | None = None,
+        cwd: Path | None = None,
+        input_data: str | None = None,
+        expect_failure: bool = False,
+    ) -> CLIResult:
         """Run a VoiceBridge CLI command.
-        
+
         Args:
             command: Command to run (string or list)
             timeout: Command timeout (uses default if None)
             cwd: Working directory
             input_data: Input to pass to command
             expect_failure: Whether to expect command failure
-            
+
         Returns:
             CLIResult with execution details
         """
@@ -126,6 +137,7 @@ class CLIRunner:
         cwd = cwd or project_root
 
         import time
+
         start_time = time.time()
 
         try:
@@ -136,7 +148,7 @@ class CLIRunner:
                 timeout=timeout,
                 cwd=str(cwd),
                 env=self.env,
-                input=input_data
+                input=input_data,
             )
             execution_time = time.time() - start_time
 
@@ -145,7 +157,7 @@ class CLIRunner:
                 stdout=result.stdout,
                 stderr=result.stderr,
                 command=cmd_parts,
-                execution_time=execution_time
+                execution_time=execution_time,
             )
 
             if not expect_failure and cli_result.failed:
@@ -157,20 +169,20 @@ class CLIRunner:
 
             return cli_result
 
-        except subprocess.TimeoutExpired:
+        except subprocess.TimeoutExpired as e:
             execution_time = time.time() - start_time
             raise TimeoutError(
                 f"Command timed out after {timeout}s: {' '.join(cmd_parts)}"
-            )
+            ) from e
 
     def run_stt(self, subcommand: str, *args, **kwargs) -> CLIResult:
         """Run an STT subcommand.
-        
+
         Args:
             subcommand: STT subcommand (e.g., 'transcribe', 'batch-transcribe')
             *args: Additional arguments
             **kwargs: Passed to run()
-            
+
         Returns:
             CLIResult
         """
@@ -179,12 +191,12 @@ class CLIRunner:
 
     def run_tts(self, subcommand: str, *args, **kwargs) -> CLIResult:
         """Run a TTS subcommand.
-        
+
         Args:
-            subcommand: TTS subcommand  
+            subcommand: TTS subcommand
             *args: Additional arguments
             **kwargs: Passed to run()
-            
+
         Returns:
             CLIResult
         """
@@ -193,12 +205,12 @@ class CLIRunner:
 
     def run_audio(self, subcommand: str, *args, **kwargs) -> CLIResult:
         """Run an audio subcommand.
-        
+
         Args:
             subcommand: Audio subcommand
-            *args: Additional arguments  
+            *args: Additional arguments
             **kwargs: Passed to run()
-            
+
         Returns:
             CLIResult
         """
@@ -208,11 +220,11 @@ class CLIRunner:
     @contextmanager
     def temp_file(self, content: str = "", suffix: str = ".txt"):
         """Create a temporary file for testing.
-        
+
         Args:
             content: File content
             suffix: File extension
-            
+
         Yields:
             Path to temporary file
         """
@@ -230,7 +242,7 @@ class CLIRunner:
     @contextmanager
     def temp_dir(self):
         """Create a temporary directory for testing.
-        
+
         Yields:
             Path to temporary directory
         """
@@ -241,17 +253,18 @@ class CLIRunner:
             yield temp_path
         finally:
             import shutil
+
             shutil.rmtree(temp_path, ignore_errors=True)
 
     def parse_json_output(self, result: CLIResult) -> dict[str, Any]:
         """Parse JSON output from CLI result.
-        
+
         Args:
             result: CLI result with JSON output
-            
+
         Returns:
             Parsed JSON data
-            
+
         Raises:
             json.JSONDecodeError: If output is not valid JSON
         """
@@ -259,10 +272,10 @@ class CLIRunner:
 
     def get_config_path(self, config_name: str = "config.json") -> Path:
         """Get path to test config file.
-        
+
         Args:
             config_name: Config file name
-            
+
         Returns:
             Path to config file
         """
@@ -272,10 +285,10 @@ class CLIRunner:
 
     def create_test_config(self, config: dict[str, Any]) -> Path:
         """Create a test configuration file.
-        
+
         Args:
             config: Configuration dictionary
-            
+
         Returns:
             Path to created config file
         """

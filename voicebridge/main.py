@@ -109,7 +109,9 @@ def setup_dependencies(config_dir=None):
 
     # Vocabulary management services
     vocabulary_adapter = VocabularyAdapter(config_dir / "vocabulary")
-    vocabulary_management_service = VocabularyManagementService(vocabulary_adapter, logger)
+    vocabulary_management_service = VocabularyManagementService(
+        vocabulary_adapter, logger
+    )
 
     # Post-processing and webhook services
     postprocessing_service = SimplePostProcessingService(config_dir)
@@ -184,7 +186,7 @@ def main():
         command_registry = setup_dependencies()
 
         # Ensure system dependencies
-        command_registry.dependencies['system_service'].ensure_dependencies()
+        command_registry.dependencies["system_service"].ensure_dependencies()
 
         # Create and run Typer app
         app = create_app(command_registry)

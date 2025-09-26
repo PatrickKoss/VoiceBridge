@@ -1,4 +1,3 @@
-
 import typer
 
 from voicebridge.cli.commands.base import BaseCommands
@@ -25,13 +24,15 @@ class AdvancedCommands(BaseCommands):
             return
 
         try:
-            word_list = [word.strip() for word in words.split(',') if word.strip()]
+            word_list = [word.strip() for word in words.split(",") if word.strip()]
 
             if not word_list:
                 display_error("No valid words provided")
                 return
 
-            display_progress(f"Adding {len(word_list)} words to {vocabulary_type} vocabulary...")
+            display_progress(
+                f"Adding {len(word_list)} words to {vocabulary_type} vocabulary..."
+            )
 
             success = self.vocabulary_management_service.add_words(
                 word_list, vocabulary_type, profile, weight
@@ -60,13 +61,15 @@ class AdvancedCommands(BaseCommands):
             return
 
         try:
-            word_list = [word.strip() for word in words.split(',') if word.strip()]
+            word_list = [word.strip() for word in words.split(",") if word.strip()]
 
             if not word_list:
                 display_error("No valid words provided")
                 return
 
-            display_progress(f"Removing {len(word_list)} words from {vocabulary_type} vocabulary...")
+            display_progress(
+                f"Removing {len(word_list)} words from {vocabulary_type} vocabulary..."
+            )
 
             success = self.vocabulary_management_service.remove_words(
                 word_list, vocabulary_type, profile
@@ -80,14 +83,18 @@ class AdvancedCommands(BaseCommands):
         except Exception as e:
             display_error(f"Error removing vocabulary: {e}")
 
-    def vocabulary_list(self, vocabulary_type: str | None = None, profile: str = "default"):
+    def vocabulary_list(
+        self, vocabulary_type: str | None = None, profile: str = "default"
+    ):
         """List vocabulary words."""
         if not self.vocabulary_management_service:
             display_error("Vocabulary service not available")
             return
 
         try:
-            vocabularies = self.vocabulary_management_service.list_vocabularies(vocabulary_type, profile)
+            vocabularies = self.vocabulary_management_service.list_vocabularies(
+                vocabulary_type, profile
+            )
 
             if not vocabularies:
                 display_info("No vocabulary entries found")
@@ -102,7 +109,9 @@ class AdvancedCommands(BaseCommands):
                 if isinstance(words, dict):
                     # Words with weights/metadata
                     for word, info in words.items():
-                        weight = info.get('weight', 1.0) if isinstance(info, dict) else info
+                        weight = (
+                            info.get("weight", 1.0) if isinstance(info, dict) else info
+                        )
                         typer.echo(f"  {word} (weight: {weight})")
                 else:
                     # Simple word list
@@ -126,6 +135,7 @@ class AdvancedCommands(BaseCommands):
 
         try:
             from pathlib import Path
+
             input_file = Path(file_path)
 
             if not input_file.exists():
@@ -155,7 +165,9 @@ class AdvancedCommands(BaseCommands):
         try:
             display_progress(f"Exporting vocabulary to {file_path}...")
 
-            success = self.vocabulary_management_service.export_vocabulary(file_path, profile)
+            success = self.vocabulary_management_service.export_vocabulary(
+                file_path, profile
+            )
 
             if success:
                 display_progress(f"Vocabulary exported to {file_path}", finished=True)
@@ -183,15 +195,15 @@ class AdvancedCommands(BaseCommands):
             config_updates = {}
 
             if enable_spell_check is not None:
-                config_updates['spell_check'] = enable_spell_check
+                config_updates["spell_check"] = enable_spell_check
             if enable_grammar_check is not None:
-                config_updates['grammar_check'] = enable_grammar_check
+                config_updates["grammar_check"] = enable_grammar_check
             if enable_punctuation is not None:
-                config_updates['punctuation'] = enable_punctuation
+                config_updates["punctuation"] = enable_punctuation
             if enable_capitalization is not None:
-                config_updates['capitalization'] = enable_capitalization
+                config_updates["capitalization"] = enable_capitalization
             if custom_rules is not None:
-                config_updates['custom_rules'] = custom_rules.split(',')
+                config_updates["custom_rules"] = custom_rules.split(",")
 
             if not config_updates:
                 # Show current config
@@ -234,13 +246,13 @@ class AdvancedCommands(BaseCommands):
                 typer.echo(f"Processed: {result.get('text', text)}")
 
                 # Show what was changed
-                changes = result.get('changes', [])
+                changes = result.get("changes", [])
                 if changes:
                     typer.echo(f"\nChanges made ({len(changes)}):")
                     for change in changes:
-                        change_type = change.get('type', 'unknown')
-                        old_text = change.get('original', '')
-                        new_text = change.get('corrected', '')
+                        change_type = change.get("type", "unknown")
+                        old_text = change.get("original", "")
+                        new_text = change.get("corrected", "")
                         typer.echo(f"  {change_type}: '{old_text}' -> '{new_text}'")
                 else:
                     typer.echo("\nNo changes were made.")
@@ -264,16 +276,16 @@ class AdvancedCommands(BaseCommands):
             return
 
         try:
-            event_list = [event.strip() for event in events.split(',') if event.strip()]
+            event_list = [event.strip() for event in events.split(",") if event.strip()]
 
             display_progress(f"Adding webhook: {url}")
 
             webhook_config = {
-                'url': url,
-                'events': event_list,
-                'secret': secret,
-                'timeout': timeout,
-                'retry_count': retry_count,
+                "url": url,
+                "events": event_list,
+                "secret": secret,
+                "timeout": timeout,
+                "retry_count": retry_count,
             }
 
             success = self.webhook_service.add_webhook(webhook_config)
@@ -326,10 +338,10 @@ class AdvancedCommands(BaseCommands):
             typer.echo("-" * 80)
 
             for webhook in webhooks:
-                url = webhook.get('url', '')[:40]
-                events = ', '.join(webhook.get('events', []))[:25]
-                status = webhook.get('status', 'Unknown')
-                last_used = webhook.get('last_used', 'Never')[:20]
+                url = webhook.get("url", "")[:40]
+                events = ", ".join(webhook.get("events", []))[:25]
+                status = webhook.get("status", "Unknown")
+                last_used = webhook.get("last_used", "Never")[:20]
 
                 typer.echo(f"{url:<40} {events:<25} {status:<10} {last_used}")
 
@@ -347,28 +359,30 @@ class AdvancedCommands(BaseCommands):
 
             # Create test payload
             test_payload = {
-                'event_type': event_type,
-                'timestamp': 'test_timestamp',
-                'session_id': 'test_session',
-                'data': {
-                    'text': 'This is a test transcription.',
-                    'confidence': 0.95,
-                    'language': 'en',
-                }
+                "event_type": event_type,
+                "timestamp": "test_timestamp",
+                "session_id": "test_session",
+                "data": {
+                    "text": "This is a test transcription.",
+                    "confidence": 0.95,
+                    "language": "en",
+                },
             }
 
             result = self.webhook_service.test_webhook(url, test_payload)
 
-            if result and result.get('success'):
+            if result and result.get("success"):
                 display_progress("Webhook test successful", finished=True)
                 typer.echo(f"  Response code: {result.get('status_code')}")
                 typer.echo(f"  Response time: {result.get('response_time', 0):.2f}s")
 
-                response_data = result.get('response_data')
+                response_data = result.get("response_data")
                 if response_data:
                     typer.echo(f"  Response: {response_data}")
             else:
-                error_msg = result.get('error', 'Unknown error') if result else 'Test failed'
+                error_msg = (
+                    result.get("error", "Unknown error") if result else "Test failed"
+                )
                 display_error(f"Webhook test failed: {error_msg}")
 
         except Exception as e:
@@ -467,7 +481,7 @@ class AdvancedCommands(BaseCommands):
             try:
                 gpu_devices = self.system_service.detect_gpu_devices()
                 gpu_info = gpu_devices[0] if gpu_devices else None
-                if gpu_info and gpu_info.gpu_type.value != 'none':
+                if gpu_info and gpu_info.gpu_type.value != "none":
                     typer.echo("  ✓ GPU available")
                 else:
                     typer.echo("  ⚠ GPU not available (using CPU)")
@@ -516,31 +530,37 @@ class AdvancedCommands(BaseCommands):
                 typer.echo("=" * 50)
 
                 # CPU benchmark
-                cpu_results = results.get('cpu', {})
+                cpu_results = results.get("cpu", {})
                 typer.echo("CPU Performance:")
                 typer.echo(f"  Score: {cpu_results.get('score', 0):.1f}")
                 typer.echo(f"  Test duration: {cpu_results.get('duration', 0):.1f}s")
 
                 # GPU benchmark
-                gpu_results = results.get('gpu', {})
+                gpu_results = results.get("gpu", {})
                 if gpu_results:
                     typer.echo("\nGPU Performance:")
                     typer.echo(f"  Score: {gpu_results.get('score', 0):.1f}")
-                    typer.echo(f"  Memory usage: {gpu_results.get('memory_usage', 0):.1f}%")
+                    typer.echo(
+                        f"  Memory usage: {gpu_results.get('memory_usage', 0):.1f}%"
+                    )
 
                 # Audio processing benchmark
-                audio_results = results.get('audio', {})
+                audio_results = results.get("audio", {})
                 if audio_results:
                     typer.echo("\nAudio Processing:")
-                    typer.echo(f"  Real-time factor: {audio_results.get('real_time_factor', 0):.2f}x")
-                    typer.echo(f"  Quality score: {audio_results.get('quality_score', 0):.1f}/10")
+                    typer.echo(
+                        f"  Real-time factor: {audio_results.get('real_time_factor', 0):.2f}x"
+                    )
+                    typer.echo(
+                        f"  Quality score: {audio_results.get('quality_score', 0):.1f}/10"
+                    )
 
                 # Overall rating
-                overall_rating = results.get('overall_rating', 'Unknown')
+                overall_rating = results.get("overall_rating", "Unknown")
                 typer.echo(f"\nOverall System Rating: {overall_rating}")
 
                 # Recommendations
-                recommendations = results.get('recommendations', [])
+                recommendations = results.get("recommendations", [])
                 if recommendations:
                     typer.echo("\nRecommendations:")
                     for rec in recommendations:

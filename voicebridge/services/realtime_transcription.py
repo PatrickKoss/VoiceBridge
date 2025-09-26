@@ -118,7 +118,9 @@ class RealtimeTranscriptionService:
                     if not first_chunk_received:
                         elapsed = time.time() - startup_time
                         if elapsed > max_startup_wait:
-                            self.logger.error("No audio input received after 5 seconds. Audio device may not be available.")
+                            self.logger.error(
+                                "No audio input received after 5 seconds. Audio device may not be available."
+                            )
                             break
                     continue
                 except Exception as e:

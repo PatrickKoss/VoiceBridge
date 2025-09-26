@@ -66,13 +66,21 @@ class PlatformClipboardService(ClipboardService):
                             # Use PowerShell Set-Clipboard through WSL interop
                             escaped_text = text.replace("'", "''")
                             result = subprocess.run(
-                                ["powershell.exe", "-command", f"Set-Clipboard -Value '{escaped_text}'"],
+                                [
+                                    "powershell.exe",
+                                    "-command",
+                                    f"Set-Clipboard -Value '{escaped_text}'",
+                                ],
                                 capture_output=True,
                                 timeout=5,
                             )
                             if result.returncode == 0:
                                 return True
-                        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+                        except (
+                            subprocess.CalledProcessError,
+                            subprocess.TimeoutExpired,
+                            FileNotFoundError,
+                        ):
                             pass
 
                         # Try clip.exe as fallback
@@ -85,7 +93,11 @@ class PlatformClipboardService(ClipboardService):
                             )
                             if result.returncode == 0:
                                 return True
-                        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+                        except (
+                            subprocess.CalledProcessError,
+                            subprocess.TimeoutExpired,
+                            FileNotFoundError,
+                        ):
                             pass
 
                         # Try clip.exe via direct Windows path
@@ -98,7 +110,11 @@ class PlatformClipboardService(ClipboardService):
                             )
                             if result.returncode == 0:
                                 return True
-                        except (subprocess.CalledProcessError, subprocess.TimeoutExpired, FileNotFoundError):
+                        except (
+                            subprocess.CalledProcessError,
+                            subprocess.TimeoutExpired,
+                            FileNotFoundError,
+                        ):
                             pass
             except OSError:
                 pass
@@ -113,9 +129,11 @@ class PlatformClipboardService(ClipboardService):
                         cmd,
                         stdin=subprocess.PIPE,
                         stdout=subprocess.PIPE,
-                        stderr=subprocess.PIPE
+                        stderr=subprocess.PIPE,
                     )
-                    stdout, stderr = process.communicate(input=text.encode("utf-8"), timeout=5)
+                    stdout, stderr = process.communicate(
+                        input=text.encode("utf-8"), timeout=5
+                    )
                     return process.returncode == 0
                 except subprocess.TimeoutExpired:
                     # If this clipboard tool times out, kill it and try the next one
@@ -129,7 +147,7 @@ class PlatformClipboardService(ClipboardService):
                         try:
                             process.kill()
                             process.wait()
-                        except:
+                        except Exception:
                             pass
                     continue
         return False

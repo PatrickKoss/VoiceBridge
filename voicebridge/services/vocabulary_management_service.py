@@ -2,7 +2,6 @@
 Vocabulary management service for CLI operations.
 """
 
-
 from voicebridge.adapters.vocabulary import VocabularyAdapter
 from voicebridge.domain.models import VocabularyConfig
 from voicebridge.ports.interfaces import Logger
@@ -23,7 +22,7 @@ class VocabularyManagementService(VocabularyManagementServiceInterface):
         words: list[str],
         vocabulary_type: str = "custom",
         profile: str = "default",
-        weight: float = 1.0
+        weight: float = 1.0,
     ) -> bool:
         """Add words to vocabulary."""
         try:
@@ -54,7 +53,9 @@ class VocabularyManagementService(VocabularyManagementServiceInterface):
             # Save updated configuration
             self.vocabulary_adapter.save_vocabulary_config(config, profile)
 
-            self.logger.info(f"Added {len(words)} words to {vocabulary_type} vocabulary for profile {profile}")
+            self.logger.info(
+                f"Added {len(words)} words to {vocabulary_type} vocabulary for profile {profile}"
+            )
             return True
 
         except Exception as e:
@@ -65,7 +66,7 @@ class VocabularyManagementService(VocabularyManagementServiceInterface):
         self,
         words: list[str],
         vocabulary_type: str = "custom",
-        profile: str = "default"
+        profile: str = "default",
     ) -> bool:
         """Remove words from vocabulary."""
         try:
@@ -78,18 +79,24 @@ class VocabularyManagementService(VocabularyManagementServiceInterface):
             elif vocabulary_type == "proper_nouns":
                 config.proper_nouns = [w for w in config.proper_nouns if w not in words]
             elif vocabulary_type == "technical":
-                config.technical_jargon = [w for w in config.technical_jargon if w not in words]
+                config.technical_jargon = [
+                    w for w in config.technical_jargon if w not in words
+                ]
             else:
                 # Domain terms
                 if vocabulary_type in config.domain_terms:
                     config.domain_terms[vocabulary_type] = [
-                        w for w in config.domain_terms[vocabulary_type] if w not in words
+                        w
+                        for w in config.domain_terms[vocabulary_type]
+                        if w not in words
                     ]
 
             # Save updated configuration
             self.vocabulary_adapter.save_vocabulary_config(config, profile)
 
-            self.logger.info(f"Removed {len(words)} words from {vocabulary_type} vocabulary for profile {profile}")
+            self.logger.info(
+                f"Removed {len(words)} words from {vocabulary_type} vocabulary for profile {profile}"
+            )
             return True
 
         except Exception as e:
@@ -97,9 +104,7 @@ class VocabularyManagementService(VocabularyManagementServiceInterface):
             return False
 
     def list_vocabularies(
-        self,
-        vocabulary_type: str | None = None,
-        profile: str = "default"
+        self, vocabulary_type: str | None = None, profile: str = "default"
     ) -> dict[str, list[str]]:
         """List vocabulary words."""
         try:
@@ -130,12 +135,14 @@ class VocabularyManagementService(VocabularyManagementServiceInterface):
         file_path: str,
         vocabulary_type: str = "custom",
         profile: str = "default",
-        format: str = "txt"
+        format: str = "txt",
     ) -> bool:
         """Import vocabulary from file."""
         try:
             # Import words from file
-            words = self.vocabulary_adapter.import_vocabulary_from_file(file_path, vocabulary_type)
+            words = self.vocabulary_adapter.import_vocabulary_from_file(
+                file_path, vocabulary_type
+            )
 
             if not words:
                 self.logger.warning(f"No words found in file: {file_path}")
@@ -185,7 +192,7 @@ class VocabularyManagementService(VocabularyManagementServiceInterface):
         profile: str = "default",
         boost_factor: float | None = None,
         enable_fuzzy_matching: bool | None = None,
-        phonetic_mappings: dict[str, str] | None = None
+        phonetic_mappings: dict[str, str] | None = None,
     ) -> bool:
         """Update vocabulary configuration settings."""
         try:

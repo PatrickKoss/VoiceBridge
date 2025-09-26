@@ -1,9 +1,6 @@
 """E2E tests for GPU and system commands."""
 
 
-from .conftest_e2e import *
-
-
 class TestGPUCommands:
     """Test GPU and system command functionality."""
 
@@ -24,9 +21,18 @@ class TestGPUCommands:
 
         # Should show GPU information (even if no GPU detected)
         output_lower = result.stdout.lower()
-        assert any(info in output_lower for info in [
-            "gpu", "device", "status", "cuda", "metal", "available", "not found"
-        ])
+        assert any(
+            info in output_lower
+            for info in [
+                "gpu",
+                "device",
+                "status",
+                "cuda",
+                "metal",
+                "available",
+                "not found",
+            ]
+        )
 
     def test_gpu_status_detailed_output(self, cli_runner):
         """Test GPU status command provides useful information."""
@@ -37,9 +43,18 @@ class TestGPUCommands:
         # Should include system information
         output = result.stdout
         # Look for common GPU status indicators
-        has_gpu_info = any(keyword in output.lower() for keyword in [
-            "cuda", "metal", "opencl", "gpu", "device", "memory", "driver"
-        ])
+        has_gpu_info = any(
+            keyword in output.lower()
+            for keyword in [
+                "cuda",
+                "metal",
+                "opencl",
+                "gpu",
+                "device",
+                "memory",
+                "driver",
+            ]
+        )
         assert has_gpu_info, "GPU status should provide device information"
 
     def test_gpu_benchmark_command_structure(self, cli_runner):
@@ -75,12 +90,15 @@ class TestGPUCommandsValidation:
     def test_gpu_subcommand_availability(self, cli_runner):
         """Test that GPU subcommands are properly available."""
         # Test invalid subcommand
-        result = cli_runner.run("gpu invalid_subcommand", timeout=10, expect_failure=True)
+        result = cli_runner.run(
+            "gpu invalid_subcommand", timeout=10, expect_failure=True
+        )
 
         assert result.failed, "Should fail with invalid subcommand"
-        assert any(msg in result.stderr.lower() for msg in [
-            "no such command", "invalid", "not found", "available commands"
-        ])
+        assert any(
+            msg in result.stderr.lower()
+            for msg in ["no such command", "invalid", "not found", "available commands"]
+        )
 
 
 class TestGPUCommandsSmokeTests:
@@ -130,10 +148,16 @@ class TestGPUSystemIntegration:
         output = result.stdout.lower()
 
         # Should mention at least one of the GPU technologies or indicate none available
-        gpu_mentions = sum(1 for tech in ["cuda", "metal", "opencl", "gpu"] if tech in output)
-        no_gpu_mentions = sum(1 for msg in ["not available", "not found", "disabled"] if msg in output)
+        gpu_mentions = sum(
+            1 for tech in ["cuda", "metal", "opencl", "gpu"] if tech in output
+        )
+        no_gpu_mentions = sum(
+            1 for msg in ["not available", "not found", "disabled"] if msg in output
+        )
 
-        assert gpu_mentions > 0 or no_gpu_mentions > 0, "Should indicate GPU availability status"
+        assert gpu_mentions > 0 or no_gpu_mentions > 0, (
+            "Should indicate GPU availability status"
+        )
 
     def test_gpu_benchmark_help_comprehensive(self, cli_runner):
         """Test that GPU benchmark help is comprehensive."""

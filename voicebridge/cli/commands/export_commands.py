@@ -34,7 +34,9 @@ class ExportCommands(BaseCommands):
                 output_format = OutputFormat(format.lower())
             except ValueError:
                 available = [f.value for f in OutputFormat]
-                display_error(f"Invalid format '{format}'. Available: {', '.join(available)}")
+                display_error(
+                    f"Invalid format '{format}'. Available: {', '.join(available)}"
+                )
                 return
 
             # Validate timestamp mode
@@ -42,7 +44,9 @@ class ExportCommands(BaseCommands):
                 ts_mode = TimestampMode(timestamp_mode.lower())
             except ValueError:
                 available = [m.value for m in TimestampMode]
-                display_error(f"Invalid timestamp mode '{timestamp_mode}'. Available: {', '.join(available)}")
+                display_error(
+                    f"Invalid timestamp mode '{timestamp_mode}'. Available: {', '.join(available)}"
+                )
                 return
 
             # Create export config
@@ -58,8 +62,8 @@ class ExportCommands(BaseCommands):
 
             result = self.export_service.export_session(session_id, export_config)
 
-            if result and result.get('success'):
-                output_path = result.get('output_path')
+            if result and result.get("success"):
+                output_path = result.get("output_path")
                 display_progress(f"Export completed: {output_path}", finished=True)
 
                 # Show file info
@@ -67,12 +71,14 @@ class ExportCommands(BaseCommands):
                     file_size = Path(output_path).stat().st_size
                     typer.echo(f"  File size: {file_size:,} bytes")
 
-                    if format in ['srt', 'vtt']:
+                    if format in ["srt", "vtt"]:
                         # Show subtitle-specific info
                         lines = len(Path(output_path).read_text().splitlines())
                         typer.echo(f"  Lines: {lines}")
             else:
-                error_msg = result.get('error', 'Unknown error') if result else 'Export failed'
+                error_msg = (
+                    result.get("error", "Unknown error") if result else "Export failed"
+                )
                 display_error(f"Export failed: {error_msg}")
 
         except Exception as e:
@@ -84,14 +90,14 @@ class ExportCommands(BaseCommands):
         typer.echo()
 
         formats = {
-            'txt': 'Plain text transcription',
-            'json': 'JSON with metadata and timestamps',
-            'srt': 'SubRip subtitle format',
-            'vtt': 'WebVTT subtitle format',
-            'csv': 'Comma-separated values',
-            'xml': 'XML format with structure',
-            'docx': 'Microsoft Word document',
-            'pdf': 'PDF document',
+            "txt": "Plain text transcription",
+            "json": "JSON with metadata and timestamps",
+            "srt": "SubRip subtitle format",
+            "vtt": "WebVTT subtitle format",
+            "csv": "Comma-separated values",
+            "xml": "XML format with structure",
+            "docx": "Microsoft Word document",
+            "pdf": "PDF document",
         }
 
         for fmt, description in formats.items():
@@ -124,7 +130,9 @@ class ExportCommands(BaseCommands):
                 output_format = OutputFormat(format.lower())
             except ValueError:
                 available = [f.value for f in OutputFormat]
-                display_error(f"Invalid format '{format}'. Available: {', '.join(available)}")
+                display_error(
+                    f"Invalid format '{format}'. Available: {', '.join(available)}"
+                )
                 return
 
             output_path = Path(output_dir)
@@ -156,8 +164,8 @@ class ExportCommands(BaseCommands):
             failed = 0
 
             for i, session in enumerate(sessions, 1):
-                session_id = session.get('id')
-                session_name = session.get('name', f'session_{session_id}')
+                session_id = session.get("id")
+                session_name = session.get("name", f"session_{session_id}")
 
                 # Set output file for this session
                 filename = f"{session_name}.{format}"
@@ -166,12 +174,16 @@ class ExportCommands(BaseCommands):
                 typer.echo(f"  [{i}/{len(sessions)}] Exporting {session_name}...")
 
                 try:
-                    result = self.export_service.export_session(session_id, export_config)
-                    if result and result.get('success'):
+                    result = self.export_service.export_session(
+                        session_id, export_config
+                    )
+                    if result and result.get("success"):
                         successful += 1
                     else:
                         failed += 1
-                        typer.echo(f"    ❌ Failed: {result.get('error', 'Unknown error') if result else 'Export failed'}")
+                        typer.echo(
+                            f"    ❌ Failed: {result.get('error', 'Unknown error') if result else 'Export failed'}"
+                        )
                 except Exception as e:
                     failed += 1
                     typer.echo(f"    ❌ Error: {e}")
@@ -200,9 +212,7 @@ class ExportCommands(BaseCommands):
             display_progress(f"Analyzing confidence for session {session_id}...")
 
             analysis = self.confidence_analyzer.analyze_session(
-                session_id,
-                detailed=detailed,
-                threshold=threshold
+                session_id, detailed=detailed, threshold=threshold
             )
 
             if analysis:
@@ -210,54 +220,68 @@ class ExportCommands(BaseCommands):
                 typer.echo("=" * 50)
 
                 # Overall metrics
-                overall = analysis.get('overall', {})
+                overall = analysis.get("overall", {})
                 typer.echo(f"Overall Confidence: {overall.get('average', 0):.1%}")
                 typer.echo(f"Minimum Confidence: {overall.get('minimum', 0):.1%}")
                 typer.echo(f"Maximum Confidence: {overall.get('maximum', 0):.1%}")
                 typer.echo(f"Standard Deviation: {overall.get('std_dev', 0):.1%}")
 
                 # Quality categories
-                categories = analysis.get('categories', {})
+                categories = analysis.get("categories", {})
                 if categories:
                     typer.echo("\nQuality Distribution:")
-                    typer.echo(f"  High Confidence (>{threshold:.0%}): {categories.get('high', 0)} segments")
-                    typer.echo(f"  Medium Confidence: {categories.get('medium', 0)} segments")
-                    typer.echo(f"  Low Confidence (<{threshold:.0%}): {categories.get('low', 0)} segments")
+                    typer.echo(
+                        f"  High Confidence (>{threshold:.0%}): {categories.get('high', 0)} segments"
+                    )
+                    typer.echo(
+                        f"  Medium Confidence: {categories.get('medium', 0)} segments"
+                    )
+                    typer.echo(
+                        f"  Low Confidence (<{threshold:.0%}): {categories.get('low', 0)} segments"
+                    )
 
                 # Problematic segments
-                low_confidence = analysis.get('low_confidence_segments', [])
+                low_confidence = analysis.get("low_confidence_segments", [])
                 if low_confidence:
                     typer.echo(f"\nLow Confidence Segments ({len(low_confidence)}):")
-                    for i, segment in enumerate(low_confidence[:10], 1):  # Show first 10
-                        timestamp = segment.get('timestamp', 'Unknown')
-                        confidence = segment.get('confidence', 0)
-                        text_preview = segment.get('text', '')[:50]
-                        typer.echo(f"  {i:2d}. [{timestamp}] {confidence:.1%} - {text_preview}...")
+                    for i, segment in enumerate(
+                        low_confidence[:10], 1
+                    ):  # Show first 10
+                        timestamp = segment.get("timestamp", "Unknown")
+                        confidence = segment.get("confidence", 0)
+                        text_preview = segment.get("text", "")[:50]
+                        typer.echo(
+                            f"  {i:2d}. [{timestamp}] {confidence:.1%} - {text_preview}..."
+                        )
 
                     if len(low_confidence) > 10:
                         typer.echo(f"  ... and {len(low_confidence) - 10} more")
 
                 # Detailed analysis
-                if detailed and 'detailed' in analysis:
-                    detailed_info = analysis['detailed']
+                if detailed and "detailed" in analysis:
+                    detailed_info = analysis["detailed"]
 
                     # Language detection confidence
-                    if 'language_confidence' in detailed_info:
-                        lang = detailed_info['language_confidence']
+                    if "language_confidence" in detailed_info:
+                        lang = detailed_info["language_confidence"]
                         typer.echo("\nLanguage Detection:")
                         typer.echo(f"  Detected: {lang.get('language', 'Unknown')}")
                         typer.echo(f"  Confidence: {lang.get('confidence', 0):.1%}")
 
                     # Word-level analysis
-                    if 'word_analysis' in detailed_info:
-                        words = detailed_info['word_analysis']
+                    if "word_analysis" in detailed_info:
+                        words = detailed_info["word_analysis"]
                         typer.echo("\nWord-Level Analysis:")
                         typer.echo(f"  Total words: {words.get('total_words', 0)}")
-                        typer.echo(f"  Low confidence words: {words.get('low_confidence_words', 0)}")
-                        typer.echo(f"  Average word confidence: {words.get('average_confidence', 0):.1%}")
+                        typer.echo(
+                            f"  Low confidence words: {words.get('low_confidence_words', 0)}"
+                        )
+                        typer.echo(
+                            f"  Average word confidence: {words.get('average_confidence', 0):.1%}"
+                        )
 
                 # Recommendations
-                recommendations = analysis.get('recommendations', [])
+                recommendations = analysis.get("recommendations", [])
                 if recommendations:
                     typer.echo("\nRecommendations:")
                     for rec in recommendations:
@@ -285,18 +309,18 @@ class ExportCommands(BaseCommands):
             display_info(f"Analyzing {len(sessions)} sessions...")
 
             overall_stats = {
-                'total_sessions': len(sessions),
-                'high_quality': 0,
-                'medium_quality': 0,
-                'low_quality': 0,
-                'total_confidence': 0,
+                "total_sessions": len(sessions),
+                "high_quality": 0,
+                "medium_quality": 0,
+                "low_quality": 0,
+                "total_confidence": 0,
             }
 
             session_results = []
 
             for i, session in enumerate(sessions, 1):
-                session_id = session.get('id')
-                session_name = session.get('name', f'session_{session_id}')
+                session_id = session.get("id")
+                session_name = session.get("name", f"session_{session_id}")
 
                 typer.echo(f"  [{i}/{len(sessions)}] {session_name}...")
 
@@ -306,46 +330,56 @@ class ExportCommands(BaseCommands):
                     )
 
                     if analysis:
-                        overall = analysis.get('overall', {})
-                        avg_confidence = overall.get('average', 0)
-                        overall_stats['total_confidence'] += avg_confidence
+                        overall = analysis.get("overall", {})
+                        avg_confidence = overall.get("average", 0)
+                        overall_stats["total_confidence"] += avg_confidence
 
                         if avg_confidence >= 0.8:
-                            overall_stats['high_quality'] += 1
-                            quality = 'High'
+                            overall_stats["high_quality"] += 1
+                            quality = "High"
                         elif avg_confidence >= threshold:
-                            overall_stats['medium_quality'] += 1
-                            quality = 'Medium'
+                            overall_stats["medium_quality"] += 1
+                            quality = "Medium"
                         else:
-                            overall_stats['low_quality'] += 1
-                            quality = 'Low'
+                            overall_stats["low_quality"] += 1
+                            quality = "Low"
 
-                        session_results.append({
-                            'name': session_name,
-                            'id': session_id,
-                            'confidence': avg_confidence,
-                            'quality': quality,
-                        })
+                        session_results.append(
+                            {
+                                "name": session_name,
+                                "id": session_id,
+                                "confidence": avg_confidence,
+                                "quality": quality,
+                            }
+                        )
 
                 except Exception as e:
                     typer.echo(f"    ❌ Error analyzing {session_name}: {e}")
 
             # Show summary
-            avg_confidence = overall_stats['total_confidence'] / len(sessions) if sessions else 0
+            avg_confidence = (
+                overall_stats["total_confidence"] / len(sessions) if sessions else 0
+            )
 
             typer.echo("\nOverall Analysis Summary:")
             typer.echo("=" * 50)
             typer.echo(f"Total Sessions: {overall_stats['total_sessions']}")
             typer.echo(f"Average Confidence: {avg_confidence:.1%}")
             typer.echo(f"High Quality (≥80%): {overall_stats['high_quality']}")
-            typer.echo(f"Medium Quality (≥{threshold:.0%}): {overall_stats['medium_quality']}")
-            typer.echo(f"Low Quality (<{threshold:.0%}): {overall_stats['low_quality']}")
+            typer.echo(
+                f"Medium Quality (≥{threshold:.0%}): {overall_stats['medium_quality']}"
+            )
+            typer.echo(
+                f"Low Quality (<{threshold:.0%}): {overall_stats['low_quality']}"
+            )
 
             # Show problematic sessions
-            low_quality_sessions = [s for s in session_results if s['quality'] == 'Low']
+            low_quality_sessions = [s for s in session_results if s["quality"] == "Low"]
             if low_quality_sessions:
                 typer.echo(f"\nSessions Needing Review ({len(low_quality_sessions)}):")
-                for session in sorted(low_quality_sessions, key=lambda x: x['confidence']):
+                for session in sorted(
+                    low_quality_sessions, key=lambda x: x["confidence"]
+                ):
                     typer.echo(f"  • {session['name']}: {session['confidence']:.1%}")
 
         except Exception as e:
@@ -365,7 +399,9 @@ class ExportCommands(BaseCommands):
         try:
             # Validate thresholds
             if not (0 <= low_threshold <= review_threshold <= high_threshold <= 1):
-                display_error("Thresholds must be in order: 0 ≤ low ≤ review ≤ high ≤ 1")
+                display_error(
+                    "Thresholds must be in order: 0 ≤ low ≤ review ≤ high ≤ 1"
+                )
                 return
 
             success = self.confidence_analyzer.set_thresholds(
@@ -399,9 +435,7 @@ class ExportCommands(BaseCommands):
             display_progress(f"Generating confidence report for {session_id}...")
 
             report = self.confidence_analyzer.generate_report(
-                session_id,
-                include_segments=include_segments,
-                format=format
+                session_id, include_segments=include_segments, format=format
             )
 
             if report:
@@ -409,12 +443,14 @@ class ExportCommands(BaseCommands):
 
                 if format == "json":
                     import json
-                    with open(output_path, 'w') as f:
+
+                    with open(output_path, "w") as f:
                         json.dump(report, f, indent=2)
                 elif format == "csv":
                     import csv
+
                     # Convert report to CSV format
-                    with open(output_path, 'w', newline='') as f:
+                    with open(output_path, "w", newline="") as f:
                         csv.writer(f)
                         # Write headers and data based on report structure
                         # This would need implementation based on report format

@@ -2,8 +2,6 @@
 
 import pytest
 
-from .conftest_e2e import *
-
 
 class TestSTTSmokeTests:
     """Quick smoke tests to validate basic STT functionality."""
@@ -69,15 +67,16 @@ class TestSTTSmokeBasicWorkflow:
         """Test basic transcribe command structure validation."""
         # Test with non-existent file for quick validation (avoid model loading timeout)
         result = cli_runner.run_stt(
-            "transcribe", "nonexistent_audio.wav",
-            expect_failure=True,
-            timeout=10
+            "transcribe", "nonexistent_audio.wav", expect_failure=True, timeout=10
         )
 
         # Should fail quickly with file not found error, not timeout
         assert result.failed, "Should fail with file not found error"
         # Check that command structure is recognized (not syntax error)
-        assert "not found" in result.stderr.lower() or "no such file" in result.stderr.lower()
+        assert (
+            "not found" in result.stderr.lower()
+            or "no such file" in result.stderr.lower()
+        )
 
     def test_basic_config_workflow(self, cli_runner):
         """Test basic configuration workflow."""
@@ -86,16 +85,14 @@ class TestSTTSmokeBasicWorkflow:
         assert show_result.success, f"Config show failed: {show_result.stderr}"
 
         # Set a simple config value
-        set_result = cli_runner.run_stt(
-            "config", "set", "model", "tiny",
-            timeout=10
-        )
+        set_result = cli_runner.run_stt("config", "set", "model", "tiny", timeout=10)
         assert set_result.success, f"Config set failed: {set_result.stderr}"
 
     def test_environment_isolation(self, cli_runner):
         """Test that test environment is properly isolated."""
         # Check that test environment variables are set
         import os
+
         assert os.environ.get("VOICEBRIDGE_TEST_MODE") == "1"
         assert os.environ.get("VOICEBRIDGE_DISABLE_AUDIO") == "1"
 
@@ -121,19 +118,30 @@ class TestSTTSmokeIntegration:
             ("config", "show"),
             ("sessions", "list"),
             ("performance", "stats"),
-            ("operations", "list")
+            ("operations", "list"),
         ]
 
         for cmd, subcmd in commands:
             result = cli_runner.run_stt(cmd, subcmd, timeout=10)
-            assert result.success, f"Command 'stt {cmd} {subcmd}' failed: {result.stderr}"
+            assert result.success, (
+                f"Command 'stt {cmd} {subcmd}' failed: {result.stderr}"
+            )
 
     def test_help_commands_comprehensive(self, cli_runner):
         """Test help for all major STT subcommands."""
         subcommands = [
-            "transcribe", "batch-transcribe", "config", "sessions",
-            "performance", "operations", "export", "confidence",
-            "vocabulary", "postproc", "webhook", "profile"
+            "transcribe",
+            "batch-transcribe",
+            "config",
+            "sessions",
+            "performance",
+            "operations",
+            "export",
+            "confidence",
+            "vocabulary",
+            "postproc",
+            "webhook",
+            "profile",
         ]
 
         for subcmd in subcommands:

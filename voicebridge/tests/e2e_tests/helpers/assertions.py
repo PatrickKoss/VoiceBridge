@@ -12,11 +12,13 @@ class E2EAssertions:
     """Custom assertion helpers for E2E tests."""
 
     @staticmethod
-    def assert_command_success(result: CLIResult,
-                             expected_in_stdout: list[str] | None = None,
-                             expected_in_stderr: list[str] | None = None):
+    def assert_command_success(
+        result: CLIResult,
+        expected_in_stdout: list[str] | None = None,
+        expected_in_stderr: list[str] | None = None,
+    ):
         """Assert command succeeded with optional output checks.
-        
+
         Args:
             result: CLI result to check
             expected_in_stdout: Strings that should be in stdout
@@ -27,23 +29,23 @@ class E2EAssertions:
         if expected_in_stdout:
             for expected in expected_in_stdout:
                 assert expected in result.stdout, (
-                    f"Expected '{expected}' in stdout.\n"
-                    f"STDOUT: {result.stdout}"
+                    f"Expected '{expected}' in stdout.\nSTDOUT: {result.stdout}"
                 )
 
         if expected_in_stderr:
             for expected in expected_in_stderr:
                 assert expected in result.stderr, (
-                    f"Expected '{expected}' in stderr.\n"
-                    f"STDERR: {result.stderr}"
+                    f"Expected '{expected}' in stderr.\nSTDERR: {result.stderr}"
                 )
 
     @staticmethod
-    def assert_command_failure(result: CLIResult,
-                             expected_exit_code: int | None = None,
-                             expected_error_message: str | None = None):
+    def assert_command_failure(
+        result: CLIResult,
+        expected_exit_code: int | None = None,
+        expected_error_message: str | None = None,
+    ):
         """Assert command failed with optional checks.
-        
+
         Args:
             result: CLI result to check
             expected_exit_code: Expected exit code
@@ -60,7 +62,7 @@ class E2EAssertions:
     @staticmethod
     def assert_help_output(result: CLIResult, command_name: str):
         """Assert help output is properly formatted.
-        
+
         Args:
             result: CLI result from --help command
             command_name: Expected command name in help
@@ -69,7 +71,8 @@ class E2EAssertions:
 
         # Strip ANSI color codes for easier pattern matching
         import re
-        clean_output = re.sub(r'\x1b\[[0-9;]*m', '', result.stdout)
+
+        clean_output = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
         clean_output_lower = clean_output.lower()
 
         # Common help patterns (flexible to handle Rich CLI formatting)
@@ -103,16 +106,18 @@ class E2EAssertions:
             )
 
     @staticmethod
-    def assert_json_output(result: CLIResult,
-                          expected_keys: list[str] | None = None,
-                          expected_values: dict[str, Any] | None = None) -> dict:
+    def assert_json_output(
+        result: CLIResult,
+        expected_keys: list[str] | None = None,
+        expected_values: dict[str, Any] | None = None,
+    ) -> dict:
         """Assert output is valid JSON with optional key/value checks.
-        
+
         Args:
             result: CLI result with JSON output
             expected_keys: Keys that should exist in JSON
             expected_values: Key-value pairs that should match
-            
+
         Returns:
             Parsed JSON data
         """
@@ -122,9 +127,8 @@ class E2EAssertions:
             data = json.loads(result.stdout.strip())
         except json.JSONDecodeError as e:
             raise AssertionError(
-                f"Invalid JSON output: {e}\n"
-                f"STDOUT: {result.stdout}"
-            )
+                f"Invalid JSON output: {e}\nSTDOUT: {result.stdout}"
+            ) from e
 
         if expected_keys:
             for key in expected_keys:
@@ -138,18 +142,19 @@ class E2EAssertions:
             for key, expected_value in expected_values.items():
                 assert key in data, f"Key '{key}' not found in JSON output"
                 assert data[key] == expected_value, (
-                    f"Expected {key}={expected_value}, got {data[key]}\n"
-                    f"JSON: {data}"
+                    f"Expected {key}={expected_value}, got {data[key]}\nJSON: {data}"
                 )
 
         return data
 
     @staticmethod
-    def assert_file_created(file_path: str | Path,
-                           min_size: int | None = None,
-                           contains: list[str] | None = None):
+    def assert_file_created(
+        file_path: str | Path,
+        min_size: int | None = None,
+        contains: list[str] | None = None,
+    ):
         """Assert file was created with optional content checks.
-        
+
         Args:
             file_path: Path to file that should exist
             min_size: Minimum file size in bytes
@@ -170,15 +175,15 @@ class E2EAssertions:
             content = path.read_text()
             for expected in contains:
                 assert expected in content, (
-                    f"Expected '{expected}' in file {path}\n"
-                    f"Content: {content[:500]}..."
+                    f"Expected '{expected}' in file {path}\nContent: {content[:500]}..."
                 )
 
     @staticmethod
-    def assert_audio_file_created(file_path: str | Path,
-                                 min_duration: float | None = None):
+    def assert_audio_file_created(
+        file_path: str | Path, min_duration: float | None = None
+    ):
         """Assert audio file was created with optional duration check.
-        
+
         Args:
             file_path: Path to audio file
             min_duration: Minimum duration in seconds
@@ -187,7 +192,7 @@ class E2EAssertions:
         E2EAssertions.assert_file_created(path, min_size=100)  # Basic size check
 
         # Check file extension
-        assert path.suffix.lower() in ['.wav', '.mp3', '.m4a', '.flac'], (
+        assert path.suffix.lower() in [".wav", ".mp3", ".m4a", ".flac"], (
             f"Expected audio file extension, got {path.suffix}"
         )
 
@@ -198,27 +203,27 @@ class E2EAssertions:
     @staticmethod
     def assert_transcript_format(result: CLIResult, format_type: str):
         """Assert transcript output is in expected format.
-        
+
         Args:
             result: CLI result with transcript output
             format_type: Expected format ('json', 'srt', 'vtt', 'txt')
         """
         result.assert_success()
 
-        if format_type == 'json':
+        if format_type == "json":
             # Should be valid JSON with transcript structure
             data = E2EAssertions.assert_json_output(result)
             # Basic transcript structure checks
-            if 'segments' in data:
-                assert isinstance(data['segments'], list)
+            if "segments" in data:
+                assert isinstance(data["segments"], list)
 
-        elif format_type == 'srt':
+        elif format_type == "srt":
             # Should have SRT format patterns
             srt_patterns = [
-                r'^\d+$',  # Sequence numbers
-                r'\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}',  # Timestamps
+                r"^\d+$",  # Sequence numbers
+                r"\d{2}:\d{2}:\d{2},\d{3} --> \d{2}:\d{2}:\d{2},\d{3}",  # Timestamps
             ]
-            lines = result.stdout.strip().split('\n')
+            lines = result.stdout.strip().split("\n")
 
             # Check for SRT patterns
             has_sequence = any(re.match(srt_patterns[0], line) for line in lines)
@@ -227,13 +232,13 @@ class E2EAssertions:
             assert has_sequence, "SRT output should contain sequence numbers"
             assert has_timestamps, "SRT output should contain timestamps"
 
-        elif format_type == 'vtt':
+        elif format_type == "vtt":
             # Should start with WEBVTT
-            assert result.stdout.startswith('WEBVTT'), (
+            assert result.stdout.startswith("WEBVTT"), (
                 "VTT output should start with 'WEBVTT'"
             )
 
-        elif format_type == 'txt':
+        elif format_type == "txt":
             # Should be plain text (no specific format requirements)
             assert len(result.stdout.strip()) > 0, "Text output should not be empty"
 
@@ -241,10 +246,11 @@ class E2EAssertions:
             raise ValueError(f"Unsupported transcript format: {format_type}")
 
     @staticmethod
-    def assert_configuration_output(result: CLIResult,
-                                   expected_config_keys: list[str] | None = None):
+    def assert_configuration_output(
+        result: CLIResult, expected_config_keys: list[str] | None = None
+    ):
         """Assert configuration command output.
-        
+
         Args:
             result: CLI result from config command
             expected_config_keys: Keys that should be in config output
@@ -252,7 +258,7 @@ class E2EAssertions:
         result.assert_success()
 
         # Config output could be JSON or human-readable format
-        if result.stdout.strip().startswith('{'):
+        if result.stdout.strip().startswith("{"):
             # JSON format
             data = E2EAssertions.assert_json_output(result)
             if expected_config_keys:
@@ -279,7 +285,7 @@ class E2EAssertions:
     @staticmethod
     def assert_performance_metrics(result: CLIResult):
         """Assert performance metrics are present in output.
-        
+
         Args:
             result: CLI result with performance output
         """
@@ -287,9 +293,20 @@ class E2EAssertions:
 
         # Look for common performance metrics or indicators of stats command working
         metrics_patterns = [
-            "duration", "speed", "memory", "processing", "time",
-            "stats", "performance", "metrics", "operations",
-            "total", "average", "count", "sessions", "no data"
+            "duration",
+            "speed",
+            "memory",
+            "processing",
+            "time",
+            "stats",
+            "performance",
+            "metrics",
+            "operations",
+            "total",
+            "average",
+            "count",
+            "sessions",
+            "no data",
         ]
 
         output_lower = result.stdout.lower()
@@ -307,7 +324,7 @@ class E2EAssertions:
     @staticmethod
     def assert_session_management(result: CLIResult, operation: str):
         """Assert session management operation output.
-        
+
         Args:
             result: CLI result from session command
             operation: Operation type ('list', 'save', 'load', 'delete', 'cleanup')
@@ -315,11 +332,26 @@ class E2EAssertions:
         result.assert_success()
 
         operation_indicators = {
-            'list': ['session', 'id', 'status', 'no sessions', 'empty', 'found', 'total'],
-            'save': ['saved', 'session'],
-            'load': ['loaded', 'session', 'resumed'],
-            'delete': ['deleted', 'removed', 'session'],
-            'cleanup': ['cleanup', 'cleaned', 'removed', 'session', 'completed', 'done']
+            "list": [
+                "session",
+                "id",
+                "status",
+                "no sessions",
+                "empty",
+                "found",
+                "total",
+            ],
+            "save": ["saved", "session"],
+            "load": ["loaded", "session", "resumed"],
+            "delete": ["deleted", "removed", "session"],
+            "cleanup": [
+                "cleanup",
+                "cleaned",
+                "removed",
+                "session",
+                "completed",
+                "done",
+            ],
         }
 
         if operation in operation_indicators:

@@ -217,19 +217,38 @@ class VocabularyManagementService(ABC):
     """Abstract interface for vocabulary management operations from CLI"""
 
     @abstractmethod
-    def add_words(self, words: list[str], vocabulary_type: str = "custom", profile: str = "default", weight: float = 1.0) -> bool:
+    def add_words(
+        self,
+        words: list[str],
+        vocabulary_type: str = "custom",
+        profile: str = "default",
+        weight: float = 1.0,
+    ) -> bool:
         pass
 
     @abstractmethod
-    def remove_words(self, words: list[str], vocabulary_type: str = "custom", profile: str = "default") -> bool:
+    def remove_words(
+        self,
+        words: list[str],
+        vocabulary_type: str = "custom",
+        profile: str = "default",
+    ) -> bool:
         pass
 
     @abstractmethod
-    def list_vocabularies(self, vocabulary_type: str | None = None, profile: str = "default") -> dict[str, list[str]]:
+    def list_vocabularies(
+        self, vocabulary_type: str | None = None, profile: str = "default"
+    ) -> dict[str, list[str]]:
         pass
 
     @abstractmethod
-    def import_vocabulary(self, file_path: str, vocabulary_type: str = "custom", profile: str = "default", format: str = "txt") -> bool:
+    def import_vocabulary(
+        self,
+        file_path: str,
+        vocabulary_type: str = "custom",
+        profile: str = "default",
+        format: str = "txt",
+    ) -> bool:
         pass
 
     @abstractmethod
