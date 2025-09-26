@@ -1,4 +1,4 @@
-.PHONY: prepare prepare-cuda prepare-tray sync lint test test-fast test-e2e test-e2e-smoke run clean help check-uv check-venv
+.PHONY: prepare prepare-cuda prepare-tray sync lint test test-fast test-e2e test-e2e-smoke test-e2e-stt test-e2e-audio test-e2e-gpu test-e2e-api run clean help check-uv check-venv
 
 help:
 	@echo "Available commands:"
@@ -12,6 +12,9 @@ help:
 	@echo "  test-e2e     - Run comprehensive end-to-end CLI tests"
 	@echo "  test-e2e-smoke - Run quick E2E smoke tests"
 	@echo "  test-e2e-stt - Run STT command E2E tests only"
+	@echo "  test-e2e-audio - Run audio command E2E tests only"
+	@echo "  test-e2e-gpu - Run GPU command E2E tests only"
+	@echo "  test-e2e-api - Run API command E2E tests only"
 	@echo "  run          - Run the VoiceBridge CLI"
 	@echo "  clean        - Clean up cache files and virtual environment"
 
@@ -99,6 +102,45 @@ test-e2e-stt: check-venv
 	   echo "✅ STT E2E tests passed"; \
 	 else \
 	   echo "❌ STT E2E tests failed"; \
+	 fi; \
+	 exit $$status
+
+test-e2e-audio: check-venv
+	@echo "Running audio command E2E tests..."
+	@export VOICEBRIDGE_DISABLE_AUDIO=1; \
+	 export VOICEBRIDGE_TEST_MODE=1; \
+	 .venv/bin/pytest --disable-warnings voicebridge/tests/e2e_tests/test_audio_*.py -v --tb=short; \
+	 status=$$?; \
+	 if [ $$status -eq 0 ]; then \
+	   echo "✅ Audio E2E tests passed"; \
+	 else \
+	   echo "❌ Audio E2E tests failed"; \
+	 fi; \
+	 exit $$status
+
+test-e2e-gpu: check-venv
+	@echo "Running GPU command E2E tests..."
+	@export VOICEBRIDGE_DISABLE_AUDIO=1; \
+	 export VOICEBRIDGE_TEST_MODE=1; \
+	 .venv/bin/pytest --disable-warnings voicebridge/tests/e2e_tests/test_gpu_*.py -v --tb=short; \
+	 status=$$?; \
+	 if [ $$status -eq 0 ]; then \
+	   echo "✅ GPU E2E tests passed"; \
+	 else \
+	   echo "❌ GPU E2E tests failed"; \
+	 fi; \
+	 exit $$status
+
+test-e2e-api: check-venv
+	@echo "Running API command E2E tests..."
+	@export VOICEBRIDGE_DISABLE_AUDIO=1; \
+	 export VOICEBRIDGE_TEST_MODE=1; \
+	 .venv/bin/pytest --disable-warnings voicebridge/tests/e2e_tests/test_api_*.py -v --tb=short; \
+	 status=$$?; \
+	 if [ $$status -eq 0 ]; then \
+	   echo "✅ API E2E tests passed"; \
+	 else \
+	   echo "❌ API E2E tests failed"; \
 	 fi; \
 	 exit $$status
 
