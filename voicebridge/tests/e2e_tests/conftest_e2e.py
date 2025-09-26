@@ -7,7 +7,7 @@ from unittest.mock import patch
 
 import pytest
 
-from .helpers import CLIRunner, AudioFixtureManager, E2EAssertions
+from .helpers import AudioFixtureManager, CLIRunner, E2EAssertions
 
 
 @pytest.fixture(scope="session")
@@ -29,7 +29,7 @@ def e2e_test_env(tmp_path):
     # Environment variables for E2E testing
     test_env = {
         "VOICEBRIDGE_TEST_MODE": "1",
-        "VOICEBRIDGE_DISABLE_AUDIO": "1", 
+        "VOICEBRIDGE_DISABLE_AUDIO": "1",
         "VOICEBRIDGE_NO_GUI": "1",
         "VOICEBRIDGE_NO_HOTKEYS": "1",
         "HOME": str(tmp_path),
@@ -40,7 +40,7 @@ def e2e_test_env(tmp_path):
         # Prevent actual model downloads
         "VOICEBRIDGE_MODEL_CACHE": str(tmp_path / ".cache" / "voicebridge"),
     }
-    
+
     with patch.dict(os.environ, test_env):
         yield tmp_path
 
@@ -56,9 +56,9 @@ def audio_fixtures(e2e_test_env):
     """Set up audio fixture manager."""
     manager = AudioFixtureManager(e2e_test_env)
     fixtures = manager.setup_standard_fixtures()
-    
+
     yield manager, fixtures
-    
+
     # Cleanup
     manager.cleanup_fixtures()
 
@@ -74,7 +74,7 @@ def sample_config():
     """Provide sample configuration for testing."""
     return {
         "whisper": {
-            "model": "tiny", 
+            "model": "tiny",
             "language": "en",
             "temperature": 0.0,
             "use_gpu": False
@@ -99,7 +99,7 @@ def sample_config():
 # E2E-specific test markers
 def pytest_configure(config):
     """Configure E2E-specific pytest markers."""
-    config.addinivalue_line("markers", "e2e_slow: mark E2E test as slow running") 
+    config.addinivalue_line("markers", "e2e_slow: mark E2E test as slow running")
     config.addinivalue_line("markers", "e2e_audio: mark E2E test as requiring audio files")
     config.addinivalue_line("markers", "e2e_batch: mark E2E test as batch processing test")
     config.addinivalue_line("markers", "e2e_config: mark E2E test as configuration test")
@@ -115,25 +115,25 @@ def pytest_collection_modifyitems(config, items):
             for keyword in ["batch", "performance", "long", "stress"]
         ):
             item.add_marker(pytest.mark.e2e_slow)
-            
+
         # Mark audio-related E2E tests
         if any(
-            keyword in item.name.lower() 
+            keyword in item.name.lower()
             for keyword in ["transcribe", "audio", "stt", "tts"]
         ):
             item.add_marker(pytest.mark.e2e_audio)
-            
+
         # Mark batch processing E2E tests
         if "batch" in item.name.lower():
             item.add_marker(pytest.mark.e2e_batch)
-            
+
         # Mark configuration E2E tests
         if any(
             keyword in item.name.lower()
             for keyword in ["config", "profile", "settings"]
         ):
             item.add_marker(pytest.mark.e2e_config)
-            
+
         # Mark session management E2E tests
         if any(
             keyword in item.name.lower()
@@ -146,7 +146,7 @@ def pytest_collection_modifyitems(config, items):
 def e2e_test_cleanup():
     """Auto cleanup for E2E tests."""
     yield
-    
+
     # Kill any stray processes that might have been started
     import subprocess
     try:
@@ -157,7 +157,7 @@ def e2e_test_cleanup():
             timeout=2
         )
         subprocess.run(
-            ["pkill", "-f", "voicebridge.*hotkey"], 
+            ["pkill", "-f", "voicebridge.*hotkey"],
             stderr=subprocess.DEVNULL,
             timeout=2
         )
@@ -169,20 +169,20 @@ def e2e_test_cleanup():
 def mock_whisper_model():
     """Mock Whisper model for testing without actual model loading."""
     from unittest.mock import Mock, patch
-    
+
     mock_model = Mock()
     mock_model.transcribe.return_value = {
         "text": "This is a test transcription.",
         "segments": [
             {
                 "start": 0.0,
-                "end": 3.0, 
+                "end": 3.0,
                 "text": "This is a test transcription.",
                 "confidence": 0.95
             }
         ]
     }
-    
+
     with patch("whisper.load_model", return_value=mock_model):
         yield mock_model
 
@@ -191,13 +191,13 @@ def mock_whisper_model():
 def mock_gpu_unavailable():
     """Mock GPU as unavailable for testing."""
     from unittest.mock import patch
-    
+
     with patch("torch.cuda.is_available", return_value=False), \
          patch("torch.backends.mps.is_available", return_value=False):
         yield
 
 
-@pytest.fixture  
+@pytest.fixture
 def test_audio_file(audio_fixtures):
     """Get a simple test audio file for single-file tests."""
     manager, fixtures = audio_fixtures
@@ -206,13 +206,13 @@ def test_audio_file(audio_fixtures):
 
 @pytest.fixture
 def test_voice_sample(audio_fixtures):
-    """Get a voice sample for TTS testing.""" 
+    """Get a voice sample for TTS testing."""
     manager, fixtures = audio_fixtures
-    
+
     # Return first available voice sample or create a test one
     for key, path in fixtures.items():
         if key.startswith("voice_"):
             return path
-            
+
     # Fallback: create a simple test audio
     return fixtures["short_audio"]

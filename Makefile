@@ -1,4 +1,4 @@
-.PHONY: prepare prepare-cuda prepare-tray sync lint test test-fast test-e2e test-e2e-smoke test-e2e-stt test-e2e-audio test-e2e-gpu test-e2e-api run clean help check-uv check-venv
+.PHONY: prepare prepare-cuda prepare-tray sync lint test test-fast test-e2e test-e2e-smoke test-e2e-stt test-e2e-audio test-e2e-gpu test-e2e-api test-e2e-tts run clean help check-uv check-venv
 
 help:
 	@echo "Available commands:"
@@ -15,6 +15,7 @@ help:
 	@echo "  test-e2e-audio - Run audio command E2E tests only"
 	@echo "  test-e2e-gpu - Run GPU command E2E tests only"
 	@echo "  test-e2e-api - Run API command E2E tests only"
+	@echo "  test-e2e-tts - Run TTS command E2E tests only"
 	@echo "  run          - Run the VoiceBridge CLI"
 	@echo "  clean        - Clean up cache files and virtual environment"
 
@@ -141,6 +142,19 @@ test-e2e-api: check-venv
 	   echo "✅ API E2E tests passed"; \
 	 else \
 	   echo "❌ API E2E tests failed"; \
+	 fi; \
+	 exit $$status
+
+test-e2e-tts: check-venv
+	@echo "Running TTS command E2E tests..."
+	@export VOICEBRIDGE_DISABLE_AUDIO=1; \
+	 export VOICEBRIDGE_TEST_MODE=1; \
+	 .venv/bin/pytest --disable-warnings voicebridge/tests/e2e_tests/test_tts_*.py -v --tb=short; \
+	 status=$$?; \
+	 if [ $$status -eq 0 ]; then \
+	   echo "✅ TTS E2E tests passed"; \
+	 else \
+	   echo "❌ TTS E2E tests failed"; \
 	 fi; \
 	 exit $$status
 
