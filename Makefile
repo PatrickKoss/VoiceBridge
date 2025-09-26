@@ -1,4 +1,4 @@
-.PHONY: prepare prepare-cuda prepare-tray sync lint test test-fast test-e2e test-e2e-smoke test-e2e-stt test-e2e-audio test-e2e-gpu test-e2e-api test-e2e-tts run clean help check-uv check-venv
+.PHONY: prepare prepare-cuda prepare-tray sync lint test test-fast test-unit test-e2e test-e2e-smoke test-e2e-stt test-e2e-audio test-e2e-gpu test-e2e-api test-e2e-tts run clean help check-uv check-venv
 
 help:
 	@echo "Available commands:"
@@ -9,6 +9,7 @@ help:
 	@echo "  lint         - Run ruff linting and fix issues"
 	@echo "  test         - Run all tests with coverage"
 	@echo "  test-fast    - Run tests without coverage"
+	@echo "  test-unit    - Run only unit tests (exclude e2e tests)"
 	@echo "  test-e2e     - Run comprehensive end-to-end CLI tests"
 	@echo "  test-e2e-smoke - Run quick E2E smoke tests"
 	@echo "  test-e2e-stt - Run STT command E2E tests only"
@@ -67,6 +68,10 @@ test: check-venv
 test-fast: check-venv
 	@echo "Running tests without coverage..."
 	.venv/bin/pytest voicebridge/tests/
+
+test-unit: check-venv
+	@echo "Running unit tests only (excluding e2e tests)..."
+	.venv/bin/pytest voicebridge/tests/ --ignore=voicebridge/tests/e2e_tests/ --cov=voicebridge --cov-report=term-missing
 
 test-e2e: check-venv
 	@echo "Running comprehensive end-to-end CLI tests..."
