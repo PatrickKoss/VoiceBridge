@@ -126,7 +126,9 @@ class TestEndToEndWorkflow(unittest.TestCase):
         self.assertFalse(status["running"])
 
         # Start daemon (mocked)
-        with patch.object(commands.dependencies["daemon_service"], "start") as mock_start:
+        with patch.object(
+            commands.dependencies["daemon_service"], "start"
+        ) as mock_start:
             config = WhisperConfig()
             commands.dependencies["daemon_service"].start(config)
             mock_start.assert_called_once()
@@ -148,7 +150,9 @@ class TestEndToEndWorkflow(unittest.TestCase):
 
         # Mock system service memory usage to be below limit
         with patch.object(
-            commands.dependencies["transcription_orchestrator"].transcription_service._system_service,
+            commands.dependencies[
+                "transcription_orchestrator"
+            ].transcription_service._system_service,
             "get_memory_usage",
         ) as mock_memory:
             mock_memory.return_value = {"used_mb": 500, "total_mb": 8000}
@@ -156,23 +160,25 @@ class TestEndToEndWorkflow(unittest.TestCase):
             # Mock audio recorder
             audio_data = [b"fake_audio_chunk" * 1000]  # Make it large enough
             with patch.object(
-                commands.dependencies["transcription_orchestrator"].audio_recorder, "record_stream"
+                commands.dependencies["transcription_orchestrator"].audio_recorder,
+                "record_stream",
             ) as mock_record:
                 mock_record.return_value = iter(audio_data)
 
                 # Mock clipboard service
                 with patch.object(
-                    commands.dependencies["transcription_orchestrator"].clipboard_service, "copy_text"
+                    commands.dependencies[
+                        "transcription_orchestrator"
+                    ].clipboard_service,
+                    "copy_text",
                 ) as mock_copy:
                     mock_copy.return_value = True
 
                     # Test transcription
                     config = WhisperConfig(copy_final=True)
-                    result = (
-                        commands.dependencies["transcription_orchestrator"].transcribe_single_recording(
-                            config
-                        )
-                    )
+                    result = commands.dependencies[
+                        "transcription_orchestrator"
+                    ].transcribe_single_recording(config)
 
                     # Verify result
                     self.assertEqual(result, "Hello integration test")

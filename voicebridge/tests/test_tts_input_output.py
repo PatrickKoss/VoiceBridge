@@ -78,9 +78,10 @@ class TestPlatformTextInputAdapter(unittest.TestCase):
         self.pyperclip_mock.paste.side_effect = Exception("Clipboard error")
 
         # Mock os.path.exists and subprocess to prevent WSL fallback
-        with patch("voicebridge.adapters.text_input.os.path.exists", return_value=False), \
-             patch("voicebridge.adapters.text_input.subprocess.run") as mock_subprocess:
-            
+        with (
+            patch("voicebridge.adapters.text_input.os.path.exists", return_value=False),
+            patch("voicebridge.adapters.text_input.subprocess.run"),
+        ):
             adapter = PlatformTextInputAdapter()
             text = adapter.get_clipboard_text()
 
@@ -166,13 +167,13 @@ class TestAudioPlaybackAdapters(unittest.TestCase):
         # Mock pygame
         self.pygame_patcher = patch("voicebridge.adapters.audio_playback.pygame")
         self.pygame_mock = self.pygame_patcher.start()
-        
+
         # Mock pygame as a module with proper callable behavior
         def pygame_callable(*args, **kwargs):
             raise TypeError("pygame() call fails normally")
-        
+
         self.pygame_mock.side_effect = pygame_callable
-        
+
         # Set up pygame mixer mock properly
         self.pygame_mock.mixer = Mock()
         self.pygame_mock.mixer.init.return_value = None
@@ -184,20 +185,22 @@ class TestAudioPlaybackAdapters(unittest.TestCase):
         self.pygame_mock.mixer.music.stop.return_value = None
         self.pygame_mock.mixer.music.load.return_value = None
         self.pygame_mock.mixer.music.play.return_value = None
-        
+
         # Mock pygame.sndarray
         self.pygame_mock.sndarray = Mock()
         mock_sound_from_array = Mock()
         mock_sound_from_array.play.return_value = None
         self.pygame_mock.sndarray.make_sound.return_value = mock_sound_from_array
-        
+
         # Mock pygame.mixer.Sound
         mock_sound = Mock()
         mock_sound.play.return_value = None
         self.pygame_mock.mixer.Sound.return_value = mock_sound
-        
+
         # Also mock PYGAME_AVAILABLE
-        self.pygame_available_patcher = patch("voicebridge.adapters.audio_playback.PYGAME_AVAILABLE", True)
+        self.pygame_available_patcher = patch(
+            "voicebridge.adapters.audio_playback.PYGAME_AVAILABLE", True
+        )
         self.pygame_available_patcher.start()
 
         # Mock pyaudio
@@ -213,11 +216,11 @@ class TestAudioPlaybackAdapters(unittest.TestCase):
     def test_pygame_adapter_init(self):
         """Test pygame adapter initialization."""
         adapter = PygameAudioPlaybackAdapter()
-        
+
         # Test that the adapter was created
         self.assertIsNotNone(adapter)
         self.assertFalse(adapter.is_initialized)
-        
+
         # pygame.mixer.init should not be called during __init__
         # It's called during first _initialize() call
         self.pygame_mock.mixer.init.assert_not_called()
@@ -225,12 +228,12 @@ class TestAudioPlaybackAdapters(unittest.TestCase):
     def test_pygame_adapter_play_audio_data(self):
         """Test playing audio data with pygame - just verify basic functionality."""
         adapter = PygameAudioPlaybackAdapter()
-        
+
         # Test that the adapter exists and has the required methods
-        self.assertTrue(hasattr(adapter, 'play_audio_data'))
-        self.assertTrue(hasattr(adapter, 'is_playing'))
-        self.assertTrue(hasattr(adapter, 'stop_playback'))
-        
+        self.assertTrue(hasattr(adapter, "play_audio_data"))
+        self.assertTrue(hasattr(adapter, "is_playing"))
+        self.assertTrue(hasattr(adapter, "stop_playback"))
+
         # Test basic state
         self.assertFalse(adapter.is_initialized)
         self.assertIsNone(adapter.current_sound)
@@ -273,7 +276,7 @@ class TestAudioPlaybackAdapters(unittest.TestCase):
         self.pygame_mock.mixer.init.side_effect = Exception("Pygame error")
 
         adapter = PygameAudioPlaybackAdapter()
-        
+
         # Exception should happen when calling _initialize (through play_audio_data)
         with self.assertRaises(RuntimeError) as context:
             adapter.play_audio_data(b"test", 24000)

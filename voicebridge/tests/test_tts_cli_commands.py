@@ -46,7 +46,7 @@ class TestTTSCommands(unittest.TestCase):
         # Mock successful TTS generation
         self.mock_tts_orchestrator.generate_tts_from_text.return_value = True
 
-        with patch("typer.echo") as mock_echo:
+        with patch("typer.echo"):
             self.tts_commands.tts_generate("Hello world")
 
         # Verify TTS generation was called
@@ -90,7 +90,9 @@ class TestTTSCommands(unittest.TestCase):
                 self.tts_commands.tts_generate("Hello world")
 
         # Should show error message
-        mock_echo.assert_any_call("Error: TTS generation error: TTS generation failed", err=True)
+        mock_echo.assert_any_call(
+            "Error: TTS generation error: TTS generation failed", err=True
+        )
 
     def test_tts_listen_clipboard_no_orchestrator(self):
         """Test TTS clipboard listening when orchestrator is not available."""
@@ -198,7 +200,9 @@ class TestTTSCommands(unittest.TestCase):
             self.tts_commands.tts_list_voices()
 
         # Should show no voices message (actual message from implementation)
-        mock_echo.assert_any_call("Info: No TTS voices found. Please add voice samples to the voices directory.")
+        mock_echo.assert_any_call(
+            "Info: No TTS voices found. Please add voice samples to the voices directory."
+        )
 
     def test_tts_list_voices_no_orchestrator(self):
         """Test listing TTS voices when orchestrator is not available."""
@@ -220,8 +224,10 @@ class TestTTSCommands(unittest.TestCase):
         """Test showing TTS configuration."""
         # Add required attributes to avoid attribute errors
         self.default_tts_config.voice_samples_dir = "/voices"
-        self.default_tts_config.voice_samples_path = "/voices"  # Add both for compatibility
-        
+        self.default_tts_config.voice_samples_path = (
+            "/voices"  # Add both for compatibility
+        )
+
         with patch("typer.echo") as mock_echo:
             self.tts_commands.tts_config_show()
 

@@ -85,7 +85,9 @@ class TestSTTSmokeBasicWorkflow:
         assert show_result.success, f"Config show failed: {show_result.stderr}"
 
         # Set a simple config value
-        set_result = cli_runner.run_stt("config", "config-set", "model", "tiny", timeout=10)
+        set_result = cli_runner.run_stt(
+            "config", "config-set", "model", "tiny", timeout=10
+        )
         assert set_result.success, f"Config set failed: {set_result.stderr}"
 
     def test_environment_isolation(self, cli_runner):

@@ -303,14 +303,14 @@ class TestTTSDaemonService(unittest.TestCase):
             orchestrator=self.mock_orchestrator,
             logger=self.mock_logger,
         )
-        
+
         # Reset daemon state for clean tests
         self.daemon.is_running = False
         self.daemon.current_config = None
         self.daemon.hotkey_listener = None
         self.daemon.clipboard_monitor_thread = None
         self.daemon.is_monitoring_clipboard = False
-        
+
         # Mock file system operations to prevent actual file creation
         self.daemon._cleanup_daemon_files = Mock()
         self.daemon._write_pid_file = Mock()
@@ -319,13 +319,15 @@ class TestTTSDaemonService(unittest.TestCase):
         self.daemon._start_clipboard_monitoring = Mock()
         self.daemon._cleanup_hotkeys = Mock()
         self.daemon.stop_monitoring = Mock()
-        
+
         # Mock orchestrator methods
         self.mock_orchestrator.start_tts_mode = Mock()
         self.mock_orchestrator.stop_tts = Mock()
-        
+
         # Mock is_daemon_running to return False by default for clean tests
-        self.daemon_running_patcher = patch.object(self.daemon, 'is_daemon_running', return_value=False)
+        self.daemon_running_patcher = patch.object(
+            self.daemon, "is_daemon_running", return_value=False
+        )
         self.daemon_running_patcher.start()
 
     def tearDown(self):
@@ -368,9 +370,9 @@ class TestTTSDaemonService(unittest.TestCase):
     def test_start_daemon_already_running(self):
         """Test starting daemon when already running."""
         config = TTSConfig()
-        
+
         # Mock is_daemon_running to return True for this test
-        with patch.object(self.daemon, 'is_daemon_running', return_value=True):
+        with patch.object(self.daemon, "is_daemon_running", return_value=True):
             with self.assertRaises(RuntimeError) as context:
                 self.daemon.start_daemon(config)
 
@@ -398,7 +400,7 @@ class TestTTSDaemonService(unittest.TestCase):
         # The stop_daemon method doesn't raise an exception when not running
         # It just performs cleanup operations
         self.daemon.stop_daemon()
-        
+
         # Verify cleanup was called
         self.daemon._cleanup_daemon_files.assert_called_once()
         self.assertFalse(self.daemon.is_running)
@@ -409,10 +411,11 @@ class TestTTSDaemonService(unittest.TestCase):
         self.daemon.current_config = TTSConfig(tts_mode=TTSMode.CLIPBOARD)
 
         # Mock is_daemon_running to return True and mock file reading
-        with patch.object(self.daemon, 'is_daemon_running', return_value=True), \
-             patch("builtins.open", create=True) as mock_open, \
-             patch("json.load", return_value={"mode": "clipboard"}):
-            
+        with (
+            patch.object(self.daemon, "is_daemon_running", return_value=True),
+            patch("builtins.open", create=True),
+            patch("json.load", return_value={"mode": "clipboard"}),
+        ):
             status = self.daemon.get_status()
 
             self.assertEqual(status["status"], "running")

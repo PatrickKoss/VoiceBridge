@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from voicebridge.cli.commands.config_commands import ConfigCommands
 from voicebridge.cli.commands.speech_commands import SpeechCommands
-from voicebridge.cli.registry import CommandRegistry, create_command_registry
+from voicebridge.cli.registry import create_command_registry
 from voicebridge.domain.models import WhisperConfig
 
 
@@ -38,8 +38,8 @@ class TestSpeechCommands(unittest.TestCase):
         self.default_config = WhisperConfig(model_name="medium")
         self.mock_config_repo.load.return_value = self.default_config
 
-    @patch('voicebridge.cli.commands.speech_commands.threading')
-    @patch('voicebridge.cli.commands.speech_commands.typer.echo')
+    @patch("voicebridge.cli.commands.speech_commands.threading")
+    @patch("voicebridge.cli.commands.speech_commands.typer.echo")
     def test_listen_basic_setup(self, mock_echo, mock_threading):
         """Test basic listen command setup."""
         # Mock the audio recorder to avoid actual recording
@@ -67,7 +67,7 @@ class TestSpeechCommands(unittest.TestCase):
             config = self.speech_commands._build_config(model="large", language="en")
             self.assertEqual(config.model_name, "large")
             self.assertEqual(config.language, "en")
-        except Exception as e:
+        except Exception:
             # If the method tries to run the actual hotkey loop, we'll get an exception
             # That's expected in a unit test environment
             pass
@@ -86,7 +86,9 @@ class TestSpeechCommands(unittest.TestCase):
                 commands_no_transcription.hotkey()
 
         # Should show an error message
-        mock_echo.assert_called_with("Error: Transcription service not available", err=True)
+        mock_echo.assert_called_with(
+            "Error: Transcription service not available", err=True
+        )
 
 
 class TestConfigCommands(unittest.TestCase):
@@ -153,7 +155,9 @@ class TestConfigCommands(unittest.TestCase):
             self.config_commands.profile_save("test_profile")
 
         # Verify profile was saved
-        self.mock_profile_repo.save_profile.assert_called_once_with("test_profile", self.default_config)
+        self.mock_profile_repo.save_profile.assert_called_once_with(
+            "test_profile", self.default_config
+        )
 
     def test_profile_load_success(self):
         """Test profile load command success."""
@@ -258,14 +262,24 @@ class TestCommandRegistry(unittest.TestCase):
     def test_list_command_groups(self):
         """Test listing all command groups."""
         groups = self.registry.list_command_groups()
-        expected_groups = ["speech", "transcription", "tts", "audio", "system", "config", "export", "advanced", "api"]
+        expected_groups = [
+            "speech",
+            "transcription",
+            "tts",
+            "audio",
+            "system",
+            "config",
+            "export",
+            "advanced",
+            "api",
+        ]
         for group in expected_groups:
             self.assertIn(group, groups)
 
     def test_validate_dependencies(self):
         """Test dependency validation."""
         validation = self.registry.validate_dependencies()
-        
+
         # Core dependencies should be available
         self.assertTrue(validation["config_repo"])
         self.assertTrue(validation["profile_repo"])
@@ -274,9 +288,19 @@ class TestCommandRegistry(unittest.TestCase):
     def test_get_all_command_groups(self):
         """Test getting all command groups."""
         all_groups = self.registry.get_all_command_groups()
-        
+
         # Should contain all expected groups
-        expected_groups = ["speech", "transcription", "tts", "audio", "system", "config", "export", "advanced", "api"]
+        expected_groups = [
+            "speech",
+            "transcription",
+            "tts",
+            "audio",
+            "system",
+            "config",
+            "export",
+            "advanced",
+            "api",
+        ]
         for group in expected_groups:
             self.assertIn(group, all_groups)
             self.assertIsNotNone(all_groups[group])

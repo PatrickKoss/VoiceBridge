@@ -199,7 +199,7 @@ class TestFFmpegAudioRecorder(unittest.TestCase):
                 mock_subprocess.side_effect = subprocess.TimeoutExpired("ffmpeg", 3)
                 with self.assertRaises(RuntimeError) as context:
                     self.recorder._get_default_device()
-                
+
                 # Should raise RuntimeError about PulseAudio timeout
                 self.assertIn("Audio system timeout", str(context.exception))
 
