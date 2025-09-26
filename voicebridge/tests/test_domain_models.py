@@ -38,7 +38,7 @@ class TestWhisperConfig(unittest.TestCase):
         self.assertIsNone(config.initial_prompt)
         self.assertEqual(config.temperature, 0.0)
         self.assertEqual(config.mode, OperationMode.TOGGLE)
-        self.assertEqual(config.key, "f9")
+        self.assertEqual(config.key, "ctrl+f2")
         self.assertFalse(config.paste_stream)
         self.assertTrue(config.copy_final)
         self.assertFalse(config.debug)
@@ -184,8 +184,8 @@ class TestTTSConfig(unittest.TestCase):
         """Test default TTS configuration values."""
         config = TTSConfig()
 
-        self.assertEqual(config.model_path, "WestZhang/VibeVoice-Large-pt")
-        self.assertEqual(config.voice_samples_dir, "demo/voices")
+        self.assertEqual(config.model_path, "aoi-ot/VibeVoice-7B")
+        self.assertEqual(config.voice_samples_dir, "voices")
         self.assertEqual(config.default_voice, "en-Alice_woman")
         self.assertEqual(config.cfg_scale, 1.3)
         self.assertEqual(config.inference_steps, 10)

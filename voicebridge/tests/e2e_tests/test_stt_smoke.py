@@ -33,14 +33,14 @@ class TestSTTSmokeTests:
 
     def test_config_command_basic(self, cli_runner):
         """Test basic config command functionality."""
-        result = cli_runner.run_stt("config", "show", timeout=10)
+        result = cli_runner.run_stt("config", "config-show", timeout=10)
 
         # Config show should work (even if empty/default)
         assert result.success, f"Config show failed: {result.stderr}"
 
     def test_sessions_command_basic(self, cli_runner):
         """Test basic sessions command functionality."""
-        result = cli_runner.run_stt("sessions", "list", timeout=10)
+        result = cli_runner.run_stt("sessions", "sessions-list", timeout=10)
 
         # Sessions list should work (even if empty)
         assert result.success, f"Sessions list failed: {result.stderr}"
@@ -81,11 +81,11 @@ class TestSTTSmokeBasicWorkflow:
     def test_basic_config_workflow(self, cli_runner):
         """Test basic configuration workflow."""
         # Show config
-        show_result = cli_runner.run_stt("config", "show", timeout=10)
+        show_result = cli_runner.run_stt("config", "config-show", timeout=10)
         assert show_result.success, f"Config show failed: {show_result.stderr}"
 
         # Set a simple config value
-        set_result = cli_runner.run_stt("config", "set", "model", "tiny", timeout=10)
+        set_result = cli_runner.run_stt("config", "config-set", "model", "tiny", timeout=10)
         assert set_result.success, f"Config set failed: {set_result.stderr}"
 
     def test_environment_isolation(self, cli_runner):
@@ -115,10 +115,10 @@ class TestSTTSmokeIntegration:
     def test_multiple_commands_in_sequence(self, cli_runner):
         """Test running multiple STT commands in sequence."""
         commands = [
-            ("config", "show"),
-            ("sessions", "list"),
+            ("config", "config-show"),
+            ("sessions", "sessions-list"),
             ("performance", "stats"),
-            ("operations", "list"),
+            ("operations", "operations-list"),
         ]
 
         for cmd, subcmd in commands:

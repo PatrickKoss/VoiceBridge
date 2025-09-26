@@ -10,12 +10,12 @@ class TestGPUCommands:
 
         assert result.success, f"GPU help failed: {result.stderr}"
         assert "gpu and system commands" in result.stdout.lower()
-        assert "status" in result.stdout
+        assert "gpu-status" in result.stdout
         assert "benchmark" in result.stdout
 
     def test_gpu_status_command(self, cli_runner):
         """Test GPU status command."""
-        result = cli_runner.run("gpu status", timeout=15)
+        result = cli_runner.run("gpu gpu-status", timeout=15)
 
         assert result.success, f"GPU status failed: {result.stderr}"
 
@@ -36,7 +36,7 @@ class TestGPUCommands:
 
     def test_gpu_status_detailed_output(self, cli_runner):
         """Test GPU status command provides useful information."""
-        result = cli_runner.run("gpu status", timeout=15)
+        result = cli_runner.run("gpu gpu-status", timeout=15)
 
         assert result.success, f"GPU status failed: {result.stderr}"
 
@@ -106,7 +106,7 @@ class TestGPUCommandsSmokeTests:
 
     def test_all_gpu_subcommands_help(self, cli_runner):
         """Test that all GPU subcommands have working help."""
-        subcommands = ["status", "benchmark"]
+        subcommands = ["gpu-status", "benchmark"]
 
         for cmd in subcommands:
             result = cli_runner.run(["gpu", cmd, "--help"], timeout=10)
@@ -121,13 +121,13 @@ class TestGPUCommandsSmokeTests:
         assert result.success, f"GPU command structure test failed: {result.stderr}"
 
         # Verify all expected subcommands are listed
-        expected_commands = ["status", "benchmark"]
+        expected_commands = ["gpu-status", "benchmark"]
         for cmd in expected_commands:
             assert cmd in result.stdout, f"Missing GPU subcommand: {cmd}"
 
     def test_gpu_status_quick_check(self, cli_runner):
         """Quick test that GPU status command works."""
-        result = cli_runner.run("gpu status", timeout=10)
+        result = cli_runner.run("gpu gpu-status", timeout=10)
 
         assert result.success, f"Quick GPU status check failed: {result.stderr}"
 
@@ -140,7 +140,7 @@ class TestGPUSystemIntegration:
 
     def test_gpu_status_system_detection(self, cli_runner):
         """Test that GPU status detects system capabilities."""
-        result = cli_runner.run("gpu status", timeout=15)
+        result = cli_runner.run("gpu gpu-status", timeout=15)
 
         assert result.success, f"GPU system detection failed: {result.stderr}"
 

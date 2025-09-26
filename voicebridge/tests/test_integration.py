@@ -31,12 +31,14 @@ class TestDependencyInjection(unittest.TestCase):
                 commands = setup_dependencies()
 
         # Verify all components are initialized
-        self.assertIsNotNone(commands.config_repo)
-        self.assertIsNotNone(commands.profile_repo)
-        self.assertIsNotNone(commands.daemon_service)
-        self.assertIsNotNone(commands.transcription_orchestrator)
-        self.assertIsNotNone(commands.system_service)
-        self.assertIsNotNone(commands.logger)
+        # The setup_dependencies returns a CommandRegistry, so we access dependencies through it
+        dependencies = commands.dependencies
+        self.assertIsNotNone(dependencies.get("config_repo"))
+        self.assertIsNotNone(dependencies.get("profile_repo"))
+        self.assertIsNotNone(dependencies.get("daemon_service"))
+        self.assertIsNotNone(dependencies.get("transcription_orchestrator"))
+        self.assertIsNotNone(dependencies.get("system_service"))
+        self.assertIsNotNone(dependencies.get("logger"))
 
 
 class TestEndToEndWorkflow(unittest.TestCase):
@@ -62,7 +64,7 @@ class TestEndToEndWorkflow(unittest.TestCase):
 
         # Test configuration workflow
         # 1. Load default config
-        config = commands.config_repo.load()
+        config = commands.dependencies["config_repo"].load()
         self.assertEqual(config.model_name, "medium")
 
         # 2. Modify config
@@ -70,10 +72,10 @@ class TestEndToEndWorkflow(unittest.TestCase):
         config.debug = True
 
         # 3. Save config
-        commands.config_repo.save(config)
+        commands.dependencies["config_repo"].save(config)
 
         # 4. Load config again
-        loaded_config = commands.config_repo.load()
+        loaded_config = commands.dependencies["config_repo"].load()
         self.assertEqual(loaded_config.model_name, "large")
         self.assertTrue(loaded_config.debug)
 
@@ -89,24 +91,24 @@ class TestEndToEndWorkflow(unittest.TestCase):
         config = WhisperConfig(model_name="small", language="es", temperature=0.1)
 
         # Save as profile
-        commands.profile_repo.save_profile("spanish", config)
+        commands.dependencies["profile_repo"].save_profile("spanish", config)
 
         # List profiles
-        profiles = commands.profile_repo.list_profiles()
+        profiles = commands.dependencies["profile_repo"].list_profiles()
         self.assertIn("spanish", profiles)
 
         # Load profile
-        loaded_config = commands.profile_repo.load_profile("spanish")
+        loaded_config = commands.dependencies["profile_repo"].load_profile("spanish")
         self.assertEqual(loaded_config.model_name, "small")
         self.assertEqual(loaded_config.language, "es")
         self.assertEqual(loaded_config.temperature, 0.1)
 
         # Delete profile
-        result = commands.profile_repo.delete_profile("spanish")
+        result = commands.dependencies["profile_repo"].delete_profile("spanish")
         self.assertTrue(result)
 
         # Verify deletion
-        profiles = commands.profile_repo.list_profiles()
+        profiles = commands.dependencies["profile_repo"].list_profiles()
         self.assertNotIn("spanish", profiles)
 
     @patch("voicebridge.adapters.transcription.whisper")
@@ -120,13 +122,13 @@ class TestEndToEndWorkflow(unittest.TestCase):
             commands = setup_dependencies()
 
         # Initial status should be not running
-        status = commands.daemon_service.get_status()
+        status = commands.dependencies["daemon_service"].get_status()
         self.assertFalse(status["running"])
 
         # Start daemon (mocked)
-        with patch.object(commands.daemon_service, "start") as mock_start:
+        with patch.object(commands.dependencies["daemon_service"], "start") as mock_start:
             config = WhisperConfig()
-            commands.daemon_service.start(config)
+            commands.dependencies["daemon_service"].start(config)
             mock_start.assert_called_once()
 
     @patch("voicebridge.adapters.transcription.whisper")
@@ -146,7 +148,7 @@ class TestEndToEndWorkflow(unittest.TestCase):
 
         # Mock system service memory usage to be below limit
         with patch.object(
-            commands.transcription_orchestrator.transcription_service._system_service,
+            commands.dependencies["transcription_orchestrator"].transcription_service._system_service,
             "get_memory_usage",
         ) as mock_memory:
             mock_memory.return_value = {"used_mb": 500, "total_mb": 8000}
@@ -154,20 +156,20 @@ class TestEndToEndWorkflow(unittest.TestCase):
             # Mock audio recorder
             audio_data = [b"fake_audio_chunk" * 1000]  # Make it large enough
             with patch.object(
-                commands.transcription_orchestrator.audio_recorder, "record_stream"
+                commands.dependencies["transcription_orchestrator"].audio_recorder, "record_stream"
             ) as mock_record:
                 mock_record.return_value = iter(audio_data)
 
                 # Mock clipboard service
                 with patch.object(
-                    commands.transcription_orchestrator.clipboard_service, "copy_text"
+                    commands.dependencies["transcription_orchestrator"].clipboard_service, "copy_text"
                 ) as mock_copy:
                     mock_copy.return_value = True
 
                     # Test transcription
                     config = WhisperConfig(copy_final=True)
                     result = (
-                        commands.transcription_orchestrator.transcribe_single_recording(
+                        commands.dependencies["transcription_orchestrator"].transcribe_single_recording(
                             config
                         )
                     )

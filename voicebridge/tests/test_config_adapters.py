@@ -91,7 +91,7 @@ class TestFileConfigRepository(unittest.TestCase):
 
         # Should have default values for missing fields
         self.assertEqual(config.temperature, 0.0)
-        self.assertEqual(config.key, "f9")
+        self.assertEqual(config.key, "ctrl+f2")
 
 
 class TestFileProfileRepository(unittest.TestCase):

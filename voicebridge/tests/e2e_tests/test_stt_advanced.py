@@ -68,27 +68,27 @@ class TestSTTWorkflows:
     ):
         """Test configuration persistence across commands."""
         # Set configuration
-        model_result = cli_runner.run_stt("config", "set", "model", "tiny")
+        model_result = cli_runner.run_stt("config", "config-set", "model", "tiny")
         assertions.assert_command_success(model_result)
 
-        language_result = cli_runner.run_stt("config", "set", "language", "en")
+        language_result = cli_runner.run_stt("config", "config-set", "language", "en")
         assertions.assert_command_success(language_result)
 
         # Verify configuration was saved
-        show_result = cli_runner.run_stt("config", "show")
+        show_result = cli_runner.run_stt("config", "config-show")
         assertions.assert_configuration_output(
             show_result, expected_config_keys=["model", "language"]
         )
 
         # Verify reset worked
-        show_after_reset = cli_runner.run_stt("config", "show")
+        show_after_reset = cli_runner.run_stt("config", "config-show")
         assertions.assert_command_success(show_after_reset)
 
     @pytest.mark.e2e_session
     def test_session_management_workflow(self, cli_runner, assertions):
         """Test session management operations."""
         # List initial sessions
-        list_result = cli_runner.run_stt("sessions", "list")
+        list_result = cli_runner.run_stt("sessions", "sessions-list")
         assertions.assert_session_management(list_result, "list")
 
         # Cleanup sessions (may fail due to implementation issue)
@@ -103,7 +103,7 @@ class TestSTTWorkflows:
             )
 
         # List after cleanup
-        list_after_cleanup = cli_runner.run_stt("sessions", "list")
+        list_after_cleanup = cli_runner.run_stt("sessions", "sessions-list")
         assertions.assert_session_management(list_after_cleanup, "list")
 
 
@@ -225,7 +225,7 @@ class TestSTTPerformanceScenarios:
     def test_concurrent_operations(self, cli_runner, assertions):
         """Test operations management."""
         # List current operations
-        ops_result = cli_runner.run_stt("operations", "list")
+        ops_result = cli_runner.run_stt("operations", "operations-list")
         assertions.assert_command_success(ops_result)
 
 
@@ -274,7 +274,7 @@ class TestSTTProfileManagement:
     def test_profile_workflow(self, cli_runner, assertions):
         """Test complete profile management workflow."""
         # List profiles
-        list_result = cli_runner.run_stt("profile", "list")
+        list_result = cli_runner.run_stt("profile", "profiles-list")
         assertions.assert_command_success(list_result)
 
         # Try to save a profile (may not work without prior config)

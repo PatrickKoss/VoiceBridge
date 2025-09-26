@@ -233,17 +233,17 @@ class TestSTTConfigCommands:
 
     def test_config_show(self, cli_runner, assertions):
         """Test showing current configuration."""
-        result = cli_runner.run_stt("config", "show")
+        result = cli_runner.run_stt("config", "config-show")
         assertions.assert_configuration_output(result)
 
     def test_config_set_model(self, cli_runner, assertions):
         """Test setting configuration values."""
-        result = cli_runner.run_stt("config", "set", "model", "tiny")
+        result = cli_runner.run_stt("config", "config-set", "model", "tiny")
         assertions.assert_command_success(result)
 
     def test_config_set_language(self, cli_runner, assertions):
         """Test setting language configuration."""
-        result = cli_runner.run_stt("config", "set", "language", "en")
+        result = cli_runner.run_stt("config", "config-set", "language", "en")
         assertions.assert_command_success(result)
 
 
@@ -257,7 +257,7 @@ class TestSTTSessionCommands:
 
     def test_sessions_list(self, cli_runner, assertions):
         """Test listing sessions."""
-        result = cli_runner.run_stt("sessions", "list")
+        result = cli_runner.run_stt("sessions", "sessions-list")
         assertions.assert_session_management(result, "list")
 
     def test_sessions_cleanup(self, cli_runner, assertions):
@@ -297,7 +297,7 @@ class TestSTTOperationsCommands:
 
     def test_operations_list(self, cli_runner, assertions):
         """Test listing operations."""
-        result = cli_runner.run_stt("operations", "list")
+        result = cli_runner.run_stt("operations", "operations-list")
         assertions.assert_command_success(result)
 
 

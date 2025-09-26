@@ -243,10 +243,9 @@ class TestVibeVoiceTTSAdapter(unittest.TestCase):
 
         # Mock the output that gets returned from the generate call
         mock_output = Mock()
-        mock_output.speech_outputs = [Mock()]
-        mock_output.speech_outputs[
-            0
-        ].cpu.return_value.numpy.return_value.astype.return_value = mock_speech_tensor
+        mock_tensor = Mock()
+        mock_tensor.to.return_value.cpu.return_value.numpy.return_value.astype.return_value = mock_speech_tensor
+        mock_output.speech_outputs = [mock_tensor]
         mock_model.generate.return_value = mock_output
         mock_model.set_ddpm_inference_steps = Mock()
 

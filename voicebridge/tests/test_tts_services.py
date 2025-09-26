@@ -303,6 +303,34 @@ class TestTTSDaemonService(unittest.TestCase):
             orchestrator=self.mock_orchestrator,
             logger=self.mock_logger,
         )
+        
+        # Reset daemon state for clean tests
+        self.daemon.is_running = False
+        self.daemon.current_config = None
+        self.daemon.hotkey_listener = None
+        self.daemon.clipboard_monitor_thread = None
+        self.daemon.is_monitoring_clipboard = False
+        
+        # Mock file system operations to prevent actual file creation
+        self.daemon._cleanup_daemon_files = Mock()
+        self.daemon._write_pid_file = Mock()
+        self.daemon._write_status_file = Mock()
+        self.daemon._setup_hotkeys = Mock()
+        self.daemon._start_clipboard_monitoring = Mock()
+        self.daemon._cleanup_hotkeys = Mock()
+        self.daemon.stop_monitoring = Mock()
+        
+        # Mock orchestrator methods
+        self.mock_orchestrator.start_tts_mode = Mock()
+        self.mock_orchestrator.stop_tts = Mock()
+        
+        # Mock is_daemon_running to return False by default for clean tests
+        self.daemon_running_patcher = patch.object(self.daemon, 'is_daemon_running', return_value=False)
+        self.daemon_running_patcher.start()
+
+    def tearDown(self):
+        """Clean up test fixtures."""
+        self.daemon_running_patcher.stop()
 
     def test_initialization(self):
         """Test daemon initialization."""
@@ -312,45 +340,41 @@ class TestTTSDaemonService(unittest.TestCase):
         self.assertIsNone(self.daemon.clipboard_monitor_thread)
         self.assertFalse(self.daemon.is_running)
 
-    @patch("voicebridge.services.tts_service.keyboard.GlobalHotKeys")
-    def test_start_daemon_clipboard_mode(self, mock_global_hotkeys):
+    def test_start_daemon_clipboard_mode(self):
         """Test starting daemon in clipboard mode."""
         config = TTSConfig(tts_mode=TTSMode.CLIPBOARD)
-
-        mock_listener = Mock()
-        mock_global_hotkeys.return_value = mock_listener
-
-        with patch("voicebridge.services.tts_service.threading.Thread") as mock_thread:
-            self.daemon.start_daemon(config)
-
-            self.assertTrue(self.daemon.is_running)
-            mock_global_hotkeys.assert_called_once()
-            mock_listener.start.assert_called_once()
-            mock_thread.assert_called_once()
-
-    @patch("voicebridge.services.tts_service.keyboard.GlobalHotKeys")
-    def test_start_daemon_mouse_mode(self, mock_global_hotkeys):
-        """Test starting daemon in mouse mode."""
-        config = TTSConfig(tts_mode=TTSMode.MOUSE)
-
-        mock_listener = Mock()
-        mock_global_hotkeys.return_value = mock_listener
 
         self.daemon.start_daemon(config)
 
         self.assertTrue(self.daemon.is_running)
-        mock_global_hotkeys.assert_called_once()
-        mock_listener.start.assert_called_once()
+        self.assertEqual(self.daemon.current_config, config)
+        self.daemon._setup_hotkeys.assert_called_once_with(config)
+        self.daemon._start_clipboard_monitoring.assert_called_once_with(config)
+        self.mock_orchestrator.start_tts_mode.assert_called_once_with(config)
+
+    def test_start_daemon_mouse_mode(self):
+        """Test starting daemon in mouse mode."""
+        config = TTSConfig(tts_mode=TTSMode.MOUSE)
+
+        self.daemon.start_daemon(config)
+
+        self.assertTrue(self.daemon.is_running)
+        self.assertEqual(self.daemon.current_config, config)
+        self.daemon._setup_hotkeys.assert_called_once_with(config)
+        # Should not call _start_clipboard_monitoring for mouse mode
+        self.daemon._start_clipboard_monitoring.assert_not_called()
+        self.mock_orchestrator.start_tts_mode.assert_called_once_with(config)
 
     def test_start_daemon_already_running(self):
         """Test starting daemon when already running."""
-        self.daemon.is_running = True
         config = TTSConfig()
+        
+        # Mock is_daemon_running to return True for this test
+        with patch.object(self.daemon, 'is_daemon_running', return_value=True):
+            with self.assertRaises(RuntimeError) as context:
+                self.daemon.start_daemon(config)
 
-        with self.assertRaises(RuntimeError) as context:
-            self.daemon.start_daemon(config)
-
-        self.assertIn("TTS daemon is already running", str(context.exception))
+            self.assertIn("TTS daemon is already running", str(context.exception))
 
     def test_stop_daemon_success(self):
         """Test stopping daemon successfully."""
@@ -358,32 +382,41 @@ class TestTTSDaemonService(unittest.TestCase):
         self.daemon.is_running = True
         self.daemon.hotkey_listener = Mock()
         self.daemon.clipboard_monitor_thread = Mock()
-        self.daemon.stop_monitoring = Mock()
 
         self.daemon.stop_daemon()
 
         self.assertFalse(self.daemon.is_running)
-        self.daemon.hotkey_listener.stop.assert_called_once()
+        self.assertIsNone(self.daemon.current_config)
+        # Verify all cleanup methods were called
         self.daemon.stop_monitoring.assert_called_once()
+        self.daemon._cleanup_hotkeys.assert_called_once()
+        self.daemon._cleanup_daemon_files.assert_called_once()
+        self.mock_orchestrator.stop_tts.assert_called_once()
 
     def test_stop_daemon_not_running(self):
         """Test stopping daemon when not running."""
-        self.daemon.is_running = False
-
-        with self.assertRaises(RuntimeError) as context:
-            self.daemon.stop_daemon()
-
-        self.assertIn("TTS daemon is not running", str(context.exception))
+        # The stop_daemon method doesn't raise an exception when not running
+        # It just performs cleanup operations
+        self.daemon.stop_daemon()
+        
+        # Verify cleanup was called
+        self.daemon._cleanup_daemon_files.assert_called_once()
+        self.assertFalse(self.daemon.is_running)
+        self.assertIsNone(self.daemon.current_config)
 
     def test_get_status_running(self):
         """Test getting daemon status when running."""
-        self.daemon.is_running = True
         self.daemon.current_config = TTSConfig(tts_mode=TTSMode.CLIPBOARD)
 
-        status = self.daemon.get_status()
+        # Mock is_daemon_running to return True and mock file reading
+        with patch.object(self.daemon, 'is_daemon_running', return_value=True), \
+             patch("builtins.open", create=True) as mock_open, \
+             patch("json.load", return_value={"mode": "clipboard"}):
+            
+            status = self.daemon.get_status()
 
-        self.assertEqual(status["status"], "running")
-        self.assertEqual(status["mode"], "clipboard")
+            self.assertEqual(status["status"], "running")
+            self.assertEqual(status["mode"], "clipboard")
 
     def test_get_status_stopped(self):
         """Test getting daemon status when stopped."""

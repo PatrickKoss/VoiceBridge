@@ -21,7 +21,7 @@ class TestAPICommands:
 
     def test_api_status_command(self, cli_runner):
         """Test API status command."""
-        result = cli_runner.run("api status", timeout=15)
+        result = cli_runner.run("api api-status", timeout=15)
 
         assert result.success, f"API status failed: {result.stderr}"
 
@@ -42,7 +42,7 @@ class TestAPICommands:
 
     def test_api_info_command(self, cli_runner):
         """Test API info command."""
-        result = cli_runner.run("api info", timeout=15)
+        result = cli_runner.run("api api-info", timeout=15)
 
         assert result.success, f"API info failed: {result.stderr}"
 
@@ -56,7 +56,7 @@ class TestAPICommands:
     def test_api_start_command_structure(self, cli_runner):
         """Test API start command structure and validation."""
         # Test help first (this should be fast)
-        result = cli_runner.run("api start --help", timeout=10)
+        result = cli_runner.run("api api-start --help", timeout=10)
         assert result.success, f"API start help failed: {result.stderr}"
         assert "start" in result.stdout.lower()
 
@@ -66,12 +66,12 @@ class TestAPICommands:
     def test_api_stop_command_structure(self, cli_runner):
         """Test API stop command structure."""
         # Test help first
-        result = cli_runner.run("api stop --help", timeout=10)
+        result = cli_runner.run("api api-stop --help", timeout=10)
         assert result.success, f"API stop help failed: {result.stderr}"
         assert "stop" in result.stdout.lower()
 
         # Test stop command (should handle gracefully even if no server running)
-        result = cli_runner.run("api stop", timeout=10)
+        result = cli_runner.run("api api-stop", timeout=10)
 
         # Should either stop server or indicate no server running
         if result.failed:
@@ -89,7 +89,7 @@ class TestAPICommands:
 
     def test_api_start_help_shows_port_parameter(self, cli_runner):
         """Test API start help shows port parameter."""
-        result = cli_runner.run("api start --help", timeout=10)
+        result = cli_runner.run("api api-start --help", timeout=10)
         assert result.success, f"API start help failed: {result.stderr}"
 
         # Should show port parameter in help
@@ -109,7 +109,7 @@ class TestAPICommandsValidation:
 
     def test_api_start_help_shows_port_validation(self, cli_runner):
         """Test API start help shows port validation info."""
-        result = cli_runner.run("api start --help", timeout=10)
+        result = cli_runner.run("api api-start --help", timeout=10)
         assert result.success, f"API start help failed: {result.stderr}"
 
         # Should show usage information
@@ -117,7 +117,7 @@ class TestAPICommandsValidation:
 
     def test_api_start_help_comprehensive(self, cli_runner):
         """Test API start help is comprehensive."""
-        result = cli_runner.run("api start --help", timeout=10)
+        result = cli_runner.run("api api-start --help", timeout=10)
         assert result.success, f"API start help failed: {result.stderr}"
 
         # Should provide comprehensive help
@@ -142,7 +142,7 @@ class TestAPICommandsSmokeTests:
 
     def test_all_api_subcommands_help(self, cli_runner):
         """Test that all API subcommands have working help."""
-        subcommands = ["status", "start", "stop", "info"]
+        subcommands = ["api-status", "api-start", "api-stop", "api-info"]
 
         for cmd in subcommands:
             result = cli_runner.run(["api", cmd, "--help"], timeout=10)
@@ -156,14 +156,14 @@ class TestAPICommandsSmokeTests:
 
         assert result.success, f"API command structure test failed: {result.stderr}"
 
-        # Verify all expected subcommands are listed
-        expected_commands = ["status", "start", "stop", "info"]
+        # Verify all expected subcommands are listed (hyphenated form)
+        expected_commands = ["api-status", "api-start", "api-stop", "api-info"]
         for cmd in expected_commands:
             assert cmd in result.stdout, f"Missing API subcommand: {cmd}"
 
     def test_api_status_quick_check(self, cli_runner):
         """Quick test that API status command works."""
-        result = cli_runner.run("api status", timeout=10)
+        result = cli_runner.run("api api-status", timeout=10)
 
         assert result.success, f"Quick API status check failed: {result.stderr}"
 
@@ -172,7 +172,7 @@ class TestAPICommandsSmokeTests:
 
     def test_api_info_quick_check(self, cli_runner):
         """Quick test that API info command works."""
-        result = cli_runner.run("api info", timeout=10)
+        result = cli_runner.run("api api-info", timeout=10)
 
         assert result.success, f"Quick API info check failed: {result.stderr}"
 
@@ -189,7 +189,7 @@ class TestAPIServerLifecycle:
         # Ensure no server is running first
         cli_runner.run("api stop", timeout=10)  # Ignore result
 
-        result = cli_runner.run("api status", timeout=10)
+        result = cli_runner.run("api api-status", timeout=10)
         assert result.success, f"API status check failed: {result.stderr}"
 
         # Should indicate server is not running
@@ -204,7 +204,7 @@ class TestAPIServerLifecycle:
 
     def test_api_stop_when_not_running(self, cli_runner):
         """Test API stop when no server is running."""
-        result = cli_runner.run("api stop", timeout=10)
+        result = cli_runner.run("api api-stop", timeout=10)
 
         # Should handle gracefully (either succeed with message or fail informatively)
         if result.failed:
@@ -233,10 +233,10 @@ class TestAPIServerLifecycle:
         # Test all help commands work
         help_commands = [
             "api --help",
-            "api status --help",
-            "api start --help",
-            "api stop --help",
-            "api info --help",
+            "api api-status --help",
+            "api api-start --help",
+            "api api-stop --help",
+            "api api-info --help",
         ]
 
         for cmd in help_commands:

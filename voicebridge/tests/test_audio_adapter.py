@@ -195,9 +195,13 @@ class TestFFmpegAudioRecorder(unittest.TestCase):
     def test_get_default_device_no_devices(self):
         """Test getting default device when no devices available."""
         with patch.object(self.recorder, "list_devices", return_value=[]):
-            default = self.recorder._get_default_device()
-
-        self.assertIsNone(default)
+            with patch("subprocess.run") as mock_subprocess:
+                mock_subprocess.side_effect = subprocess.TimeoutExpired("ffmpeg", 3)
+                with self.assertRaises(RuntimeError) as context:
+                    self.recorder._get_default_device()
+                
+                # Should raise RuntimeError about PulseAudio timeout
+                self.assertIn("Audio system timeout", str(context.exception))
 
     def test_stop_ffmpeg_gracefully(self):
         """Test graceful FFmpeg process termination."""

@@ -23,7 +23,7 @@ class TestAudioCommands:
 
     def test_audio_formats_command(self, cli_runner):
         """Test audio formats listing command."""
-        result = cli_runner.run_audio("formats", timeout=15)
+        result = cli_runner.run("audio formats", timeout=15)
 
         assert result.success, f"Audio formats failed: {result.stderr}"
         # Should list supported audio formats
@@ -37,7 +37,7 @@ class TestAudioCommands:
         if not voice_file.exists():
             pytest.skip("Test audio file not available")
 
-        result = cli_runner.run_audio("info", str(voice_file), timeout=15)
+        result = cli_runner.run("audio audio-info " + str(voice_file), timeout=15)
 
         assert result.success, f"Audio info failed: {result.stderr}"
         # Should show audio file information
@@ -48,8 +48,8 @@ class TestAudioCommands:
 
     def test_audio_info_with_nonexistent_file(self, cli_runner):
         """Test audio info command with non-existent file."""
-        result = cli_runner.run_audio(
-            "info", "nonexistent_audio.wav", timeout=10, expect_failure=True
+        result = cli_runner.run(
+            "audio audio-info nonexistent_audio.wav", timeout=10, expect_failure=True
         )
 
         assert result.failed, "Should fail with non-existent file"
@@ -70,15 +70,8 @@ class TestAudioCommands:
         with tempfile.TemporaryDirectory() as temp_dir:
             output_dir = Path(temp_dir) / "split_output"
 
-            result = cli_runner.run_audio(
-                "split",
-                str(voice_file),
-                "--method",
-                "duration",
-                "--chunk-duration",
-                "2",
-                "--output-dir",
-                str(output_dir),
+            result = cli_runner.run(
+                f"audio split {voice_file} --method duration --chunk-duration 2 --output-dir {output_dir}",
                 timeout=30,
             )
 
@@ -114,12 +107,8 @@ class TestAudioCommands:
             output_path = Path(temp_output.name)
 
         try:
-            result = cli_runner.run_audio(
-                "preprocess",
-                str(voice_file),
-                str(output_path),
-                "--noise-reduction",
-                "0.5",
+            result = cli_runner.run(
+                f"audio preprocess {voice_file} {output_path} --noise-reduction 0.5",
                 timeout=30,
             )
 
@@ -141,7 +130,7 @@ class TestAudioCommands:
 
     def test_audio_test_command(self, cli_runner):
         """Test audio setup testing command."""
-        result = cli_runner.run_audio("test", timeout=15)
+        result = cli_runner.run("audio test", timeout=15)
 
         # In test environment with VOICEBRIDGE_DISABLE_AUDIO=1, this should
         # either succeed with disabled audio message or fail gracefully
@@ -159,7 +148,7 @@ class TestAudioCommandsValidation:
 
     def test_audio_info_missing_file(self, cli_runner):
         """Test audio info without file argument."""
-        result = cli_runner.run_audio("info", timeout=10, expect_failure=True)
+        result = cli_runner.run("audio audio-info", timeout=10, expect_failure=True)
 
         assert result.failed, "Should fail without file argument"
         assert any(
@@ -172,11 +161,8 @@ class TestAudioCommandsValidation:
         if not voice_file.exists():
             pytest.skip("Test audio file not available")
 
-        result = cli_runner.run_audio(
-            "split",
-            str(voice_file),
-            "--method",
-            "invalid_method",
+        result = cli_runner.run(
+            f"audio split {voice_file} --method invalid_method",
             timeout=10,
             expect_failure=True,
         )
@@ -192,8 +178,8 @@ class TestAudioCommandsValidation:
         if not voice_file.exists():
             pytest.skip("Test audio file not available")
 
-        result = cli_runner.run_audio(
-            "preprocess", str(voice_file), timeout=10, expect_failure=True
+        result = cli_runner.run(
+            f"audio preprocess {voice_file}", timeout=10, expect_failure=True
         )
 
         assert result.failed, "Should fail without output file"
@@ -207,10 +193,10 @@ class TestAudioCommandsSmokeTests:
 
     def test_all_audio_subcommands_help(self, cli_runner):
         """Test that all audio subcommands have working help."""
-        subcommands = ["info", "formats", "split", "preprocess", "test"]
+        subcommands = ["audio-info", "formats", "split", "preprocess", "test"]
 
         for cmd in subcommands:
-            result = cli_runner.run_audio(cmd, "--help", timeout=10)
+            result = cli_runner.run(f"audio {cmd} --help", timeout=10)
             assert result.success, f"Audio {cmd} help failed: {result.stderr}"
             assert "usage:" in result.stdout.lower()
             assert cmd in result.stdout.lower()
@@ -222,6 +208,6 @@ class TestAudioCommandsSmokeTests:
         assert result.success, f"Audio command structure test failed: {result.stderr}"
 
         # Verify all expected subcommands are listed
-        expected_commands = ["info", "formats", "split", "preprocess", "test"]
+        expected_commands = ["audio-info", "formats", "split", "preprocess", "test"]
         for cmd in expected_commands:
             assert cmd in result.stdout, f"Missing audio subcommand: {cmd}"
