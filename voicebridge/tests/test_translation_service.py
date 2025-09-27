@@ -1,4 +1,5 @@
 """Tests for translation services."""
+
 import json
 import urllib.request
 from unittest.mock import Mock, patch
@@ -97,7 +98,9 @@ class TestMockTranslationService:
 
     def test_detect_language_german(self, service):
         """Test language detection for German."""
-        assert service.detect_language("Guten Tag, wie geht's?") == "en"  # No German chars
+        assert (
+            service.detect_language("Guten Tag, wie geht's?") == "en"
+        )  # No German chars
         assert service.detect_language("Weiß") == "de"  # Has ß (uniquely German)
 
     def test_detect_language_chinese(self, service):
@@ -146,7 +149,9 @@ class TestLibreTranslateService:
     @pytest.fixture
     def service(self):
         """LibreTranslateService instance."""
-        return LibreTranslateService(api_url="https://test.api/translate", api_key="test_key")
+        return LibreTranslateService(
+            api_url="https://test.api/translate", api_key="test_key"
+        )
 
     @pytest.fixture
     def service_no_key(self):
@@ -184,7 +189,9 @@ class TestLibreTranslateService:
 
         # Mock response
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({"translatedText": "Hola mundo"}).encode()
+        mock_response.read.return_value = json.dumps(
+            {"translatedText": "Hola mundo"}
+        ).encode()
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -199,7 +206,9 @@ class TestLibreTranslateService:
         mock_detect.return_value = "en"
 
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({"translatedText": "Hola"}).encode()
+        mock_response.read.return_value = json.dumps(
+            {"translatedText": "Hola"}
+        ).encode()
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -213,12 +222,16 @@ class TestLibreTranslateService:
 
     @patch.object(LibreTranslateService, "detect_language")
     @patch("urllib.request.urlopen")
-    def test_translate_text_without_api_key(self, mock_urlopen, mock_detect, service_no_key):
+    def test_translate_text_without_api_key(
+        self, mock_urlopen, mock_detect, service_no_key
+    ):
         """Test translation request without API key."""
         mock_detect.return_value = "en"
 
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({"translatedText": "Hola"}).encode()
+        mock_response.read.return_value = json.dumps(
+            {"translatedText": "Hola"}
+        ).encode()
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -235,7 +248,9 @@ class TestLibreTranslateService:
     def test_translate_text_http_error(self, mock_urlopen, mock_detect, service):
         """Test translation with HTTP error."""
         mock_detect.return_value = "en"
-        mock_urlopen.side_effect = urllib.request.HTTPError(None, 500, "Server Error", None, None)
+        mock_urlopen.side_effect = urllib.request.HTTPError(
+            None, 500, "Server Error", None, None
+        )
 
         result = service.translate_text("Hello", "es")
         assert result == "Hello"  # Should return original text
@@ -308,7 +323,9 @@ class TestLibreTranslateService:
     def test_detect_language_success(self, mock_urlopen, service):
         """Test successful language detection."""
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps([{"language": "es", "confidence": 0.9}]).encode()
+        mock_response.read.return_value = json.dumps(
+            [{"language": "es", "confidence": 0.9}]
+        ).encode()
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -344,10 +361,12 @@ class TestLibreTranslateService:
     def test_get_supported_languages_success(self, mock_urlopen, service):
         """Test successful supported languages retrieval."""
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps([
-            {"code": "en", "name": "English"},
-            {"code": "es", "name": "Spanish"},
-        ]).encode()
+        mock_response.read.return_value = json.dumps(
+            [
+                {"code": "en", "name": "English"},
+                {"code": "es", "name": "Spanish"},
+            ]
+        ).encode()
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -399,9 +418,9 @@ class TestGoogleTranslateService:
     def test_translate_text_success(self, mock_urlopen, service):
         """Test successful text translation."""
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({
-            "data": {"translations": [{"translatedText": "Hola mundo"}]}
-        }).encode()
+        mock_response.read.return_value = json.dumps(
+            {"data": {"translations": [{"translatedText": "Hola mundo"}]}}
+        ).encode()
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -413,9 +432,9 @@ class TestGoogleTranslateService:
     def test_translate_text_includes_api_key(self, mock_urlopen, service):
         """Test that translation request includes API key in URL."""
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({
-            "data": {"translations": [{"translatedText": "Hola"}]}
-        }).encode()
+        mock_response.read.return_value = json.dumps(
+            {"data": {"translations": [{"translatedText": "Hola"}]}}
+        ).encode()
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -458,9 +477,9 @@ class TestGoogleTranslateService:
     def test_detect_language_success(self, mock_urlopen, service):
         """Test successful language detection."""
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({
-            "data": {"detections": [[{"language": "es", "confidence": 0.9}]]}
-        }).encode()
+        mock_response.read.return_value = json.dumps(
+            {"data": {"detections": [[{"language": "es", "confidence": 0.9}]]}}
+        ).encode()
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response
@@ -480,14 +499,16 @@ class TestGoogleTranslateService:
     def test_get_supported_languages_success(self, mock_urlopen, service):
         """Test successful supported languages retrieval."""
         mock_response = Mock()
-        mock_response.read.return_value = json.dumps({
-            "data": {
-                "languages": [
-                    {"language": "en", "name": "English"},
-                    {"language": "es", "name": "Spanish"},
-                ]
+        mock_response.read.return_value = json.dumps(
+            {
+                "data": {
+                    "languages": [
+                        {"language": "en", "name": "English"},
+                        {"language": "es", "name": "Spanish"},
+                    ]
+                }
             }
-        }).encode()
+        ).encode()
         mock_response.__enter__ = Mock(return_value=mock_response)
         mock_response.__exit__ = Mock(return_value=None)
         mock_urlopen.return_value = mock_response

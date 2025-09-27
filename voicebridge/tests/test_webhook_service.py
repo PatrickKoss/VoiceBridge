@@ -1,17 +1,15 @@
 """Tests for webhook service."""
+
 import asyncio
+import importlib.util
 from datetime import datetime
 from unittest.mock import AsyncMock, Mock, patch
 
 import pytest
 
-try:
-    import aiohttp
-    HAS_AIOHTTP = True
-except ImportError:
-    HAS_AIOHTTP = False
-
 from voicebridge.domain.models import EventType, IntegrationConfig, WebhookEvent
+
+HAS_AIOHTTP = importlib.util.find_spec("aiohttp") is not None
 
 # Only import webhook service if aiohttp is available
 if HAS_AIOHTTP:
@@ -165,7 +163,9 @@ class TestWhisperWebhookService:
 
             mock_session_instance = Mock()
             mock_session_instance.post.return_value = mock_post
-            mock_session_instance.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session_instance.__aenter__ = AsyncMock(
+                return_value=mock_session_instance
+            )
             mock_session_instance.__aexit__ = AsyncMock(return_value=None)
 
             mock_session.return_value = mock_session_instance
@@ -189,7 +189,9 @@ class TestWhisperWebhookService:
 
             mock_session_instance = Mock()
             mock_session_instance.post.return_value = mock_post
-            mock_session_instance.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session_instance.__aenter__ = AsyncMock(
+                return_value=mock_session_instance
+            )
             mock_session_instance.__aexit__ = AsyncMock(return_value=None)
 
             mock_session.return_value = mock_session_instance
@@ -225,7 +227,9 @@ class TestWhisperWebhookService:
 
             mock_session_instance = Mock()
             mock_session_instance.post.return_value = mock_post
-            mock_session_instance.__aenter__ = AsyncMock(return_value=mock_session_instance)
+            mock_session_instance.__aenter__ = AsyncMock(
+                return_value=mock_session_instance
+            )
             mock_session_instance.__aexit__ = AsyncMock(return_value=None)
 
             mock_session.return_value = mock_session_instance
@@ -250,7 +254,7 @@ class TestWhisperWebhookService:
         """Test triggering event with async delivery disabled."""
         service.config.enable_async_delivery = False
 
-        with patch.object(service, '_process_event_sync') as mock_process:
+        with patch.object(service, "_process_event_sync") as mock_process:
             service.trigger_event(sample_event)
             mock_process.assert_called_once_with(sample_event)
 
@@ -259,66 +263,88 @@ class TestWhisperWebhookService:
         service.config.enable_async_delivery = True
 
         # Fill the queue to max capacity (simulate full queue)
-        with patch.object(service._event_queue, 'put_nowait', side_effect=asyncio.QueueFull):
+        with patch.object(
+            service._event_queue, "put_nowait", side_effect=asyncio.QueueFull
+        ):
             # Should not raise exception
             service.trigger_event(sample_event)
 
     def test_process_event_sync(self, service_no_config, sample_event):
         """Test synchronous event processing."""
         # Register webhook for this event type
-        service_no_config.register_webhook("https://test.com", [EventType.TRANSCRIPTION_COMPLETE])
+        service_no_config.register_webhook(
+            "https://test.com", [EventType.TRANSCRIPTION_COMPLETE]
+        )
 
-        with patch.object(service_no_config, 'send_webhook') as mock_send:
+        with patch.object(service_no_config, "send_webhook") as mock_send:
             service_no_config._process_event_sync(sample_event)
             mock_send.assert_called_once_with(sample_event, "https://test.com")
 
     def test_process_event_sync_wrong_event_type(self, service_no_config, sample_event):
         """Test sync processing with wrong event type."""
         # Register webhook for different event type
-        service_no_config.register_webhook("https://test.com", [EventType.TRANSCRIPTION_START])
+        service_no_config.register_webhook(
+            "https://test.com", [EventType.TRANSCRIPTION_START]
+        )
 
-        with patch.object(service_no_config, 'send_webhook') as mock_send:
+        with patch.object(service_no_config, "send_webhook") as mock_send:
             service_no_config._process_event_sync(sample_event)
             mock_send.assert_not_called()
 
     def test_process_event_sync_uses_config_event_types(self, service, sample_event):
         """Test sync processing uses config event types when no registration."""
         # Don't register webhook, should use config event types
-        with patch.object(service, 'send_webhook') as mock_send:
+        with patch.object(service, "send_webhook") as mock_send:
             service._process_event_sync(sample_event)
             mock_send.assert_called_once()
 
     @pytest.mark.asyncio
     async def test_process_event_async(self, service_no_config, sample_event):
         """Test asynchronous event processing."""
-        service_no_config.register_webhook("https://test.com", [EventType.TRANSCRIPTION_COMPLETE])
+        service_no_config.register_webhook(
+            "https://test.com", [EventType.TRANSCRIPTION_COMPLETE]
+        )
 
-        with patch.object(service_no_config, '_send_webhook_with_retry') as mock_send:
+        with patch.object(service_no_config, "_send_webhook_with_retry") as mock_send:
             mock_send.return_value = True
             await service_no_config._process_event_async(sample_event)
             mock_send.assert_called_once()
 
     @pytest.mark.asyncio
-    async def test_send_webhook_with_retry_success_first_attempt(self, service, sample_event):
+    async def test_send_webhook_with_retry_success_first_attempt(
+        self, service, sample_event
+    ):
         """Test webhook retry succeeds on first attempt."""
-        with patch.object(service, '_send_webhook_async', return_value=True):
-            result = await service._send_webhook_with_retry(sample_event, "https://test.com")
+        with patch.object(service, "_send_webhook_async", return_value=True):
+            result = await service._send_webhook_with_retry(
+                sample_event, "https://test.com"
+            )
             assert result is True
 
     @pytest.mark.asyncio
-    async def test_send_webhook_with_retry_success_after_retries(self, service, sample_event):
+    async def test_send_webhook_with_retry_success_after_retries(
+        self, service, sample_event
+    ):
         """Test webhook retry succeeds after some failures."""
-        with patch.object(service, '_send_webhook_async', side_effect=[False, False, True]):
+        with patch.object(
+            service, "_send_webhook_async", side_effect=[False, False, True]
+        ):
             with patch("asyncio.sleep"):  # Mock sleep to speed up test
-                result = await service._send_webhook_with_retry(sample_event, "https://test.com")
+                result = await service._send_webhook_with_retry(
+                    sample_event, "https://test.com"
+                )
                 assert result is True
 
     @pytest.mark.asyncio
-    async def test_send_webhook_with_retry_all_attempts_fail(self, service, sample_event):
+    async def test_send_webhook_with_retry_all_attempts_fail(
+        self, service, sample_event
+    ):
         """Test webhook retry when all attempts fail."""
-        with patch.object(service, '_send_webhook_async', return_value=False):
+        with patch.object(service, "_send_webhook_async", return_value=False):
             with patch("asyncio.sleep"):  # Mock sleep to speed up test
-                result = await service._send_webhook_with_retry(sample_event, "https://test.com")
+                result = await service._send_webhook_with_retry(
+                    sample_event, "https://test.com"
+                )
                 assert result is False
 
     @pytest.mark.asyncio
@@ -327,7 +353,7 @@ class TestWhisperWebhookService:
         service._running = True
         service._event_queue.put_nowait(sample_event)
 
-        with patch.object(service, '_process_event_async') as mock_process:
+        with patch.object(service, "_process_event_async") as mock_process:
             # Run worker briefly
             worker_task = asyncio.create_task(service._webhook_worker())
             await asyncio.sleep(0.1)  # Give it time to process
@@ -361,7 +387,9 @@ class TestWhisperWebhookService:
         service._running = True
         service._event_queue.put_nowait(sample_event)
 
-        with patch.object(service, '_process_event_async', side_effect=Exception("Processing error")):
+        with patch.object(
+            service, "_process_event_async", side_effect=Exception("Processing error")
+        ):
             worker_task = asyncio.create_task(service._webhook_worker())
             await asyncio.sleep(0.1)
             service._running = False
@@ -392,9 +420,7 @@ class TestWebhookEventBuilder:
 
     def test_build_transcription_start_minimal(self):
         """Test building transcription start event with minimal data."""
-        event = WebhookEventBuilder.build_transcription_start(
-            operation_id="test-op"
-        )
+        event = WebhookEventBuilder.build_transcription_start(operation_id="test-op")
 
         assert event.event_type == EventType.TRANSCRIPTION_START
         assert event.operation_id == "test-op"
@@ -421,8 +447,7 @@ class TestWebhookEventBuilder:
     def test_build_transcription_complete_minimal(self):
         """Test building transcription complete event with minimal data."""
         event = WebhookEventBuilder.build_transcription_complete(
-            operation_id="test-op",
-            text="Hello world"
+            operation_id="test-op", text="Hello world"
         )
 
         assert event.event_type == EventType.TRANSCRIPTION_COMPLETE
@@ -464,8 +489,7 @@ class TestWebhookEventBuilder:
     def test_build_progress_update_minimal(self):
         """Test building progress update event with minimal data."""
         event = WebhookEventBuilder.build_progress_update(
-            operation_id="test-op",
-            progress=0.5
+            operation_id="test-op", progress=0.5
         )
 
         assert event.data["progress"] == 0.5
@@ -492,8 +516,7 @@ class TestWebhookEventBuilder:
     def test_build_model_loaded_minimal(self):
         """Test building model loaded event with minimal data."""
         event = WebhookEventBuilder.build_model_loaded(
-            operation_id="test-op",
-            model_name="whisper-base"
+            operation_id="test-op", model_name="whisper-base"
         )
 
         assert event.data["model_name"] == "whisper-base"

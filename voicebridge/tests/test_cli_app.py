@@ -1,4 +1,5 @@
 """Tests for CLI application."""
+
 from unittest.mock import Mock, patch
 
 import pytest
@@ -21,7 +22,10 @@ class TestCreateApp:
         app = create_app(mock_registry)
 
         assert isinstance(app, typer.Typer)
-        assert app.info.help == "VoiceBridge - Comprehensive bidirectional voice-text CLI tool"
+        assert (
+            app.info.help
+            == "VoiceBridge - Comprehensive bidirectional voice-text CLI tool"
+        )
 
     def test_create_app_has_stt_subapp(self, mock_registry):
         """Test that app has STT sub-application."""
@@ -39,7 +43,7 @@ class TestCreateApp:
         # Note: Typer stores this internally, test the created app is Typer instance
         assert isinstance(app, typer.Typer)
 
-    @patch('voicebridge.cli.app.typer.Typer')
+    @patch("voicebridge.cli.app.typer.Typer")
     def test_create_app_creates_subapps(self, mock_typer_class, mock_registry):
         """Test that create_app creates the expected sub-applications."""
         mock_app = Mock()
@@ -52,8 +56,10 @@ class TestCreateApp:
         assert mock_typer_class.call_count >= 6
 
         # Should add sub-apps to main app - check that add_typer was called with expected names
-        call_args = [call.kwargs.get('name') for call in mock_app.add_typer.call_args_list]
-        expected_names = ['stt', 'tts', 'audio', 'gpu', 'api']
+        call_args = [
+            call.kwargs.get("name") for call in mock_app.add_typer.call_args_list
+        ]
+        expected_names = ["stt", "tts", "audio", "gpu", "api"]
         for name in expected_names:
             assert name in call_args
 
@@ -66,9 +72,9 @@ class TestCreateApp:
     def test_create_app_returns_typer_instance(self, mock_registry):
         """Test that create_app returns a Typer instance."""
         app = create_app(mock_registry)
-        assert hasattr(app, 'command')
-        assert hasattr(app, 'add_typer')
-        assert hasattr(app, 'info')
+        assert hasattr(app, "command")
+        assert hasattr(app, "add_typer")
+        assert hasattr(app, "info")
 
     def test_app_help_text(self, mock_registry):
         """Test that the app has correct help text."""
@@ -85,27 +91,42 @@ class TestCreateApp:
 
     def test_stt_subapp_creation(self, mock_registry):
         """Test that STT sub-application is created with correct help."""
-        with patch('voicebridge.cli.app.typer.Typer') as mock_typer:
+        with patch("voicebridge.cli.app.typer.Typer") as mock_typer:
             mock_app = Mock()
             mock_stt_app = Mock()
             mock_tts_app = Mock()
             # Need more mocks for all the sub-apps created
             mock_typer.side_effect = [
-                mock_app, mock_stt_app, mock_tts_app, Mock(), Mock(),
-                Mock(), Mock(), Mock(), Mock(), Mock(), Mock(), Mock(),
-                Mock(), Mock(), Mock(), Mock(), Mock(), Mock()
+                mock_app,
+                mock_stt_app,
+                mock_tts_app,
+                Mock(),
+                Mock(),
+                Mock(),
+                Mock(),
+                Mock(),
+                Mock(),
+                Mock(),
+                Mock(),
+                Mock(),
+                Mock(),
+                Mock(),
+                Mock(),
+                Mock(),
+                Mock(),
+                Mock(),
             ]
 
             create_app(mock_registry)
 
             # Check main app creation
             main_app_call = mock_typer.call_args_list[0]
-            assert main_app_call[1]['add_completion'] is False
-            assert "VoiceBridge" in main_app_call[1]['help']
+            assert main_app_call[1]["add_completion"] is False
+            assert "VoiceBridge" in main_app_call[1]["help"]
 
             # Check STT sub-app creation
             stt_app_call = mock_typer.call_args_list[1]
-            assert stt_app_call[1]['help'] == "Speech-to-Text commands"
+            assert stt_app_call[1]["help"] == "Speech-to-Text commands"
 
     def test_app_structure_with_registry(self, mock_registry):
         """Test that app properly uses the registry."""

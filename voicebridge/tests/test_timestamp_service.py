@@ -1,4 +1,5 @@
 """Tests for timestamp services."""
+
 import pytest
 
 from voicebridge.domain.models import TimestampMode, TranscriptionSegment
@@ -33,12 +34,16 @@ class TestDefaultTimestampService:
 
     def test_process_segments_word_level(self, service, sample_segments):
         """Test processing segments with word level timestamps."""
-        result = service.process_segments(sample_segments, TimestampMode.WORD_LEVEL.value)
+        result = service.process_segments(
+            sample_segments, TimestampMode.WORD_LEVEL.value
+        )
         assert result == sample_segments
 
     def test_process_segments_sentence_level(self, service, sample_segments):
         """Test processing segments with sentence level timestamps."""
-        result = service.process_segments(sample_segments, TimestampMode.SENTENCE_LEVEL.value)
+        result = service.process_segments(
+            sample_segments, TimestampMode.SENTENCE_LEVEL.value
+        )
 
         # Should group into sentences based on punctuation and pauses
         assert len(result) == 2  # Two sentences due to pause between segments 2 and 3
@@ -55,7 +60,9 @@ class TestDefaultTimestampService:
 
     def test_process_segments_paragraph_level(self, service, sample_segments):
         """Test processing segments with paragraph level timestamps."""
-        result = service.process_segments(sample_segments, TimestampMode.PARAGRAPH_LEVEL.value)
+        result = service.process_segments(
+            sample_segments, TimestampMode.PARAGRAPH_LEVEL.value
+        )
 
         # Should group all sentences into one paragraph
         assert len(result) == 1
@@ -102,10 +109,16 @@ class TestDefaultTimestampService:
                 text="Hello", start_time=0.0, end_time=1.0, confidence=0.9
             ),
             TranscriptionSegment(
-                text="world", start_time=2.5, end_time=3.5, confidence=0.8  # 1.5s pause > 1.0s threshold
+                text="world",
+                start_time=2.5,
+                end_time=3.5,
+                confidence=0.8,  # 1.5s pause > 1.0s threshold
             ),
             TranscriptionSegment(
-                text="today", start_time=3.6, end_time=4.0, confidence=0.85  # 0.1s pause < 1.0s threshold
+                text="today",
+                start_time=3.6,
+                end_time=4.0,
+                confidence=0.85,  # 0.1s pause < 1.0s threshold
             ),
         ]
 
@@ -128,7 +141,10 @@ class TestDefaultTimestampService:
                 text="First sentence.", start_time=0.0, end_time=2.0, confidence=0.9
             ),
             TranscriptionSegment(
-                text="Second sentence.", start_time=5.0, end_time=7.0, confidence=0.8  # 3s pause > 2s threshold
+                text="Second sentence.",
+                start_time=5.0,
+                end_time=7.0,
+                confidence=0.8,  # 3s pause > 2s threshold
             ),
         ]
 
@@ -146,10 +162,10 @@ class TestDefaultTimestampService:
         for i in range(6):
             segments.append(
                 TranscriptionSegment(
-                    text=f"Sentence {i+1}.",
+                    text=f"Sentence {i + 1}.",
                     start_time=i * 1.0,
                     end_time=(i + 1) * 1.0,
-                    confidence=0.9
+                    confidence=0.9,
                 )
             )
 
@@ -157,7 +173,10 @@ class TestDefaultTimestampService:
 
         # Should split after 5 sentences
         assert len(result) == 2
-        assert "Sentence 1. Sentence 2. Sentence 3. Sentence 4. Sentence 5." in result[0].text
+        assert (
+            "Sentence 1. Sentence 2. Sentence 3. Sentence 4. Sentence 5."
+            in result[0].text
+        )
         assert "Sentence 6." in result[1].text
 
     def test_is_long_pause_true(self, service):
@@ -167,7 +186,10 @@ class TestDefaultTimestampService:
                 text="First", start_time=0.0, end_time=1.0, confidence=0.9
             ),
             TranscriptionSegment(
-                text="Second", start_time=2.5, end_time=3.5, confidence=0.8  # 1.5s pause > 1.0s
+                text="Second",
+                start_time=2.5,
+                end_time=3.5,
+                confidence=0.8,  # 1.5s pause > 1.0s
             ),
         ]
 
@@ -181,7 +203,10 @@ class TestDefaultTimestampService:
                 text="First", start_time=0.0, end_time=1.0, confidence=0.9
             ),
             TranscriptionSegment(
-                text="Second", start_time=1.5, end_time=2.5, confidence=0.8  # 0.5s pause < 1.0s
+                text="Second",
+                start_time=1.5,
+                end_time=2.5,
+                confidence=0.8,  # 0.5s pause < 1.0s
             ),
         ]
 
@@ -205,7 +230,10 @@ class TestDefaultTimestampService:
             text="Current", start_time=0.0, end_time=1.0, confidence=0.9
         )
         next_seg = TranscriptionSegment(
-            text="Next", start_time=3.5, end_time=4.5, confidence=0.8  # 2.5s pause > 2.0s
+            text="Next",
+            start_time=3.5,
+            end_time=4.5,
+            confidence=0.8,  # 2.5s pause > 2.0s
         )
 
         result = service._is_paragraph_break(current, next_seg)
@@ -217,7 +245,10 @@ class TestDefaultTimestampService:
             text="Current", start_time=0.0, end_time=1.0, confidence=0.9
         )
         next_seg = TranscriptionSegment(
-            text="Next", start_time=2.5, end_time=3.5, confidence=0.8  # 1.5s pause < 2.0s
+            text="Next",
+            start_time=2.5,
+            end_time=3.5,
+            confidence=0.8,  # 1.5s pause < 2.0s
         )
 
         result = service._is_paragraph_break(current, next_seg)
@@ -306,13 +337,25 @@ class TestDefaultTimestampService:
         """Test determining primary speaker with multiple speakers."""
         segments = [
             TranscriptionSegment(
-                text="Hello", start_time=0.0, end_time=3.0, confidence=0.9, speaker_id=1  # 3s
+                text="Hello",
+                start_time=0.0,
+                end_time=3.0,
+                confidence=0.9,
+                speaker_id=1,  # 3s
             ),
             TranscriptionSegment(
-                text="world", start_time=3.0, end_time=4.0, confidence=0.8, speaker_id=2  # 1s
+                text="world",
+                start_time=3.0,
+                end_time=4.0,
+                confidence=0.8,
+                speaker_id=2,  # 1s
             ),
             TranscriptionSegment(
-                text="today", start_time=4.0, end_time=5.5, confidence=0.85, speaker_id=1  # 1.5s
+                text="today",
+                start_time=4.0,
+                end_time=5.5,
+                confidence=0.85,
+                speaker_id=1,  # 1.5s
             ),
         ]
 
@@ -331,10 +374,16 @@ class TestDefaultTimestampService:
                 text="continues here.", start_time=1.0, end_time=2.5, confidence=0.8
             ),
             TranscriptionSegment(
-                text="Next sentence", start_time=4.0, end_time=5.0, confidence=0.85  # Long pause
+                text="Next sentence",
+                start_time=4.0,
+                end_time=5.0,
+                confidence=0.85,  # Long pause
             ),
             TranscriptionSegment(
-                text="without punctuation", start_time=5.0, end_time=6.0, confidence=0.87
+                text="without punctuation",
+                start_time=5.0,
+                end_time=6.0,
+                confidence=0.87,
             ),
             TranscriptionSegment(
                 text="Final!", start_time=6.0, end_time=7.0, confidence=0.9
@@ -345,7 +394,9 @@ class TestDefaultTimestampService:
 
         assert len(result) == 2
         assert result[0].text == "Start of sentence continues here."
-        assert result[1].text == "Next sentence without punctuation Final!"  # Grouped together
+        assert (
+            result[1].text == "Next sentence without punctuation Final!"
+        )  # Grouped together
 
     def test_confidence_averaging_with_mixed_values(self, service):
         """Test confidence averaging with mixed confidence values."""

@@ -504,7 +504,5 @@ class TestTTSDaemonService(unittest.TestCase):
         self.assertFalse(self.daemon.is_running)
 
 
-
-
 if __name__ == "__main__":
     unittest.main()

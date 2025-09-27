@@ -1,4 +1,5 @@
 """Tests for text processors."""
+
 import pytest
 
 from voicebridge.adapters.text_processors.capitalization_processor import (
@@ -30,7 +31,7 @@ class TestCapitalizationProcessor:
     def test_process_empty_text(self, processor):
         """Test processing empty text."""
         assert processor.process("") == ""
-        assert processor.process(None) == None
+        assert processor.process(None) is None
 
     def test_process_single_sentence(self, processor):
         """Test processing a single sentence."""
@@ -197,7 +198,9 @@ class TestCapitalizationProcessor:
         """Test processing complex text with multiple features."""
         text = "i went to google on monday and i'm excited about python programming!"
         result = processor.process(text)
-        expected = "I went to Google on Monday and I'm excited about Python programming!"
+        expected = (
+            "I went to Google on Monday and I'm excited about Python programming!"
+        )
         assert result == expected
 
     def test_sentence_with_multiple_proper_nouns(self, processor):
@@ -285,7 +288,7 @@ class TestPunctuationProcessor:
     def test_process_empty_text(self, processor):
         """Test processing empty text."""
         assert processor.process("") == ""
-        assert processor.process(None) == None
+        assert processor.process(None) is None
 
     def test_multiple_punctuation_normalization(self, processor):
         """Test normalization of multiple punctuation marks."""
@@ -296,7 +299,9 @@ class TestPunctuationProcessor:
 
     def test_spacing_before_punctuation(self, processor):
         """Test removing space before punctuation."""
-        assert processor.process("Hello ,world") == "Hello, world"  # Space added after comma too
+        assert (
+            processor.process("Hello ,world") == "Hello, world"
+        )  # Space added after comma too
         assert processor.process("Hello !") == "Hello!"
         assert processor.process("Hello ?") == "Hello?"
         assert processor.process("Hello .") == "Hello."
@@ -336,7 +341,9 @@ class TestPunctuationProcessor:
     def test_fix_apostrophes_case_insensitive(self, processor):
         """Test that apostrophe fixes are case insensitive."""
         # The actual implementation works with specific patterns
-        assert "don't" == processor._fix_apostrophes("Dont")  # Becomes lowercase due to regex
+        assert "don't" == processor._fix_apostrophes(
+            "Dont"
+        )  # Becomes lowercase due to regex
         assert "don't" == processor._fix_apostrophes("dont")
 
     def test_fix_contractions_spaced_out(self, processor):
@@ -404,7 +411,7 @@ class TestProfanityFilter:
     def test_filter_text_empty(self, filter_instance):
         """Test filtering empty text."""
         assert filter_instance.filter_text("") == ""
-        assert filter_instance.filter_text(None) == None
+        assert filter_instance.filter_text(None) is None
 
     def test_filter_text_clean(self, filter_instance):
         """Test filtering clean text."""
@@ -441,8 +448,8 @@ class TestProfanityFilter:
     def test_is_profane_severity_threshold(self, custom_filter):
         """Test profanity detection with severity threshold."""
         # Assume badword has severity 1
-        assert custom_filter._is_profane("badword", severity_threshold=1) == True
-        assert custom_filter._is_profane("badword", severity_threshold=2) == False
+        assert custom_filter._is_profane("badword", severity_threshold=1)
+        assert not custom_filter._is_profane("badword", severity_threshold=2)
 
     def test_clean_word(self, filter_instance):
         """Test word cleaning functionality."""
@@ -470,7 +477,7 @@ class TestProfanityFilter:
         assert len(filter_instance.severity_levels) >= 0
 
         # All severity values should be integers
-        for word, severity in filter_instance.severity_levels.items():
+        for _word, severity in filter_instance.severity_levels.items():
             assert isinstance(severity, int)
             assert severity >= 1
 
@@ -486,13 +493,13 @@ class TestProfanityFilter:
         # If badword is long enough (>3 chars), it should be detected in compound words
         compound_word = "superbadwordtest"
         if len("badword") > 3:
-            assert custom_filter._is_profane(compound_word) == True
+            assert custom_filter._is_profane(compound_word)
 
     def test_case_insensitive_detection(self, custom_filter):
         """Test that profanity detection is case insensitive."""
-        assert custom_filter._is_profane("BADWORD") == True
-        assert custom_filter._is_profane("BadWord") == True
-        assert custom_filter._is_profane("badword") == True
+        assert custom_filter._is_profane("BADWORD")
+        assert custom_filter._is_profane("BadWord")
+        assert custom_filter._is_profane("badword")
 
     def test_find_variants_functionality(self, filter_instance):
         """Test that find_variants method exists and returns expected structure."""

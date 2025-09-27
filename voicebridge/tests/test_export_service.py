@@ -1,4 +1,5 @@
 """Tests for export service."""
+
 import csv
 import json
 from io import StringIO
@@ -87,12 +88,16 @@ class TestDefaultExportService:
         ]
         assert formats == expected
 
-    def test_export_transcription_json_basic(self, service, sample_result, basic_config):
+    def test_export_transcription_json_basic(
+        self, service, sample_result, basic_config
+    ):
         """Test basic JSON export."""
         basic_config.format = OutputFormat.JSON
 
-        with patch('voicebridge.services.export_service.datetime') as mock_datetime:
-            mock_datetime.now.return_value.isoformat.return_value = "2023-01-01T12:00:00"
+        with patch("voicebridge.services.export_service.datetime") as mock_datetime:
+            mock_datetime.now.return_value.isoformat.return_value = (
+                "2023-01-01T12:00:00"
+            )
 
             result = service.export_transcription(sample_result, basic_config)
 
@@ -112,8 +117,10 @@ class TestDefaultExportService:
             include_speaker_info=False,
         )
 
-        with patch('voicebridge.services.export_service.datetime') as mock_datetime:
-            mock_datetime.now.return_value.isoformat.return_value = "2023-01-01T12:00:00"
+        with patch("voicebridge.services.export_service.datetime") as mock_datetime:
+            mock_datetime.now.return_value.isoformat.return_value = (
+                "2023-01-01T12:00:00"
+            )
 
             result = service.export_transcription(sample_result, config)
 
@@ -130,8 +137,10 @@ class TestDefaultExportService:
             include_speaker_info=True,
         )
 
-        with patch('voicebridge.services.export_service.datetime') as mock_datetime:
-            mock_datetime.now.return_value.isoformat.return_value = "2023-01-01T12:00:00"
+        with patch("voicebridge.services.export_service.datetime") as mock_datetime:
+            mock_datetime.now.return_value.isoformat.return_value = (
+                "2023-01-01T12:00:00"
+            )
 
             result = service.export_transcription(sample_result, config)
 
@@ -152,13 +161,15 @@ class TestDefaultExportService:
 
         result = service.export_transcription(sample_result, config)
 
-        lines = result.split('\n')
+        lines = result.split("\n")
         assert "Language: en" in lines
         assert "Duration: 5.50s" in lines
         assert "[00:00:00] Hello world." in result
         assert "[00:00:02] How are you today?" in result
 
-    def test_export_transcription_plain_text_with_confidence(self, service, sample_result):
+    def test_export_transcription_plain_text_with_confidence(
+        self, service, sample_result
+    ):
         """Test plain text export with confidence."""
         config = ExportConfig(
             format=OutputFormat.PLAIN_TEXT,
@@ -172,7 +183,9 @@ class TestDefaultExportService:
         assert "(confidence: 95.00%)" in result
         assert "(confidence: 89.00%)" in result
 
-    def test_export_transcription_plain_text_with_speakers(self, service, sample_result):
+    def test_export_transcription_plain_text_with_speakers(
+        self, service, sample_result
+    ):
         """Test plain text export with speaker information."""
         config = ExportConfig(
             format=OutputFormat.PLAIN_TEXT,
@@ -287,7 +300,7 @@ class TestDefaultExportService:
 
         result = service.export_transcription(sample_result, config)
 
-        lines = result.split('\n')
+        lines = result.split("\n")
         assert "1" in lines
         assert "00:00:00,000 --> 00:00:02,500" in result
         assert "Hello world." in result
@@ -328,7 +341,7 @@ class TestDefaultExportService:
 
         result = service.export_transcription(sample_result, config)
 
-        lines = result.split('\n')
+        lines = result.split("\n")
         assert lines[0] == "WEBVTT"
         assert "00:00:00.000 --> 00:00:02.500" in result
         assert "Hello world." in result
@@ -377,8 +390,10 @@ class TestDefaultExportService:
             output_file=str(output_file),
         )
 
-        with patch('voicebridge.services.export_service.datetime') as mock_datetime:
-            mock_datetime.now.return_value.isoformat.return_value = "2023-01-01T12:00:00"
+        with patch("voicebridge.services.export_service.datetime") as mock_datetime:
+            mock_datetime.now.return_value.isoformat.return_value = (
+                "2023-01-01T12:00:00"
+            )
 
             result = service.export_to_file(sample_result, config)
 
@@ -394,16 +409,17 @@ class TestDefaultExportService:
         """Test exporting to file with auto-generated name."""
         config = ExportConfig(format=OutputFormat.JSON)
 
-        with patch('voicebridge.services.export_service.datetime') as mock_datetime:
+        with patch("voicebridge.services.export_service.datetime") as mock_datetime:
             mock_datetime.now.return_value.strftime.return_value = "20230101_120000"
-            mock_datetime.now.return_value.isoformat.return_value = "2023-01-01T12:00:00"
+            mock_datetime.now.return_value.isoformat.return_value = (
+                "2023-01-01T12:00:00"
+            )
 
-            with patch('pathlib.Path.write_text') as mock_write:
+            with patch("pathlib.Path.write_text") as mock_write:
                 result = service.export_to_file(sample_result, config)
 
         assert result is True
         # Check that the auto-generated filename was used
-        expected_filename = "transcription_20230101_120000.json"
         mock_write.assert_called_once()
 
     def test_export_to_file_exception(self, service, sample_result):
@@ -422,7 +438,9 @@ class TestDefaultExportService:
         assert service._format_timestamp(0) == "00:00:00"
         assert service._format_timestamp(65) == "00:01:05"
         assert service._format_timestamp(3661) == "01:01:01"
-        assert service._format_timestamp(3661.5) == "01:01:01"  # Truncates fractional seconds
+        assert (
+            service._format_timestamp(3661.5) == "01:01:01"
+        )  # Truncates fractional seconds
 
     def test_seconds_to_srt_timestamp(self, service):
         """Test SRT timestamp formatting."""
@@ -450,8 +468,10 @@ class TestDefaultExportService:
             include_confidence=True,
         )
 
-        with patch('voicebridge.services.export_service.datetime') as mock_datetime:
-            mock_datetime.now.return_value.isoformat.return_value = "2023-01-01T12:00:00"
+        with patch("voicebridge.services.export_service.datetime") as mock_datetime:
+            mock_datetime.now.return_value.isoformat.return_value = (
+                "2023-01-01T12:00:00"
+            )
 
             output = service.export_transcription(result, config)
 
@@ -470,8 +490,10 @@ class TestDefaultExportService:
             include_speaker_info=True,
         )
 
-        with patch('voicebridge.services.export_service.datetime') as mock_datetime:
-            mock_datetime.now.return_value.isoformat.return_value = "2023-01-01T12:00:00"
+        with patch("voicebridge.services.export_service.datetime") as mock_datetime:
+            mock_datetime.now.return_value.isoformat.return_value = (
+                "2023-01-01T12:00:00"
+            )
 
             output = service.export_transcription(sample_result, config)
 
@@ -515,8 +537,10 @@ class TestDefaultExportService:
             include_speaker_info=True,
         )
 
-        with patch('voicebridge.services.export_service.datetime') as mock_datetime:
-            mock_datetime.now.return_value.isoformat.return_value = "2023-01-01T12:00:00"
+        with patch("voicebridge.services.export_service.datetime") as mock_datetime:
+            mock_datetime.now.return_value.isoformat.return_value = (
+                "2023-01-01T12:00:00"
+            )
 
             output = service.export_transcription(result, config)
 

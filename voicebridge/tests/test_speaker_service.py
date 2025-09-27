@@ -1,4 +1,5 @@
 """Tests for speaker diarization services."""
+
 from unittest.mock import Mock, patch
 
 import pytest
@@ -27,10 +28,16 @@ class TestMockSpeakerDiarizationService:
                 text="Hello world", start_time=0.0, end_time=2.0, confidence=0.9
             ),
             TranscriptionSegment(
-                text="How are you", start_time=6.0, end_time=8.0, confidence=0.8  # 4s pause
+                text="How are you",
+                start_time=6.0,
+                end_time=8.0,
+                confidence=0.8,  # 4s pause
             ),
             TranscriptionSegment(
-                text="I'm fine", start_time=9.0, end_time=11.0, confidence=0.85  # 1s pause
+                text="I'm fine",
+                start_time=9.0,
+                end_time=11.0,
+                confidence=0.85,  # 1s pause
             ),
         ]
 
@@ -119,7 +126,11 @@ class TestMockSpeakerDiarizationService:
                 text="Hi", start_time=2.0, end_time=3.0, confidence=0.8, speaker_id=1
             ),
             TranscriptionSegment(
-                text="How are you", start_time=3.0, end_time=6.0, confidence=0.85, speaker_id=2
+                text="How are you",
+                start_time=3.0,
+                end_time=6.0,
+                confidence=0.85,
+                speaker_id=2,
             ),
         ]
 
@@ -147,7 +158,11 @@ class TestMockSpeakerDiarizationService:
         """Test speaker info generation with None confidence values."""
         segments = [
             TranscriptionSegment(
-                text="Hello", start_time=0.0, end_time=2.0, confidence=None, speaker_id=1
+                text="Hello",
+                start_time=0.0,
+                end_time=2.0,
+                confidence=None,
+                speaker_id=1,
             ),
             TranscriptionSegment(
                 text="Hi", start_time=2.0, end_time=3.0, confidence=0.8, speaker_id=1
@@ -204,7 +219,7 @@ class TestPyAnnoteSpeakerDiarizationService:
         mock_module = Mock()
         mock_module.Pipeline = mock_pipeline_class
 
-        with patch.dict('sys.modules', {'pyannote.audio': mock_module}):
+        with patch.dict("sys.modules", {"pyannote.audio": mock_module}):
             pipeline = service._load_pipeline()
 
             assert pipeline is not None
@@ -226,7 +241,7 @@ class TestPyAnnoteSpeakerDiarizationService:
         mock_module = Mock()
         mock_module.Pipeline = mock_pipeline_class
 
-        with patch.dict('sys.modules', {'pyannote.audio': mock_module}):
+        with patch.dict("sys.modules", {"pyannote.audio": mock_module}):
             service._load_pipeline()
 
             mock_pipeline_class.from_pretrained.assert_called_once_with(
@@ -249,7 +264,7 @@ class TestPyAnnoteSpeakerDiarizationService:
         mock_module = Mock()
         mock_module.Pipeline = mock_pipeline_class
 
-        with patch.dict('sys.modules', {'pyannote.audio': mock_module}):
+        with patch.dict("sys.modules", {"pyannote.audio": mock_module}):
             with pytest.raises(RuntimeError, match="Failed to load pyannote pipeline"):
                 service._load_pipeline()
 
@@ -259,7 +274,9 @@ class TestPyAnnoteSpeakerDiarizationService:
         assert result == []
 
     @patch.object(PyAnnoteSpeakerDiarizationService, "_load_pipeline")
-    def test_identify_speakers_pipeline_load_failure(self, mock_load, service, sample_segments):
+    def test_identify_speakers_pipeline_load_failure(
+        self, mock_load, service, sample_segments
+    ):
         """Test speaker identification when pipeline loading fails."""
         mock_load.side_effect = Exception("Pipeline failed")
 
@@ -272,7 +289,9 @@ class TestPyAnnoteSpeakerDiarizationService:
     @patch.object(PyAnnoteSpeakerDiarizationService, "_load_pipeline")
     @patch("tempfile.NamedTemporaryFile")
     @patch("wave.open")
-    def test_identify_speakers_success(self, mock_wave, mock_temp_file, mock_load, service, sample_segments):
+    def test_identify_speakers_success(
+        self, mock_wave, mock_temp_file, mock_load, service, sample_segments
+    ):
         """Test successful speaker identification."""
         # Mock pipeline
         mock_pipeline = Mock()
@@ -299,7 +318,9 @@ class TestPyAnnoteSpeakerDiarizationService:
         assert all(seg.speaker_id is not None for seg in result)
 
     @patch.object(PyAnnoteSpeakerDiarizationService, "_load_pipeline")
-    def test_identify_speakers_diarization_failure(self, mock_load, service, sample_segments):
+    def test_identify_speakers_diarization_failure(
+        self, mock_load, service, sample_segments
+    ):
         """Test speaker identification when diarization fails."""
         mock_pipeline = Mock()
         mock_pipeline.side_effect = Exception("Diarization failed")
@@ -399,7 +420,10 @@ class TestSimpleSpeakerDiarizationService:
                 text="First", start_time=0.0, end_time=1.0, confidence=0.9
             ),
             TranscriptionSegment(
-                text="Second", start_time=4.0, end_time=5.0, confidence=0.8  # 3s gap
+                text="Second",
+                start_time=4.0,
+                end_time=5.0,
+                confidence=0.8,  # 3s gap
             ),
         ]
 
@@ -416,7 +440,10 @@ class TestSimpleSpeakerDiarizationService:
                 text="First", start_time=0.0, end_time=1.0, confidence=0.9
             ),
             TranscriptionSegment(
-                text="Second", start_time=1.5, end_time=2.5, confidence=0.8  # 0.5s gap
+                text="Second",
+                start_time=1.5,
+                end_time=2.5,
+                confidence=0.8,  # 0.5s gap
             ),
         ]
 
@@ -429,10 +456,16 @@ class TestSimpleSpeakerDiarizationService:
         """Test speaker identification based on duration differences."""
         segments = [
             TranscriptionSegment(
-                text="Short", start_time=0.0, end_time=1.0, confidence=0.9  # 1s duration
+                text="Short",
+                start_time=0.0,
+                end_time=1.0,
+                confidence=0.9,  # 1s duration
             ),
             TranscriptionSegment(
-                text="Much longer segment", start_time=1.6, end_time=4.6, confidence=0.8  # 3s duration
+                text="Much longer segment",
+                start_time=1.6,
+                end_time=4.6,
+                confidence=0.8,  # 3s duration
             ),
         ]
 

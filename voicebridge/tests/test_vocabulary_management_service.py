@@ -1,4 +1,5 @@
 """Tests for vocabulary management service."""
+
 from unittest.mock import Mock
 
 import pytest
@@ -38,7 +39,7 @@ class TestVocabularyManagementService:
             domain_terms={"medical": ["diagnosis", "treatment"]},
             boost_factor=1.5,
             enable_fuzzy_matching=True,
-            phonetic_mappings={"colour": "color"}
+            phonetic_mappings={"colour": "color"},
         )
 
     def test_init(self, mock_vocabulary_adapter, mock_logger):
@@ -54,7 +55,9 @@ class TestVocabularyManagementService:
         result = service.add_words(["new", "words"], "custom", "test_profile", 1.0)
 
         assert result is True
-        mock_vocabulary_adapter.load_vocabulary_config.assert_called_once_with("test_profile")
+        mock_vocabulary_adapter.load_vocabulary_config.assert_called_once_with(
+            "test_profile"
+        )
         mock_vocabulary_adapter.save_vocabulary_config.assert_called_once()
 
         # Check that new words were added
@@ -62,7 +65,9 @@ class TestVocabularyManagementService:
         assert "new" in saved_config.custom_words
         assert "words" in saved_config.custom_words
 
-    def test_add_words_proper_nouns(self, service, mock_vocabulary_adapter, sample_config):
+    def test_add_words_proper_nouns(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test adding words to proper nouns vocabulary."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -84,7 +89,9 @@ class TestVocabularyManagementService:
         assert "REST" in saved_config.technical_jargon
         assert "GraphQL" in saved_config.technical_jargon
 
-    def test_add_words_domain_terms_existing(self, service, mock_vocabulary_adapter, sample_config):
+    def test_add_words_domain_terms_existing(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test adding words to existing domain terms."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -95,7 +102,9 @@ class TestVocabularyManagementService:
         assert "surgery" in saved_config.domain_terms["medical"]
         assert "procedure" in saved_config.domain_terms["medical"]
 
-    def test_add_words_domain_terms_new(self, service, mock_vocabulary_adapter, sample_config):
+    def test_add_words_domain_terms_new(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test adding words to new domain terms."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -107,7 +116,9 @@ class TestVocabularyManagementService:
         assert "class" in saved_config.domain_terms["programming"]
         assert "method" in saved_config.domain_terms["programming"]
 
-    def test_add_words_duplicate_prevention(self, service, mock_vocabulary_adapter, sample_config):
+    def test_add_words_duplicate_prevention(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test that duplicate words are not added."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -122,7 +133,9 @@ class TestVocabularyManagementService:
 
     def test_add_words_exception(self, service, mock_vocabulary_adapter, mock_logger):
         """Test add_words with exception."""
-        mock_vocabulary_adapter.load_vocabulary_config.side_effect = Exception("Load failed")
+        mock_vocabulary_adapter.load_vocabulary_config.side_effect = Exception(
+            "Load failed"
+        )
 
         result = service.add_words(["test"], "custom", "default")
 
@@ -140,7 +153,9 @@ class TestVocabularyManagementService:
         assert "hello" not in saved_config.custom_words
         assert "world" in saved_config.custom_words  # Should remain
 
-    def test_remove_words_proper_nouns(self, service, mock_vocabulary_adapter, sample_config):
+    def test_remove_words_proper_nouns(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test removing words from proper nouns vocabulary."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -151,7 +166,9 @@ class TestVocabularyManagementService:
         assert "Alice" not in saved_config.proper_nouns
         assert "Bob" in saved_config.proper_nouns  # Should remain
 
-    def test_remove_words_technical(self, service, mock_vocabulary_adapter, sample_config):
+    def test_remove_words_technical(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test removing words from technical vocabulary."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -162,7 +179,9 @@ class TestVocabularyManagementService:
         assert "API" not in saved_config.technical_jargon
         assert "SDK" in saved_config.technical_jargon  # Should remain
 
-    def test_remove_words_domain_terms(self, service, mock_vocabulary_adapter, sample_config):
+    def test_remove_words_domain_terms(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test removing words from domain terms."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -173,16 +192,22 @@ class TestVocabularyManagementService:
         assert "diagnosis" not in saved_config.domain_terms["medical"]
         assert "treatment" in saved_config.domain_terms["medical"]  # Should remain
 
-    def test_remove_words_exception(self, service, mock_vocabulary_adapter, mock_logger):
+    def test_remove_words_exception(
+        self, service, mock_vocabulary_adapter, mock_logger
+    ):
         """Test remove_words with exception."""
-        mock_vocabulary_adapter.load_vocabulary_config.side_effect = Exception("Load failed")
+        mock_vocabulary_adapter.load_vocabulary_config.side_effect = Exception(
+            "Load failed"
+        )
 
         result = service.remove_words(["test"], "custom", "default")
 
         assert result is False
         mock_logger.error.assert_called_once()
 
-    def test_list_vocabularies_all(self, service, mock_vocabulary_adapter, sample_config):
+    def test_list_vocabularies_all(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test listing all vocabularies."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -192,11 +217,13 @@ class TestVocabularyManagementService:
             "custom": ["hello", "world"],
             "proper_nouns": ["Alice", "Bob"],
             "technical": ["API", "SDK"],
-            "medical": ["diagnosis", "treatment"]
+            "medical": ["diagnosis", "treatment"],
         }
         assert result == expected
 
-    def test_list_vocabularies_specific_type(self, service, mock_vocabulary_adapter, sample_config):
+    def test_list_vocabularies_specific_type(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test listing specific vocabulary type."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -205,7 +232,9 @@ class TestVocabularyManagementService:
         expected = {"custom": ["hello", "world"]}
         assert result == expected
 
-    def test_list_vocabularies_nonexistent_type(self, service, mock_vocabulary_adapter, sample_config):
+    def test_list_vocabularies_nonexistent_type(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test listing nonexistent vocabulary type."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -214,28 +243,41 @@ class TestVocabularyManagementService:
         expected = {"nonexistent": []}
         assert result == expected
 
-    def test_list_vocabularies_exception(self, service, mock_vocabulary_adapter, mock_logger):
+    def test_list_vocabularies_exception(
+        self, service, mock_vocabulary_adapter, mock_logger
+    ):
         """Test list_vocabularies with exception."""
-        mock_vocabulary_adapter.load_vocabulary_config.side_effect = Exception("Load failed")
+        mock_vocabulary_adapter.load_vocabulary_config.side_effect = Exception(
+            "Load failed"
+        )
 
         result = service.list_vocabularies()
 
         assert result == {}
         mock_logger.error.assert_called_once()
 
-    def test_import_vocabulary_success(self, service, mock_vocabulary_adapter, sample_config):
+    def test_import_vocabulary_success(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test successful vocabulary import."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
-        mock_vocabulary_adapter.import_vocabulary_from_file.return_value = ["imported1", "imported2"]
+        mock_vocabulary_adapter.import_vocabulary_from_file.return_value = [
+            "imported1",
+            "imported2",
+        ]
 
-        result = service.import_vocabulary("/path/to/file.txt", "custom", "default", "txt")
+        result = service.import_vocabulary(
+            "/path/to/file.txt", "custom", "default", "txt"
+        )
 
         assert result is True
         mock_vocabulary_adapter.import_vocabulary_from_file.assert_called_once_with(
             "/path/to/file.txt", "custom"
         )
 
-    def test_import_vocabulary_no_words(self, service, mock_vocabulary_adapter, mock_logger):
+    def test_import_vocabulary_no_words(
+        self, service, mock_vocabulary_adapter, mock_logger
+    ):
         """Test vocabulary import with no words found."""
         mock_vocabulary_adapter.import_vocabulary_from_file.return_value = []
 
@@ -244,30 +286,42 @@ class TestVocabularyManagementService:
         assert result is False
         mock_logger.warning.assert_called_once()
 
-    def test_import_vocabulary_exception(self, service, mock_vocabulary_adapter, mock_logger):
+    def test_import_vocabulary_exception(
+        self, service, mock_vocabulary_adapter, mock_logger
+    ):
         """Test vocabulary import with exception."""
-        mock_vocabulary_adapter.import_vocabulary_from_file.side_effect = Exception("Import failed")
+        mock_vocabulary_adapter.import_vocabulary_from_file.side_effect = Exception(
+            "Import failed"
+        )
 
         result = service.import_vocabulary("/path/to/file.txt", "custom", "default")
 
         assert result is False
         mock_logger.error.assert_called_once()
 
-    def test_export_vocabulary_success(self, service, mock_vocabulary_adapter, sample_config):
+    def test_export_vocabulary_success(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test successful vocabulary export."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
         result = service.export_vocabulary("/path/to/output.txt", "default")
 
         assert result is True
-        mock_vocabulary_adapter.load_vocabulary_config.assert_called_once_with("default")
+        mock_vocabulary_adapter.load_vocabulary_config.assert_called_once_with(
+            "default"
+        )
         mock_vocabulary_adapter.export_vocabulary_to_file.assert_called_once_with(
             sample_config, "/path/to/output.txt"
         )
 
-    def test_export_vocabulary_exception(self, service, mock_vocabulary_adapter, mock_logger):
+    def test_export_vocabulary_exception(
+        self, service, mock_vocabulary_adapter, mock_logger
+    ):
         """Test vocabulary export with exception."""
-        mock_vocabulary_adapter.load_vocabulary_config.side_effect = Exception("Load failed")
+        mock_vocabulary_adapter.load_vocabulary_config.side_effect = Exception(
+            "Load failed"
+        )
 
         result = service.export_vocabulary("/path/to/output.txt", "default")
 
@@ -276,24 +330,34 @@ class TestVocabularyManagementService:
 
     def test_list_profiles(self, service, mock_vocabulary_adapter):
         """Test listing vocabulary profiles."""
-        mock_vocabulary_adapter.list_vocabulary_profiles.return_value = ["default", "medical", "tech"]
+        mock_vocabulary_adapter.list_vocabulary_profiles.return_value = [
+            "default",
+            "medical",
+            "tech",
+        ]
 
         result = service.list_profiles()
 
         assert result == ["default", "medical", "tech"]
         mock_vocabulary_adapter.list_vocabulary_profiles.assert_called_once()
 
-    def test_delete_profile_success(self, service, mock_vocabulary_adapter, mock_logger):
+    def test_delete_profile_success(
+        self, service, mock_vocabulary_adapter, mock_logger
+    ):
         """Test successful profile deletion."""
         mock_vocabulary_adapter.delete_vocabulary_profile.return_value = True
 
         result = service.delete_profile("test_profile")
 
         assert result is True
-        mock_vocabulary_adapter.delete_vocabulary_profile.assert_called_once_with("test_profile")
+        mock_vocabulary_adapter.delete_vocabulary_profile.assert_called_once_with(
+            "test_profile"
+        )
         mock_logger.info.assert_called_once()
 
-    def test_delete_profile_failure(self, service, mock_vocabulary_adapter, mock_logger):
+    def test_delete_profile_failure(
+        self, service, mock_vocabulary_adapter, mock_logger
+    ):
         """Test failed profile deletion."""
         mock_vocabulary_adapter.delete_vocabulary_profile.return_value = False
 
@@ -302,9 +366,13 @@ class TestVocabularyManagementService:
         assert result is False
         mock_logger.info.assert_not_called()
 
-    def test_delete_profile_exception(self, service, mock_vocabulary_adapter, mock_logger):
+    def test_delete_profile_exception(
+        self, service, mock_vocabulary_adapter, mock_logger
+    ):
         """Test profile deletion with exception."""
-        mock_vocabulary_adapter.delete_vocabulary_profile.side_effect = Exception("Delete failed")
+        mock_vocabulary_adapter.delete_vocabulary_profile.side_effect = Exception(
+            "Delete failed"
+        )
 
         result = service.delete_profile("test_profile")
 
@@ -318,9 +386,13 @@ class TestVocabularyManagementService:
         result = service.get_config("test_profile")
 
         assert result == sample_config
-        mock_vocabulary_adapter.load_vocabulary_config.assert_called_once_with("test_profile")
+        mock_vocabulary_adapter.load_vocabulary_config.assert_called_once_with(
+            "test_profile"
+        )
 
-    def test_update_config_boost_factor(self, service, mock_vocabulary_adapter, sample_config):
+    def test_update_config_boost_factor(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test updating configuration boost factor."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -330,7 +402,9 @@ class TestVocabularyManagementService:
         saved_config = mock_vocabulary_adapter.save_vocabulary_config.call_args[0][0]
         assert saved_config.boost_factor == 2.0
 
-    def test_update_config_fuzzy_matching(self, service, mock_vocabulary_adapter, sample_config):
+    def test_update_config_fuzzy_matching(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test updating configuration fuzzy matching."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -340,7 +414,9 @@ class TestVocabularyManagementService:
         saved_config = mock_vocabulary_adapter.save_vocabulary_config.call_args[0][0]
         assert saved_config.enable_fuzzy_matching is False
 
-    def test_update_config_phonetic_mappings(self, service, mock_vocabulary_adapter, sample_config):
+    def test_update_config_phonetic_mappings(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test updating configuration phonetic mappings."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
         new_mappings = {"favor": "favour", "center": "centre"}
@@ -354,7 +430,9 @@ class TestVocabularyManagementService:
         assert saved_config.phonetic_mappings["favor"] == "favour"  # New
         assert saved_config.phonetic_mappings["center"] == "centre"  # New
 
-    def test_update_config_all_parameters(self, service, mock_vocabulary_adapter, sample_config):
+    def test_update_config_all_parameters(
+        self, service, mock_vocabulary_adapter, sample_config
+    ):
         """Test updating all configuration parameters."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
         new_mappings = {"gray": "grey"}
@@ -363,7 +441,7 @@ class TestVocabularyManagementService:
             "default",
             boost_factor=3.0,
             enable_fuzzy_matching=False,
-            phonetic_mappings=new_mappings
+            phonetic_mappings=new_mappings,
         )
 
         assert result is True
@@ -372,16 +450,22 @@ class TestVocabularyManagementService:
         assert saved_config.enable_fuzzy_matching is False
         assert saved_config.phonetic_mappings["gray"] == "grey"
 
-    def test_update_config_exception(self, service, mock_vocabulary_adapter, mock_logger):
+    def test_update_config_exception(
+        self, service, mock_vocabulary_adapter, mock_logger
+    ):
         """Test updating configuration with exception."""
-        mock_vocabulary_adapter.load_vocabulary_config.side_effect = Exception("Load failed")
+        mock_vocabulary_adapter.load_vocabulary_config.side_effect = Exception(
+            "Load failed"
+        )
 
         result = service.update_config("default", boost_factor=2.0)
 
         assert result is False
         mock_logger.error.assert_called_once()
 
-    def test_add_words_logging(self, service, mock_vocabulary_adapter, sample_config, mock_logger):
+    def test_add_words_logging(
+        self, service, mock_vocabulary_adapter, sample_config, mock_logger
+    ):
         """Test logging in add_words method."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 
@@ -391,7 +475,9 @@ class TestVocabularyManagementService:
             "Added 2 words to custom vocabulary for profile test_profile"
         )
 
-    def test_remove_words_logging(self, service, mock_vocabulary_adapter, sample_config, mock_logger):
+    def test_remove_words_logging(
+        self, service, mock_vocabulary_adapter, sample_config, mock_logger
+    ):
         """Test logging in remove_words method."""
         mock_vocabulary_adapter.load_vocabulary_config.return_value = sample_config
 

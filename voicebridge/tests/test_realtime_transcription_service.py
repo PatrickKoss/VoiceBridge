@@ -1,4 +1,5 @@
 """Tests for RealtimeTranscriptionService."""
+
 import queue
 from unittest.mock import Mock, patch
 
@@ -46,7 +47,9 @@ class TestRealtimeTranscriptionService:
             logger=mock_logger,
         )
 
-    def test_init(self, service, mock_audio_recorder, mock_transcription_service, mock_logger):
+    def test_init(
+        self, service, mock_audio_recorder, mock_transcription_service, mock_logger
+    ):
         """Test service initialization."""
         assert service.audio_recorder == mock_audio_recorder
         assert service.transcription_service == mock_transcription_service
@@ -63,6 +66,7 @@ class TestRealtimeTranscriptionService:
         """Test voice activity detection with valid audio."""
         # Create mock audio data (16-bit samples)
         import struct
+
         samples = [1000, 2000, 1500, 3000]  # High energy samples
         audio_chunk = struct.pack(f"<{len(samples)}h", *samples)
 
@@ -72,6 +76,7 @@ class TestRealtimeTranscriptionService:
     def test_has_voice_activity_with_low_energy(self, service):
         """Test voice activity detection with low energy audio."""
         import struct
+
         samples = [10, 20, 15, 30]  # Low energy samples
         audio_chunk = struct.pack(f"<{len(samples)}h", *samples)
 
@@ -160,6 +165,7 @@ class TestRealtimeTranscriptionService:
 
         # Create a temporary file
         import tempfile
+
         with tempfile.NamedTemporaryFile(suffix=".wav") as tmp_file:
             results = list(service.transcribe_file_streaming(tmp_file.name, config))
 
@@ -170,14 +176,20 @@ class TestRealtimeTranscriptionService:
         assert results[1]["chunk_id"] == 2
 
     @patch("subprocess.Popen")
-    def test_transcribe_file_streaming_file_not_found(self, mock_popen, service, config):
+    def test_transcribe_file_streaming_file_not_found(
+        self, mock_popen, service, config
+    ):
         """Test file streaming transcription with non-existent file."""
-        results = list(service.transcribe_file_streaming("/nonexistent/file.wav", config))
+        results = list(
+            service.transcribe_file_streaming("/nonexistent/file.wav", config)
+        )
         assert results == []
         service.logger.error.assert_called()
 
     @patch("subprocess.Popen")
-    def test_transcribe_file_streaming_with_transcription_error(self, mock_popen, service, config):
+    def test_transcribe_file_streaming_with_transcription_error(
+        self, mock_popen, service, config
+    ):
         """Test file streaming transcription with transcription errors."""
         # Mock subprocess
         mock_process = Mock()
@@ -188,10 +200,13 @@ class TestRealtimeTranscriptionService:
         mock_popen.return_value = mock_process
 
         # Mock transcription to raise error
-        service.transcription_service.transcribe.side_effect = Exception("Transcription failed")
+        service.transcription_service.transcribe.side_effect = Exception(
+            "Transcription failed"
+        )
 
         # Create a temporary file
         import tempfile
+
         with tempfile.NamedTemporaryFile(suffix=".wav") as tmp_file:
             results = list(service.transcribe_file_streaming(tmp_file.name, config))
 
@@ -236,7 +251,9 @@ class TestRealtimeTranscriptionService:
 
     @patch("threading.Thread")
     @patch("time.time")
-    def test_transcribe_realtime_basic_flow(self, mock_time, mock_thread, service, config):
+    def test_transcribe_realtime_basic_flow(
+        self, mock_time, mock_thread, service, config
+    ):
         """Test basic real-time transcription flow."""
         # Mock time to control timestamps
         mock_time.side_effect = [100.0, 101.0, 102.0, 103.0]
@@ -250,6 +267,7 @@ class TestRealtimeTranscriptionService:
 
         # Add some audio data
         import struct
+
         samples = [1000] * 8000  # 0.5 seconds of audio at 16kHz
         audio_chunk = struct.pack(f"<{len(samples)}h", *samples)
         audio_buffer.put(audio_chunk)
@@ -262,7 +280,7 @@ class TestRealtimeTranscriptionService:
                 item = audio_buffer.get()
                 buffer.put(item)
 
-        with patch.object(service, '_audio_capture_worker', mock_audio_capture_worker):
+        with patch.object(service, "_audio_capture_worker", mock_audio_capture_worker):
             # Mock transcription
             service.transcription_service.transcribe.return_value = TranscriptionResult(
                 text="hello", confidence=0.9
@@ -296,7 +314,9 @@ class TestRealtimeTranscriptionService:
                 def mock_audio_capture_worker(buffer, sample_rate):
                     pass  # Don't put anything in buffer
 
-                with patch.object(service, '_audio_capture_worker', mock_audio_capture_worker):
+                with patch.object(
+                    service, "_audio_capture_worker", mock_audio_capture_worker
+                ):
                     # Run transcription
                     results = list(service.transcribe_realtime(config))
 
