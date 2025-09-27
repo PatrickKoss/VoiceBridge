@@ -453,7 +453,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
     app.add_typer(audio_app, name="audio")
 
     @audio_app.command()
-    def audio_info(
+    def info(
         file_path: str = typer.Argument(..., help="Audio file path"),
     ):
         """Show audio file information."""
@@ -870,7 +870,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
     app.add_typer(gpu_app, name="gpu")
 
     @gpu_app.command()
-    def gpu_status():
+    def status():  # noqa: F811
         """Show GPU status."""
         system_commands = command_registry.get_command_group("system")
         system_commands.gpu_status()
@@ -888,13 +888,13 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
     app.add_typer(api_app, name="api")
 
     @api_app.command()
-    def api_status():
+    def status():  # noqa: F811
         """Show API server status."""
         api_commands = command_registry.get_command_group("api")
         api_commands.api_status()
 
     @api_app.command()
-    def api_start(
+    def start(  # noqa: F811
         host: str = typer.Option("localhost", "--host", help="Host to bind to"),
         port: int = typer.Option(8000, "--port", help="Port to bind to"),
         workers: int = typer.Option(1, "--workers", help="Number of worker processes"),
@@ -907,7 +907,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         api_commands.api_start(host, port, workers, background)
 
     @api_app.command()
-    def api_stop(
+    def stop(  # noqa: F811
         port: int = typer.Option(8000, "--port", help="Port to stop server on"),
     ):
         """Stop the API server."""
@@ -915,7 +915,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         api_commands.api_stop(port)
 
     @api_app.command()
-    def api_info():
+    def info():  # noqa: F811
         """Show API server information and endpoints."""
         api_commands = command_registry.get_command_group("api")
         api_commands.api_info()

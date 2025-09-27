@@ -37,7 +37,7 @@ class TestAudioCommands:
         if not voice_file.exists():
             pytest.skip("Test audio file not available")
 
-        result = cli_runner.run("audio audio-info " + str(voice_file), timeout=15)
+        result = cli_runner.run("audio info " + str(voice_file), timeout=15)
 
         assert result.success, f"Audio info failed: {result.stderr}"
         # Should show audio file information
@@ -49,7 +49,7 @@ class TestAudioCommands:
     def test_audio_info_with_nonexistent_file(self, cli_runner):
         """Test audio info command with non-existent file."""
         result = cli_runner.run(
-            "audio audio-info nonexistent_audio.wav", timeout=10, expect_failure=True
+            "audio info nonexistent_audio.wav", timeout=10, expect_failure=True
         )
 
         assert result.failed, "Should fail with non-existent file"
@@ -148,7 +148,7 @@ class TestAudioCommandsValidation:
 
     def test_audio_info_missing_file(self, cli_runner):
         """Test audio info without file argument."""
-        result = cli_runner.run("audio audio-info", timeout=10, expect_failure=True)
+        result = cli_runner.run("audio info", timeout=10, expect_failure=True)
 
         assert result.failed, "Should fail without file argument"
         assert any(
@@ -193,7 +193,7 @@ class TestAudioCommandsSmokeTests:
 
     def test_all_audio_subcommands_help(self, cli_runner):
         """Test that all audio subcommands have working help."""
-        subcommands = ["audio-info", "formats", "split", "preprocess", "test"]
+        subcommands = ["info", "formats", "split", "preprocess", "test"]
 
         for cmd in subcommands:
             result = cli_runner.run(f"audio {cmd} --help", timeout=10)
@@ -208,6 +208,6 @@ class TestAudioCommandsSmokeTests:
         assert result.success, f"Audio command structure test failed: {result.stderr}"
 
         # Verify all expected subcommands are listed
-        expected_commands = ["audio-info", "formats", "split", "preprocess", "test"]
+        expected_commands = ["info", "formats", "split", "preprocess", "test"]
         for cmd in expected_commands:
             assert cmd in result.stdout, f"Missing audio subcommand: {cmd}"
