@@ -72,6 +72,7 @@ dependencies = [
     "fastapi>=0.116.1",
     "uvicorn>=0.35.0",
     "httpx>=0.28.1",
+    "aiohttp>=3.8.0",
     "aiofiles>=24.1.0",
     "websockets>=15.0.1",
     
@@ -97,6 +98,7 @@ dev = [
     "pytest>=8.4.2",
     "pytest-cov>=6.3.0",
     "pytest-mock>=3.15.0",
+    "pytest-asyncio>=0.21.0",
     "ruff>=0.1.15",
     "black>=25.1.0",
     "coverage>=7.10.6",
@@ -168,6 +170,7 @@ markers = [
     "e2e_batch: marks E2E tests as batch processing tests",
     "e2e_config: marks E2E tests as configuration tests", 
     "e2e_session: marks E2E tests as session management tests",
+    "asyncio: marks tests as asyncio tests",
 ]
 
 [tool.coverage.run]

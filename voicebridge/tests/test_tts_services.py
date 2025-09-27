@@ -489,6 +489,22 @@ class TestTTSDaemonService(unittest.TestCase):
 
         self.mock_orchestrator.stop_generation.assert_called_once()
 
+    def test_basic_daemon_operations(self):
+        """Test basic daemon operations."""
+        # Test daemon initialization state
+        self.assertFalse(self.daemon.is_running)
+        self.assertIsNone(self.daemon.current_config)
+
+        # Test status when not running
+        status = self.daemon.get_status()
+        self.assertEqual(status["status"], "stopped")
+
+        # Test stop when not running (should not crash)
+        self.daemon.stop_daemon()
+        self.assertFalse(self.daemon.is_running)
+
+
+
 
 if __name__ == "__main__":
     unittest.main()
