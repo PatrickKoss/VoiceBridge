@@ -8,6 +8,11 @@ import psutil
 from voicebridge.domain.models import GPUInfo, GPUType, PlatformType, SystemInfo
 from voicebridge.ports.interfaces import ClipboardService, SystemService
 
+try:
+    import pyperclip
+except ImportError:
+    pyperclip = None
+
 
 class PlatformClipboardService(ClipboardService):
     def __init__(self):
@@ -36,14 +41,39 @@ class PlatformClipboardService(ClipboardService):
             return False
 
     def _copy_windows(self, text: str) -> bool:
+        # Try pyperclip first (most reliable)
+        if pyperclip:
+            try:
+                pyperclip.copy(text)
+                return True
+            except Exception:
+                pass
+
+        # Fallback to PowerShell with proper escaping
         try:
+            # Escape special characters for PowerShell
+            escaped_text = text.replace("'", "''").replace("`", "``").replace("$", "`$")
             result = subprocess.run(
-                ["powershell", "-command", f"Set-Clipboard -Value '{text}'"],
+                ["powershell", "-command", f"Set-Clipboard -Value '{escaped_text}'"],
                 capture_output=True,
                 timeout=5,
+                text=True
             )
             return result.returncode == 0
-        except subprocess.TimeoutExpired:
+        except (subprocess.TimeoutExpired, FileNotFoundError):
+            pass
+
+        # Final fallback to clip.exe
+        try:
+            result = subprocess.run(
+                ["clip"],
+                input=text,
+                capture_output=True,
+                timeout=5,
+                text=True
+            )
+            return result.returncode == 0
+        except (subprocess.TimeoutExpired, FileNotFoundError):
             return False
 
     def _copy_macos(self, text: str) -> bool:

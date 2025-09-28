@@ -292,12 +292,12 @@ class WhisperTranscriptionService(TranscriptionService):
             # Use 80% of available memory as safe limit
             # This allows for better utilization on high-end systems
             effective_limit = memory_info["available_mb"] * 0.8
-            
+
             # Only enforce reasonable minimums, no maximum caps
             # Minimum: 512MB for small models
             # If less than 512MB available, use what we have (user's responsibility)
             effective_limit = max(512, effective_limit)
-            
+
             # For very large systems (>64GB), be slightly more conservative (70%)
             total_memory = memory_info.get("total_mb", 8192)
             if total_memory > 65536:  # >64GB systems
