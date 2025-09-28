@@ -26,6 +26,7 @@ class SpeechCommands(BaseCommands):
         debug: bool = False,
     ):
         """Listen for speech and transcribe it."""
+        print(f"[DEBUG] speech_commands.listen: paste_final={paste_final}, paste_stream={paste_stream}")
         try:
             import time
 
