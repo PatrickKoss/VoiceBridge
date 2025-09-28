@@ -443,6 +443,7 @@ class SpeechCommands(BaseCommands):
 
                 def handle_key_command(key_char):
                     """Handle key commands - extracted for reuse between platforms"""
+                    nonlocal recording_thread
                     if key_char.lower() == "s":
                         if not recording_state["is_recording"]:
                             # Start recording
