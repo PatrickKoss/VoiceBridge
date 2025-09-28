@@ -285,7 +285,15 @@ class WhisperTranscriptionService(TranscriptionService):
         additional_mb = additional_bytes / (1024 * 1024)
         projected_usage = memory_info["used_mb"] + additional_mb
 
-        if projected_usage > max_memory_mb:
+        # Auto-detect memory limit if set to 0 (default)
+        # Use 75% of available memory as safe limit
+        effective_limit = max_memory_mb
+        if max_memory_mb <= 0:
+            effective_limit = memory_info["available_mb"] * 0.75
+            # Minimum 512MB, maximum 8GB for safety
+            effective_limit = max(512, min(8192, effective_limit))
+
+        if projected_usage > effective_limit:
             # Force garbage collection
             gc.collect()
             if torch and torch.cuda.is_available():
@@ -293,9 +301,11 @@ class WhisperTranscriptionService(TranscriptionService):
 
             # Re-check after cleanup
             memory_info = self._system_service.get_memory_usage()
-            if memory_info["used_mb"] + additional_mb > max_memory_mb:
+            if memory_info["used_mb"] + additional_mb > effective_limit:
+                limit_type = "auto-detected" if max_memory_mb <= 0 else "configured"
                 raise RuntimeError(
-                    f"Memory limit exceeded: {memory_info['used_mb']:.0f}MB + {additional_mb:.0f}MB > {max_memory_mb}MB"
+                    f"Memory limit exceeded: {memory_info['used_mb']:.0f}MB + {additional_mb:.0f}MB > {effective_limit:.0f}MB ({limit_type}). "
+                    f"Try using a smaller model or set --max-memory to a higher value."
                 )
 
     def _get_gpu_memory_usage(self) -> float | None:

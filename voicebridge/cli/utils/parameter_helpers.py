@@ -10,6 +10,9 @@ def common_whisper_options():
         "initial_prompt": typer.Option(None, "--prompt", help="Initial prompt"),
         "temperature": typer.Option(0.0, "--temperature", "-t", help="Temperature"),
         "profile": typer.Option(None, "--profile", "-p", help="Use profile"),
+        "max_memory": typer.Option(
+            0, "--max-memory", help="Memory limit in MB (0 = auto-detect)"
+        ),
         "debug": typer.Option(False, "--debug", help="Enable debug logging"),
     }
 

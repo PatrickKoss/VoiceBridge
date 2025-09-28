@@ -358,7 +358,7 @@ class TestConfigurationExtensions:
 
         # Test memory settings
         assert config.chunk_size == 30
-        assert config.max_memory_mb == 4096
+        assert config.max_memory_mb == 0  # 0 = auto-detect
 
         # Test resume settings
         assert config.enable_resume is True

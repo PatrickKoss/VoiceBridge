@@ -149,6 +149,7 @@ class TestSpeechCommands:
                                 copy_stream=False,
                                 paste_final=False,
                                 copy_final=True,
+                                max_memory=0,
                                 debug=False,
                             )
                         except (KeyboardInterrupt, typer.Exit):
@@ -164,6 +165,7 @@ class TestSpeechCommands:
                             copy_stream=False,
                             paste_final=False,
                             copy_final=True,
+                            max_memory_mb=0,
                             debug=False,
                         )
 

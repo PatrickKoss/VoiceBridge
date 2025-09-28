@@ -54,6 +54,9 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         copy_final: bool = typer.Option(
             True, "--copy-final/--no-copy-final", help="Copy final text"
         ),
+        max_memory: int = typer.Option(
+            0, "--max-memory", help="Memory limit in MB (0 = auto-detect)"
+        ),
         debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
     ):
         """Listen for speech and transcribe it with hotkey control."""
@@ -68,6 +71,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             copy_stream,
             paste_final,
             copy_final,
+            max_memory,
             debug,
         )
 

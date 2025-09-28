@@ -155,7 +155,12 @@ class TestEndToEndWorkflow(unittest.TestCase):
             ].transcription_service._system_service,
             "get_memory_usage",
         ) as mock_memory:
-            mock_memory.return_value = {"used_mb": 500, "total_mb": 8000}
+            mock_memory.return_value = {
+                "used_mb": 500,
+                "total_mb": 8000,
+                "available_mb": 7500,
+                "percent": 6.25,
+            }
 
             # Mock audio recorder
             audio_data = [b"fake_audio_chunk" * 1000]  # Make it large enough

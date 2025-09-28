@@ -35,6 +35,8 @@ class TestWhisperTranscriptionService(unittest.TestCase):
         self.mock_system_service.get_memory_usage.return_value = {
             "used_mb": 500,
             "total_mb": 8000,
+            "available_mb": 7500,
+            "percent": 6.25,
         }
         self.mock_system_service.detect_gpu_devices.return_value = []  # Return empty list for GPU devices
 

@@ -78,7 +78,7 @@ class WhisperConfig:
 
     # Memory Optimization
     chunk_size: int = 30
-    max_memory_mb: int = 4096
+    max_memory_mb: int = 0  # 0 = auto-detect based on available system memory
 
     # Resume Settings
     enable_resume: bool = True
