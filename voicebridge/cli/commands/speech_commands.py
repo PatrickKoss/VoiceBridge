@@ -156,61 +156,102 @@ class SpeechCommands(BaseCommands):
 
                 # Also listen for F2 and 'r' key in terminal as backup
                 def check_terminal_input():
-                    import select
+                    import platform
                     import sys
-                    import termios
-                    import tty
+                    import time
 
-                    old_settings = None
-                    try:
-                        old_settings = termios.tcgetattr(sys.stdin)
-                        tty.setraw(sys.stdin.fileno())
-                        escape_sequence = ""
-                        while True:
-                            if select.select([sys.stdin], [], [], 0.05) == (
-                                [sys.stdin],
-                                [],
-                                [],
-                            ):
-                                ch = sys.stdin.read(1)
-
-                                # Handle escape sequences for F2
-                                if ch == "\x1b":  # ESC
-                                    escape_sequence = ch
-                                    continue
-                                elif escape_sequence:
-                                    escape_sequence += ch
-                                    # F2 sequences: \x1b[OQ, \x1bOQ, or other variants
-                                    if escape_sequence in [
-                                        "\x1b[OQ",
-                                        "\x1bOQ",
-                                        "\x1b[12~",
-                                    ]:
-                                        typer.echo("F2 detected via terminal!")
-                                        on_hotkey()
-                                        escape_sequence = ""
-                                        continue
-                                    elif len(escape_sequence) >= 4:  # Reset if too long
-                                        escape_sequence = ""
-
-                                # Handle regular keys
-                                if ch.lower() == "r":
-                                    on_hotkey()
-                                elif ch == "\x03":  # Ctrl+C
-                                    break
-
-                                # Reset escape sequence on regular key
-                                escape_sequence = ""
-                    except (OSError, ValueError, termios.error):
-                        pass
-                    finally:
+                    # Platform-specific terminal input handling
+                    if platform.system() == "Windows":
                         try:
-                            if old_settings is not None:
-                                termios.tcsetattr(
-                                    sys.stdin, termios.TCSADRAIN, old_settings
-                                )
-                        except (OSError, ValueError, termios.error):
-                            pass
+                            import msvcrt
+                            while True:
+                                if msvcrt.kbhit():
+                                    ch = msvcrt.getch()
+                                    if ch == b'\r' or ch == b'r' or ch == b'R':  # Enter or 'r'
+                                        on_hotkey()
+                                    elif ch == b'\x03':  # Ctrl+C
+                                        break
+                                    elif ch == b'\x00' or ch == b'\xe0':  # Function key prefix
+                                        extended = msvcrt.getch()
+                                        if extended == b'<':  # F2 key code
+                                            typer.echo("F2 detected via terminal!")
+                                            on_hotkey()
+                                time.sleep(0.05)
+                        except ImportError:
+                            # msvcrt not available, fallback to simple input
+                            while True:
+                                try:
+                                    line = input()
+                                    if line.lower().strip() in ['r', '']:
+                                        on_hotkey()
+                                except (EOFError, KeyboardInterrupt):
+                                    break
+                    else:
+                        # Unix/Linux/macOS terminal input handling
+                        try:
+                            import select
+                            import termios
+                            import tty
+
+                            old_settings = None
+                            try:
+                                old_settings = termios.tcgetattr(sys.stdin)
+                                tty.setraw(sys.stdin.fileno())
+                                escape_sequence = ""
+                                while True:
+                                    if select.select([sys.stdin], [], [], 0.05) == (
+                                        [sys.stdin],
+                                        [],
+                                        [],
+                                    ):
+                                        ch = sys.stdin.read(1)
+
+                                        # Handle escape sequences for F2
+                                        if ch == "\x1b":  # ESC
+                                            escape_sequence = ch
+                                            continue
+                                        elif escape_sequence:
+                                            escape_sequence += ch
+                                            # F2 sequences: \x1b[OQ, \x1bOQ, or other variants
+                                            if escape_sequence in [
+                                                "\x1b[OQ",
+                                                "\x1bOQ",
+                                                "\x1b[12~",
+                                            ]:
+                                                typer.echo("F2 detected via terminal!")
+                                                on_hotkey()
+                                                escape_sequence = ""
+                                                continue
+                                            elif len(escape_sequence) >= 4:  # Reset if too long
+                                                escape_sequence = ""
+
+                                        # Handle regular keys
+                                        if ch.lower() == "r":
+                                            on_hotkey()
+                                        elif ch == "\x03":  # Ctrl+C
+                                            break
+
+                                        # Reset escape sequence on regular key
+                                        escape_sequence = ""
+                            except (OSError, ValueError, termios.error):
+                                pass
+                            finally:
+                                try:
+                                    if old_settings is not None:
+                                        termios.tcsetattr(
+                                            sys.stdin, termios.TCSADRAIN, old_settings
+                                        )
+                                except (OSError, ValueError, termios.error):
+                                    pass
+                        except ImportError:
+                            # termios/select not available, fallback to simple input
+                            while True:
+                                try:
+                                    line = input()
+                                    if line.lower().strip() in ['r', '']:
+                                        on_hotkey()
+                                except (EOFError, KeyboardInterrupt):
+                                    break
 
                 # Start terminal input thread as backup
                 terminal_thread = threading.Thread(

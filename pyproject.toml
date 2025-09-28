@@ -28,6 +28,7 @@ dependencies = [
     # Audio processing
     "openai-whisper>=20250625",
     "pygame>=2.6.1",
+    "setuptools>=70.0.0,<81",  # Constrain setuptools to avoid pygame pkg_resources warnings
     "PyAudio>=0.2.14",
     "soundfile>=0.13.1",
     "librosa>=0.11.0",
