@@ -129,10 +129,22 @@ class SpeechCommands(BaseCommands):
                                 typer.echo(f"🎯 Confidence: {result.confidence:.2f}")
                                 typer.echo(f"🌍 Language: {result.language}")
 
-                                # Use orchestrator's __handle_output for proper clipboard/typing behavior
-                                self.transcription_orchestrator.__handle_output(
-                                    result.text, config
-                                )
+                                # Handle clipboard and text insertion
+                                if config.copy_final:
+                                    success = self.transcription_orchestrator.clipboard_service.copy_text(
+                                        result.text
+                                    )
+                                    if success:
+                                        typer.echo("📋 Copied to clipboard")
+                                    else:
+                                        typer.echo("⚠️ Failed to copy to clipboard")
+
+                                if config.paste_final:
+                                    success = self.transcription_orchestrator.clipboard_service.type_text(
+                                        result.text
+                                    )
+                                    if not success:
+                                        typer.echo("⚠️ Failed to insert text at cursor")
                             else:
                                 typer.echo(
                                     "No speech detected or transcription failed."
@@ -340,10 +352,22 @@ class SpeechCommands(BaseCommands):
                             typer.echo(f"🎯 Confidence: {result.confidence:.2f}")
                             typer.echo(f"🌍 Language: {result.language}")
 
-                            # Use orchestrator's _handle_output for proper clipboard/typing behavior
-                            self.transcription_orchestrator._handle_output(
-                                result.text, config
-                            )
+                            # Handle clipboard and text insertion
+                            if config.copy_final:
+                                success = self.transcription_orchestrator.clipboard_service.copy_text(
+                                    result.text
+                                )
+                                if success:
+                                    typer.echo("📋 Copied to clipboard")
+                                else:
+                                    typer.echo("⚠️ Failed to copy to clipboard")
+
+                            if config.paste_final:
+                                success = self.transcription_orchestrator.clipboard_service.type_text(
+                                    result.text
+                                )
+                                if not success:
+                                    typer.echo("⚠️ Failed to insert text at cursor")
                         else:
                             typer.echo("No speech detected or transcription failed.")
                     except Exception as e:
@@ -474,10 +498,26 @@ class SpeechCommands(BaseCommands):
                                         )
                                         typer.echo(f"🌍 Language: {result.language}")
 
-                                        # Use orchestrator's _handle_output for proper clipboard/typing behavior
-                                        self.transcription_orchestrator._handle_output(
-                                            result.text, config
-                                        )
+                                        # Handle clipboard and text insertion
+                                        if config.copy_final:
+                                            success = self.transcription_orchestrator.clipboard_service.copy_text(
+                                                result.text
+                                            )
+                                            if success:
+                                                typer.echo("📋 Copied to clipboard")
+                                            else:
+                                                typer.echo(
+                                                    "⚠️ Failed to copy to clipboard"
+                                                )
+
+                                        if config.paste_final:
+                                            success = self.transcription_orchestrator.clipboard_service.type_text(
+                                                result.text
+                                            )
+                                            if not success:
+                                                typer.echo(
+                                                    "⚠️ Failed to insert text at cursor"
+                                                )
                                     else:
                                         typer.echo(
                                             "No speech detected or transcription failed."
@@ -518,10 +558,24 @@ class SpeechCommands(BaseCommands):
                                     )
                                     typer.echo(f"🌍 Language: {result.language}")
 
-                                    # Use orchestrator's _handle_output for proper clipboard/typing behavior
-                                    self.transcription_orchestrator._handle_output(
-                                        result.text, config
-                                    )
+                                    # Handle clipboard and text insertion
+                                    if config.copy_final:
+                                        success = self.transcription_orchestrator.clipboard_service.copy_text(
+                                            result.text
+                                        )
+                                        if success:
+                                            typer.echo("📋 Copied to clipboard")
+                                        else:
+                                            typer.echo("⚠️ Failed to copy to clipboard")
+
+                                    if config.paste_final:
+                                        success = self.transcription_orchestrator.clipboard_service.type_text(
+                                            result.text
+                                        )
+                                        if not success:
+                                            typer.echo(
+                                                "⚠️ Failed to insert text at cursor"
+                                            )
                                 else:
                                     typer.echo(
                                         "No speech detected or transcription failed."
