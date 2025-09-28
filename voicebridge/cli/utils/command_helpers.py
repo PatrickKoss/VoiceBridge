@@ -36,7 +36,7 @@ def build_whisper_config(
     """Build a Whisper configuration dictionary from command options."""
     config = {}
     if model is not None:
-        config["model"] = model
+        config["model_name"] = model
     if language is not None:
         config["language"] = language
     if initial_prompt is not None:
