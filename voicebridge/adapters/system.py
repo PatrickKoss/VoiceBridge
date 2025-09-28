@@ -13,6 +13,11 @@ try:
 except ImportError:
     pyperclip = None
 
+try:
+    from pynput.keyboard import Controller as KeyboardController
+except ImportError:
+    KeyboardController = None
+
 
 class PlatformClipboardService(ClipboardService):
     def __init__(self):
@@ -179,8 +184,17 @@ class PlatformClipboardService(ClipboardService):
         return False
 
     def _type_windows(self, text: str) -> bool:
-        # Use PowerShell SendKeys for Windows
-        escaped_text = text.replace("'", "''")
+        # Try pynput first (most reliable)
+        if KeyboardController:
+            try:
+                keyboard = KeyboardController()
+                keyboard.type(text)
+                return True
+            except Exception:
+                pass
+
+        # Fallback to PowerShell SendKeys
+        escaped_text = text.replace("'", "''").replace("`", "``").replace("$", "`$")
         try:
             result = subprocess.run(
                 [
@@ -190,13 +204,23 @@ class PlatformClipboardService(ClipboardService):
                 ],
                 capture_output=True,
                 timeout=10,  # Typing can take longer than clipboard operations
+                text=True,
             )
             return result.returncode == 0
-        except subprocess.TimeoutExpired:
+        except (subprocess.TimeoutExpired, FileNotFoundError):
             return False
 
     def _type_macos(self, text: str) -> bool:
-        # Use AppleScript for macOS
+        # Try pynput first (most reliable)
+        if KeyboardController:
+            try:
+                keyboard = KeyboardController()
+                keyboard.type(text)
+                return True
+            except Exception:
+                pass
+
+        # Fallback to AppleScript
         escaped_text = text.replace('"', '\\"').replace("\\", "\\\\")
         try:
             result = subprocess.run(
@@ -213,7 +237,16 @@ class PlatformClipboardService(ClipboardService):
             return False
 
     def _type_linux(self, text: str) -> bool:
-        # Try xdotool first, then ydotool as fallback
+        # Try pynput first (most reliable)
+        if KeyboardController:
+            try:
+                keyboard = KeyboardController()
+                keyboard.type(text)
+                return True
+            except Exception:
+                pass
+
+        # Fallback to xdotool/ydotool
         for cmd in [["xdotool", "type", text], ["ydotool", "type", text]]:
             if shutil.which(cmd[0]):
                 try:
