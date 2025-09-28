@@ -57,7 +57,7 @@ class PlatformClipboardService(ClipboardService):
                 ["powershell", "-command", f"Set-Clipboard -Value '{escaped_text}'"],
                 capture_output=True,
                 timeout=5,
-                text=True
+                text=True,
             )
             return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):
@@ -66,11 +66,7 @@ class PlatformClipboardService(ClipboardService):
         # Final fallback to clip.exe
         try:
             result = subprocess.run(
-                ["clip"],
-                input=text,
-                capture_output=True,
-                timeout=5,
-                text=True
+                ["clip"], input=text, capture_output=True, timeout=5, text=True
             )
             return result.returncode == 0
         except (subprocess.TimeoutExpired, FileNotFoundError):

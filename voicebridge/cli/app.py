@@ -51,6 +51,9 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         paste_final: bool = typer.Option(
             False, "--paste-final", help="Paste final text"
         ),
+        insert_cursor: bool = typer.Option(
+            False, "--insert-cursor", help="Insert transcribed text at cursor position"
+        ),
         copy_final: bool = typer.Option(
             True, "--copy-final/--no-copy-final", help="Copy final text"
         ),
@@ -60,6 +63,9 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
     ):
         """Listen for speech and transcribe it with hotkey control."""
+        # Combine paste_final and insert_cursor flags
+        paste_text = paste_final or insert_cursor
+
         speech_commands = command_registry.get_command_group("speech")
         speech_commands.listen(
             model,
@@ -69,7 +75,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             profile,
             paste_stream,
             copy_stream,
-            paste_final,
+            paste_text,
             copy_final,
             max_memory,
             debug,
@@ -99,6 +105,9 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         paste_final: bool = typer.Option(
             False, "--paste-final", help="Paste final text"
         ),
+        insert_cursor: bool = typer.Option(
+            False, "--insert-cursor", help="Insert transcribed text at cursor position"
+        ),
         copy_final: bool = typer.Option(
             True, "--copy-final/--no-copy-final", help="Copy final text"
         ),
@@ -108,6 +117,9 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
     ):
         """Interactive mode with press-and-hold 'r' to record."""
+        # Combine paste_final and insert_cursor flags
+        paste_text = paste_final or insert_cursor
+
         speech_commands = command_registry.get_command_group("speech")
         speech_commands.interactive(
             model,
@@ -117,7 +129,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             profile,
             paste_stream,
             copy_stream,
-            paste_final,
+            paste_text,
             copy_final,
             max_memory,
             debug,
@@ -151,6 +163,9 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         paste_final: bool = typer.Option(
             False, "--paste-final", help="Paste final text"
         ),
+        insert_cursor: bool = typer.Option(
+            False, "--insert-cursor", help="Insert transcribed text at cursor position"
+        ),
         copy_final: bool = typer.Option(
             True, "--copy-final/--no-copy-final", help="Copy final text"
         ),
@@ -160,6 +175,9 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
     ):
         """Global hotkey listener for speech recognition."""
+        # Combine paste_final and insert_cursor flags
+        paste_text = paste_final or insert_cursor
+
         speech_commands = command_registry.get_command_group("speech")
         speech_commands.hotkey(
             key,
@@ -171,7 +189,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             profile,
             paste_stream,
             copy_stream,
-            paste_final,
+            paste_text,
             copy_final,
             max_memory,
             debug,
@@ -203,7 +221,13 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         """Transcribe an audio file."""
         transcription_commands = command_registry.get_command_group("transcription")
         transcription_commands.transcribe_file(
-            file_path, output_path, model, language, temperature, format_output, max_memory
+            file_path,
+            output_path,
+            model,
+            language,
+            temperature,
+            format_output,
+            max_memory,
         )
 
     @stt_app.command(name="batch-transcribe")
@@ -293,6 +317,9 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         output_file: str | None = typer.Option(
             None, "--output-file", help="Output file for transcription"
         ),
+        insert_cursor: bool = typer.Option(
+            False, "--insert-cursor", help="Insert transcribed text at cursor position"
+        ),
     ):
         """Real-time streaming transcription with live output."""
         transcription_commands = command_registry.get_command_group("transcription")
@@ -305,6 +332,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             profile,
             save_audio,
             output_file,
+            insert_cursor,
         )
 
     # Create TTS sub-application

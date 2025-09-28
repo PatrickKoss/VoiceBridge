@@ -301,7 +301,9 @@ class WhisperTranscriptionService(TranscriptionService):
             # For very large systems (>64GB), be slightly more conservative (70%)
             total_memory = memory_info.get("total_mb", 8192)
             if total_memory > 65536:  # >64GB systems
-                effective_limit = min(effective_limit, memory_info["available_mb"] * 0.7)
+                effective_limit = min(
+                    effective_limit, memory_info["available_mb"] * 0.7
+                )
 
         if projected_usage > effective_limit:
             # Force garbage collection

@@ -234,6 +234,7 @@ class TranscriptionCommands(BaseCommands):
         profile: str | None = None,
         save_audio: bool = False,
         output_file: str | None = None,
+        insert_cursor: bool = False,
     ):
         """Real-time streaming transcription with live output."""
         if not self.transcription_orchestrator:
@@ -246,6 +247,10 @@ class TranscriptionCommands(BaseCommands):
             temperature=temperature,
             profile=profile,
         )
+
+        # Set cursor insertion behavior
+        if insert_cursor:
+            config.paste_final = True
 
         display_info("Starting real-time transcription...")
         display_info(f"Chunk duration: {chunk_duration}s")
