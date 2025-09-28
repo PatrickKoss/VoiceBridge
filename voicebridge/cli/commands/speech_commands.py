@@ -129,8 +129,8 @@ class SpeechCommands(BaseCommands):
                                 typer.echo(f"🎯 Confidence: {result.confidence:.2f}")
                                 typer.echo(f"🌍 Language: {result.language}")
 
-                                # Use orchestrator's handle_output for proper clipboard/typing behavior
-                                self.transcription_orchestrator.handle_output(
+                                # Use orchestrator's __handle_output for proper clipboard/typing behavior
+                                self.transcription_orchestrator.__handle_output(
                                     result.text, config
                                 )
                             else:
@@ -340,8 +340,8 @@ class SpeechCommands(BaseCommands):
                             typer.echo(f"🎯 Confidence: {result.confidence:.2f}")
                             typer.echo(f"🌍 Language: {result.language}")
 
-                            # Use orchestrator's handle_output for proper clipboard/typing behavior
-                            self.transcription_orchestrator.handle_output(
+                            # Use orchestrator's _handle_output for proper clipboard/typing behavior
+                            self.transcription_orchestrator._handle_output(
                                 result.text, config
                             )
                         else:
@@ -474,8 +474,8 @@ class SpeechCommands(BaseCommands):
                                         )
                                         typer.echo(f"🌍 Language: {result.language}")
 
-                                        # Use orchestrator's handle_output for proper clipboard/typing behavior
-                                        self.transcription_orchestrator.handle_output(
+                                        # Use orchestrator's _handle_output for proper clipboard/typing behavior
+                                        self.transcription_orchestrator._handle_output(
                                             result.text, config
                                         )
                                     else:
@@ -518,8 +518,8 @@ class SpeechCommands(BaseCommands):
                                     )
                                     typer.echo(f"🌍 Language: {result.language}")
 
-                                    # Use orchestrator's handle_output for proper clipboard/typing behavior
-                                    self.transcription_orchestrator.handle_output(
+                                    # Use orchestrator's _handle_output for proper clipboard/typing behavior
+                                    self.transcription_orchestrator._handle_output(
                                         result.text, config
                                     )
                                 else:
