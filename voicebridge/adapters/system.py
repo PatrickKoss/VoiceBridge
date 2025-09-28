@@ -35,9 +35,6 @@ class PlatformClipboardService(ClipboardService):
             return False
 
     def type_text(self, text: str) -> bool:
-        print(
-            f"[DEBUG] type_text called with text: '{text[:50]}...', platform: {self.system_info.platform}"
-        )
         try:
             if self.system_info.platform == PlatformType.WINDOWS:
                 return self._type_windows(text)
@@ -45,8 +42,7 @@ class PlatformClipboardService(ClipboardService):
                 return self._type_macos(text)
             else:
                 return self._type_linux(text)
-        except Exception as e:
-            print(f"[DEBUG] type_text exception: {e}")
+        except Exception:
             return False
 
     def _copy_windows(self, text: str) -> bool:
@@ -188,22 +184,16 @@ class PlatformClipboardService(ClipboardService):
         return False
 
     def _type_windows(self, text: str) -> bool:
-        print(f"[DEBUG] _type_windows called with text: '{text[:50]}...'")
-
         # Try pynput first (most reliable)
         if KeyboardController:
             try:
-                print("[DEBUG] Trying pynput keyboard controller...")
                 keyboard = KeyboardController()
                 keyboard.type(text)
-                print("[DEBUG] pynput typing succeeded!")
                 return True
-            except Exception as e:
-                print(f"[DEBUG] pynput failed: {e}")
+            except Exception:
                 pass
 
         # Fallback to PowerShell SendKeys
-        print("[DEBUG] Trying PowerShell SendKeys fallback...")
         escaped_text = text.replace("'", "''").replace("`", "``").replace("$", "`$")
         try:
             result = subprocess.run(
@@ -216,12 +206,8 @@ class PlatformClipboardService(ClipboardService):
                 timeout=10,  # Typing can take longer than clipboard operations
                 text=True,
             )
-            print(
-                f"[DEBUG] PowerShell result: {result.returncode}, stdout: {result.stdout}, stderr: {result.stderr}"
-            )
             return result.returncode == 0
-        except (subprocess.TimeoutExpired, FileNotFoundError) as e:
-            print(f"[DEBUG] PowerShell failed: {e}")
+        except (subprocess.TimeoutExpired, FileNotFoundError):
             return False
 
     def _type_macos(self, text: str) -> bool:

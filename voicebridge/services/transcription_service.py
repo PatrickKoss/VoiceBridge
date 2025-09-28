@@ -105,22 +105,12 @@ class WhisperTranscriptionOrchestrator:
                 else:
                     self.logger.error("Failed to copy text to clipboard")
 
-            print(
-                f"[DEBUG] config.paste_final={config.paste_final}, config.paste_stream={config.paste_stream}"
-            )
             if config.paste_final or config.paste_stream:
-                print(f"[DEBUG] Attempting to type text: '{text[:50]}...'")
                 success = self.clipboard_service.type_text(text)
                 if success:
-                    print("[DEBUG] Text typing succeeded!")
                     self.logger.debug(f"Typed text: {text[:50]}...")
                 else:
-                    print("[DEBUG] Text typing FAILED!")
                     self.logger.error("Failed to type text")
-            else:
-                print(
-                    f"[DEBUG] Skipping text typing - paste_final={config.paste_final}, paste_stream={config.paste_stream}"
-                )
 
         except Exception as e:
             self.logger.error(f"Output handling failed: {e}")
