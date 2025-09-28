@@ -26,7 +26,9 @@ class SpeechCommands(BaseCommands):
         debug: bool = False,
     ):
         """Listen for speech and transcribe it."""
-        print(f"[DEBUG] speech_commands.listen: paste_final={paste_final}, paste_stream={paste_stream}")
+        print(
+            f"[DEBUG] speech_commands.listen: paste_final={paste_final}, paste_stream={paste_stream}"
+        )
         try:
             import time
 
@@ -127,15 +129,10 @@ class SpeechCommands(BaseCommands):
                                 typer.echo(f"🎯 Confidence: {result.confidence:.2f}")
                                 typer.echo(f"🌍 Language: {result.language}")
 
-                                # Copy to clipboard if enabled using proper clipboard service
-                                if config.copy_final:
-                                    success = self.transcription_orchestrator.clipboard_service.copy_text(
-                                        result.text
-                                    )
-                                    if success:
-                                        typer.echo("📋 Copied to clipboard")
-                                    else:
-                                        typer.echo("⚠️ Failed to copy to clipboard")
+                                # Use orchestrator's handle_output for proper clipboard/typing behavior
+                                self.transcription_orchestrator.handle_output(
+                                    result.text, config
+                                )
                             else:
                                 typer.echo(
                                     "No speech detected or transcription failed."
@@ -343,15 +340,10 @@ class SpeechCommands(BaseCommands):
                             typer.echo(f"🎯 Confidence: {result.confidence:.2f}")
                             typer.echo(f"🌍 Language: {result.language}")
 
-                            # Copy to clipboard if enabled using proper clipboard service
-                            if config.copy_final:
-                                success = self.transcription_orchestrator.clipboard_service.copy_text(
-                                    result.text
-                                )
-                                if success:
-                                    typer.echo("📋 Copied to clipboard")
-                                else:
-                                    typer.echo("⚠️ Failed to copy to clipboard")
+                            # Use orchestrator's handle_output for proper clipboard/typing behavior
+                            self.transcription_orchestrator.handle_output(
+                                result.text, config
+                            )
                         else:
                             typer.echo("No speech detected or transcription failed.")
                     except Exception as e:
@@ -482,17 +474,10 @@ class SpeechCommands(BaseCommands):
                                         )
                                         typer.echo(f"🌍 Language: {result.language}")
 
-                                        # Copy to clipboard if enabled
-                                        if config.copy_final:
-                                            success = self.transcription_orchestrator.clipboard_service.copy_text(
-                                                result.text
-                                            )
-                                            if success:
-                                                typer.echo("📋 Copied to clipboard")
-                                            else:
-                                                typer.echo(
-                                                    "⚠️ Failed to copy to clipboard"
-                                                )
+                                        # Use orchestrator's handle_output for proper clipboard/typing behavior
+                                        self.transcription_orchestrator.handle_output(
+                                            result.text, config
+                                        )
                                     else:
                                         typer.echo(
                                             "No speech detected or transcription failed."
@@ -533,15 +518,10 @@ class SpeechCommands(BaseCommands):
                                     )
                                     typer.echo(f"🌍 Language: {result.language}")
 
-                                    # Copy to clipboard if enabled
-                                    if config.copy_final:
-                                        success = self.transcription_orchestrator.clipboard_service.copy_text(
-                                            result.text
-                                        )
-                                        if success:
-                                            typer.echo("📋 Copied to clipboard")
-                                        else:
-                                            typer.echo("⚠️ Failed to copy to clipboard")
+                                    # Use orchestrator's handle_output for proper clipboard/typing behavior
+                                    self.transcription_orchestrator.handle_output(
+                                        result.text, config
+                                    )
                                 else:
                                     typer.echo(
                                         "No speech detected or transcription failed."

@@ -65,7 +65,9 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         """Listen for speech and transcribe it with hotkey control."""
         # Combine paste_final and insert_cursor flags
         paste_text = paste_final or insert_cursor
-        print(f"[DEBUG] CLI listen: paste_final={paste_final}, insert_cursor={insert_cursor}, combined paste_text={paste_text}")
+        print(
+            f"[DEBUG] CLI listen: paste_final={paste_final}, insert_cursor={insert_cursor}, combined paste_text={paste_text}"
+        )
 
         speech_commands = command_registry.get_command_group("speech")
         speech_commands.listen(
