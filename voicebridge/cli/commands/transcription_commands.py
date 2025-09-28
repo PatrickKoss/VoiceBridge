@@ -25,6 +25,7 @@ class TranscriptionCommands(BaseCommands):
         language: str | None = None,
         temperature: float = 0.0,
         format_output: str = "txt",
+        max_memory: int = 0,
     ):
         """Transcribe an audio file (supports MP3, WAV, M4A, FLAC, OGG)."""
         if not self.audio_format_service:
@@ -47,6 +48,7 @@ class TranscriptionCommands(BaseCommands):
         if language:
             config.language = language
         config.temperature = temperature
+        config.max_memory_mb = max_memory
 
         # Convert to WAV if needed
         temp_wav = None
@@ -96,6 +98,7 @@ class TranscriptionCommands(BaseCommands):
         workers: int = 4,
         file_pattern: str | None = None,
         model: str | None = None,
+        max_memory: int = 0,
     ):
         """Batch transcribe all audio files in a directory."""
         if not self.batch_processing_service:
@@ -109,6 +112,7 @@ class TranscriptionCommands(BaseCommands):
         config = self.config_repo.load()
         if model:
             config.model_name = model
+        config.max_memory_mb = max_memory
 
         # Set file patterns
         patterns = [file_pattern] if file_pattern else None
@@ -151,6 +155,7 @@ class TranscriptionCommands(BaseCommands):
         profile: str | None = None,
         chunk_size: int = 30,
         overlap: int = 5,
+        max_memory: int = 0,
     ):
         """Transcribe a long audio file with resume capability."""
         if not self.resume_service:
@@ -164,6 +169,7 @@ class TranscriptionCommands(BaseCommands):
             language=language,
             temperature=temperature,
             profile=profile,
+            max_memory_mb=max_memory,
         )
 
         # Generate session name if not provided

@@ -102,6 +102,9 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         copy_final: bool = typer.Option(
             True, "--copy-final/--no-copy-final", help="Copy final text"
         ),
+        max_memory: int = typer.Option(
+            0, "--max-memory", help="Memory limit in MB (0 = auto-detect)"
+        ),
         debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
     ):
         """Interactive mode with press-and-hold 'r' to record."""
@@ -116,6 +119,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             copy_stream,
             paste_final,
             copy_final,
+            max_memory,
             debug,
         )
 
@@ -150,6 +154,9 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         copy_final: bool = typer.Option(
             True, "--copy-final/--no-copy-final", help="Copy final text"
         ),
+        max_memory: int = typer.Option(
+            0, "--max-memory", help="Memory limit in MB (0 = auto-detect)"
+        ),
         debug: bool = typer.Option(False, "--debug", help="Enable debug logging"),
     ):
         """Global hotkey listener for speech recognition."""
@@ -166,6 +173,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             copy_stream,
             paste_final,
             copy_final,
+            max_memory,
             debug,
         )
 
@@ -188,11 +196,14 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         format_output: str = typer.Option(
             "txt", "--format", "-f", help="Output format"
         ),
+        max_memory: int = typer.Option(
+            0, "--max-memory", help="Memory limit in MB (0 = auto-detect)"
+        ),
     ):
         """Transcribe an audio file."""
         transcription_commands = command_registry.get_command_group("transcription")
         transcription_commands.transcribe_file(
-            file_path, output_path, model, language, temperature, format_output
+            file_path, output_path, model, language, temperature, format_output, max_memory
         )
 
     @stt_app.command(name="batch-transcribe")
@@ -210,11 +221,14 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
         model: str | None = typer.Option(
             None, "--model", "-m", help="Whisper model to use"
         ),
+        max_memory: int = typer.Option(
+            0, "--max-memory", help="Memory limit in MB (0 = auto-detect)"
+        ),
     ):
         """Batch transcribe all audio files in a directory."""
         transcription_commands = command_registry.get_command_group("transcription")
         transcription_commands.batch_transcribe(
-            input_dir, output_dir, workers, file_pattern, model
+            input_dir, output_dir, workers, file_pattern, model, max_memory
         )
 
     @stt_app.command(name="listen-resumable")
@@ -237,6 +251,9 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             30, "--chunk-size", help="Chunk size in seconds"
         ),
         overlap: int = typer.Option(5, "--overlap", help="Overlap in seconds"),
+        max_memory: int = typer.Option(
+            0, "--max-memory", help="Memory limit in MB (0 = auto-detect)"
+        ),
     ):
         """Transcribe a long audio file with resume capability."""
         transcription_commands = command_registry.get_command_group("transcription")
@@ -249,6 +266,7 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             profile,
             chunk_size,
             overlap,
+            max_memory,
         )
 
     @stt_app.command()
