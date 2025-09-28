@@ -290,8 +290,12 @@ class WhisperTranscriptionService(TranscriptionService):
         effective_limit = max_memory_mb
         if max_memory_mb <= 0:
             effective_limit = memory_info["available_mb"] * 0.75
-            # Minimum 512MB, maximum 8GB for safety
-            effective_limit = max(512, min(8192, effective_limit))
+            # Minimum 512MB, maximum based on total system memory
+            # For systems with >16GB total RAM, allow up to 16GB
+            # For systems with <=16GB total RAM, cap at 8GB
+            total_memory = memory_info.get("total_mb", 8192)
+            max_limit = 16384 if total_memory > 16384 else 8192
+            effective_limit = max(512, min(max_limit, effective_limit))
 
         if projected_usage > effective_limit:
             # Force garbage collection
