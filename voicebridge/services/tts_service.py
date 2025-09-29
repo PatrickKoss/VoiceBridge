@@ -290,8 +290,6 @@ class TTSOrchestrator:
         # Set up hotkey listener for selection mode
         try:
             from pynput import keyboard
-            
-            print(f"DEBUG: Setting up hotkey listener for: {config.tts_generate_key}")
 
             def on_press(key):
                 try:
@@ -303,37 +301,29 @@ class TTSOrchestrator:
                     elif hasattr(key, 'char') and key.char:
                         key_str = key.char.lower()
                     
-                    print(f"DEBUG: Key pressed: {key_str} (comparing to {config.tts_generate_key.lower()})")
-                    
-                    # Check for generate hotkey - now properly comparing F2
+                    # Check for generate hotkey
                     if key_str == config.tts_generate_key.lower():
-                        print("DEBUG: Generate hotkey detected!")
                         self.logger.info(
                             "Generate hotkey pressed, getting selected text"
                         )
                         text = self.text_input_service.get_selected_text()
                         if text and text.strip():
-                            print(f"DEBUG: Got selected text: '{text[:50]}...'")
                             self.generate_tts_from_text(text, config)
                         else:
-                            print("DEBUG: No text was selected")
                             self.logger.warning("No text selected")
                     
-                    # Check for stop hotkey (Esc or Ctrl+Alt+S)
+                    # Check for stop hotkey (Esc)
                     elif key == keyboard.Key.esc:
-                        print("DEBUG: Esc key pressed - stopping TTS")
                         self.logger.info("Stop hotkey pressed")
                         self.tts_service.stop_generation()
                         self.audio_playback_service.stop_playback()
                         
                 except Exception as e:
-                    print(f"DEBUG: Error processing hotkey: {e}")
                     self.logger.error(f"Error processing hotkey: {e}")
 
             # Start keyboard listener in background
             self.keyboard_listener = keyboard.Listener(on_press=on_press)
             self.keyboard_listener.start()
-            print(f"DEBUG: Keyboard listener started successfully")
 
             self.logger.info(
                 f"TTS selection mode ready - press {config.tts_generate_key} after selecting text"
@@ -343,7 +333,6 @@ class TTSOrchestrator:
             # Fall back to simple message
             self.logger.info("TTS selection mode ready (trigger with hotkeys)")
         except Exception as e:
-            print(f"DEBUG: Failed to start keyboard listener: {e}")
             self.logger.error(f"Failed to start hotkey monitoring: {e}")
 
     def _handle_non_streaming_tts(

@@ -143,18 +143,13 @@ class PlatformTextInputAdapter(TextInputService):
     def get_selected_text(self) -> str:
         """Get selected text by simulating Ctrl+C and reading clipboard"""
         try:
-            print("DEBUG: Starting get_selected_text()")
-            
             # Save current clipboard content
             original_content = self.get_clipboard_text()
-            print(f"DEBUG: Original clipboard content: '{original_content[:50]}...'")
 
             # Clear clipboard to detect if selection was copied
             try:
                 pyperclip.copy("")
-                print("DEBUG: Cleared clipboard using pyperclip")
-            except Exception as e:
-                print(f"DEBUG: pyperclip.copy failed: {e}")
+            except Exception:
                 # If pyperclip fails, try direct method for WSL
                 if os.path.exists("/proc/version"):
                     try:
@@ -162,62 +157,51 @@ class PlatformTextInputAdapter(TextInputService):
                             ["bash", "-c", "echo -n '' | xclip -selection clipboard"],
                             timeout=1,
                         )
-                        print("DEBUG: Cleared clipboard using xclip")
                     except (
                         subprocess.CalledProcessError,
                         subprocess.TimeoutExpired,
                         FileNotFoundError,
-                    ) as e2:
-                        print(f"DEBUG: xclip clear failed: {e2}")
+                    ):
+                        pass
             
-            time.sleep(0.1)  # Increased delay
+            time.sleep(0.1)
 
             # Simulate Ctrl+C to copy selected text
             keyboard_controller = pynput.keyboard.Controller()
-            print("DEBUG: Created keyboard controller")
 
             # Use Cmd+C on macOS, Ctrl+C elsewhere
             import platform
 
-            print(f"DEBUG: Platform: {platform.system()}")
             if platform.system() == "Darwin":
-                print("DEBUG: Simulating Cmd+C")
                 with keyboard_controller.pressed(pynput.keyboard.Key.cmd):
                     keyboard_controller.press("c")
                     keyboard_controller.release("c")
             else:
-                print("DEBUG: Simulating Ctrl+C")
                 with keyboard_controller.pressed(pynput.keyboard.Key.ctrl):
                     keyboard_controller.press("c")
                     keyboard_controller.release("c")
 
-            # Wait longer for clipboard to update
+            # Wait for clipboard to update
             time.sleep(0.3)
-            print("DEBUG: Waited for clipboard update")
 
             # Get the copied text
             selected_text = self.get_clipboard_text()
-            print(f"DEBUG: Selected text: '{selected_text[:50]}...'")
 
             # Restore original clipboard if no text was selected
             if not selected_text or selected_text == original_content:
-                print("DEBUG: No new text selected, restoring original clipboard")
                 try:
                     pyperclip.copy(original_content)
-                except Exception as e:
-                    print(f"DEBUG: Failed to restore clipboard: {e}")
+                except Exception:
+                    pass
                 return ""
-
-            print(f"DEBUG: Successfully got selected text: '{selected_text[:50]}...'")
 
             # Restore original clipboard after a delay to avoid interference
             def restore_clipboard():
                 time.sleep(0.5)
                 try:
                     pyperclip.copy(original_content)
-                    print("DEBUG: Restored original clipboard content")
-                except Exception as e:
-                    print(f"DEBUG: Failed to restore clipboard in thread: {e}")
+                except Exception:
+                    pass
 
             threading.Thread(target=restore_clipboard, daemon=True).start()
 
@@ -225,7 +209,6 @@ class PlatformTextInputAdapter(TextInputService):
 
         except Exception as e:
             print(f"Failed to get selected text: {e}")
-            print(f"DEBUG: Exception details: {type(e).__name__}: {e}")
             return ""
 
     def start_monitoring(self, callback: Callable[[str], None]) -> None:
