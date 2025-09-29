@@ -78,7 +78,10 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
                     print(f"Pygame audio initialized at {sample_rate}Hz (mono)")
                 except pygame.error as e:
                     # Windows sometimes has issues with mono, try stereo
-                    if "mixer not initialized" in str(e).lower() or "channels" in str(e).lower():
+                    if (
+                        "mixer not initialized" in str(e).lower()
+                        or "channels" in str(e).lower()
+                    ):
                         pygame.mixer.init(
                             frequency=sample_rate,
                             size=-16,  # 16-bit signed
@@ -87,7 +90,9 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
                         )
                         self.is_initialized = True
                         self.current_sample_rate = sample_rate
-                        print(f"Pygame audio initialized at {sample_rate}Hz (stereo fallback)")
+                        print(
+                            f"Pygame audio initialized at {sample_rate}Hz (stereo fallback)"
+                        )
                     else:
                         raise
             except Exception as e:
@@ -121,7 +126,9 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
                 audio_array = np.ascontiguousarray(audio_np)
 
                 # Check if pygame mixer was initialized for stereo and adjust accordingly
-                mixer_channels = pygame.mixer.get_init()[2] if pygame.mixer.get_init() else 1
+                mixer_channels = (
+                    pygame.mixer.get_init()[2] if pygame.mixer.get_init() else 1
+                )
 
                 if mixer_channels == 2 and len(audio_array.shape) == 1:
                     # Reshape mono audio to stereo by duplicating the channel

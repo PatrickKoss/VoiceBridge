@@ -294,13 +294,13 @@ class TTSOrchestrator:
             def on_press(key):
                 try:
                     key_str = None
-                    
+
                     # Convert key to string for comparison
-                    if hasattr(key, 'name'):
+                    if hasattr(key, "name"):
                         key_str = key.name.lower()
-                    elif hasattr(key, 'char') and key.char:
+                    elif hasattr(key, "char") and key.char:
                         key_str = key.char.lower()
-                    
+
                     # Check for generate hotkey
                     if key_str == config.tts_generate_key.lower():
                         self.logger.info(
@@ -311,13 +311,13 @@ class TTSOrchestrator:
                             self.generate_tts_from_text(text, config)
                         else:
                             self.logger.warning("No text selected")
-                    
+
                     # Check for stop hotkey (Esc)
                     elif key == keyboard.Key.esc:
                         self.logger.info("Stop hotkey pressed")
                         self.tts_service.stop_generation()
                         self.audio_playback_service.stop_playback()
-                        
+
                 except Exception as e:
                     self.logger.error(f"Error processing hotkey: {e}")
 

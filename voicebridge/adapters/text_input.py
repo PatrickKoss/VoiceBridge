@@ -163,7 +163,7 @@ class PlatformTextInputAdapter(TextInputService):
                         FileNotFoundError,
                     ):
                         pass
-            
+
             time.sleep(0.1)
 
             # Simulate Ctrl+C to copy selected text
