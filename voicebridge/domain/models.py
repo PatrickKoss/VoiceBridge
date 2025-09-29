@@ -142,7 +142,7 @@ class TTSConfig:
 
     # Hotkey configuration
     tts_toggle_key: str = "f11"
-    tts_generate_key: str = "ctrl+f2"
+    tts_generate_key: str = "f2"
     tts_stop_key: str = "ctrl+alt+s"
 
     # Audio settings
