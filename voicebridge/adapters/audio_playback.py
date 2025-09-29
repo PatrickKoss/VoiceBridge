@@ -173,8 +173,17 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
         """Monitor sound playback without file cleanup"""
         try:
             # Wait for playback to complete or stop to be requested
-            while sound.get_num_channels() > 0 and not self.stop_requested:
-                time.sleep(0.1)
+            while not self.stop_requested:
+                try:
+                    # Check if mixer is still initialized and sound is playing
+                    if not pygame.mixer.get_init():
+                        break
+                    if sound.get_num_channels() == 0:
+                        break
+                    time.sleep(0.1)
+                except pygame.error:
+                    # Mixer might have been deinitialized, break out
+                    break
         except Exception as e:
             print(f"Error during playback: {e}")
         finally:
@@ -186,8 +195,17 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
             sound.play()
 
             # Wait for playback to complete or stop to be requested
-            while sound.get_num_channels() > 0 and not self.stop_requested:
-                time.sleep(0.1)
+            while not self.stop_requested:
+                try:
+                    # Check if mixer is still initialized and sound is playing
+                    if not pygame.mixer.get_init():
+                        break
+                    if sound.get_num_channels() == 0:
+                        break
+                    time.sleep(0.1)
+                except pygame.error:
+                    # Mixer might have been deinitialized, break out
+                    break
 
         except Exception as e:
             print(f"Error during playback: {e}")
@@ -243,7 +261,18 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
     def is_playing(self) -> bool:
         """Check if currently playing audio"""
         if pygame and self.is_initialized:
-            return pygame.mixer.get_busy() or self.is_playing_flag
+            try:
+                # Check if mixer is still initialized
+                if not pygame.mixer.get_init():
+                    self.is_initialized = False
+                    self.is_playing_flag = False
+                    return False
+                return pygame.mixer.get_busy() or self.is_playing_flag
+            except pygame.error:
+                # Mixer not initialized or error occurred
+                self.is_initialized = False
+                self.is_playing_flag = False
+                return False
         return self.is_playing_flag
 
     def play_audio_data(self, audio_data: bytes, sample_rate: int) -> None:
