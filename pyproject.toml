@@ -92,6 +92,7 @@ dependencies = [
     "certifi>=2025.6.15",
     "requests>=2.32.4",
     "beautifulsoup4>=4.13.4",
+    "huggingface_hub[hf_xet]",
 ]
 
 [project.optional-dependencies]

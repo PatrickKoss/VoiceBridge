@@ -65,15 +65,31 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
 
         if not self.is_initialized:
             try:
-                pygame.mixer.init(
-                    frequency=sample_rate,  # Use the actual sample rate
-                    size=-16,  # 16-bit signed
-                    channels=1,  # Mono
-                    buffer=2048,  # Larger buffer for better quality
-                )
-                self.is_initialized = True
-                self.current_sample_rate = sample_rate
-                print(f"Pygame audio initialized at {sample_rate}Hz")
+                # Try mono first, but fallback to stereo on Windows if needed
+                try:
+                    pygame.mixer.init(
+                        frequency=sample_rate,  # Use the actual sample rate
+                        size=-16,  # 16-bit signed
+                        channels=1,  # Mono
+                        buffer=2048,  # Larger buffer for better quality
+                    )
+                    self.is_initialized = True
+                    self.current_sample_rate = sample_rate
+                    print(f"Pygame audio initialized at {sample_rate}Hz (mono)")
+                except pygame.error as e:
+                    # Windows sometimes has issues with mono, try stereo
+                    if "mixer not initialized" in str(e).lower() or "channels" in str(e).lower():
+                        pygame.mixer.init(
+                            frequency=sample_rate,
+                            size=-16,  # 16-bit signed
+                            channels=2,  # Stereo fallback for Windows
+                            buffer=2048,
+                        )
+                        self.is_initialized = True
+                        self.current_sample_rate = sample_rate
+                        print(f"Pygame audio initialized at {sample_rate}Hz (stereo fallback)")
+                    else:
+                        raise
             except Exception as e:
                 print(f"Failed to initialize pygame audio: {e}")
                 raise RuntimeError(f"Failed to initialize pygame audio: {e}") from e
@@ -96,13 +112,24 @@ class PygameAudioPlaybackAdapter(AudioPlaybackService):
             audio_np = np.frombuffer(audio_data, dtype=np.int16)
 
             # pygame.sndarray requires the audio in the correct shape
-            # For mono audio, we need a 1D array
+            # For mono audio, we need a 1D array, but on Windows pygame might expect 2D for stereo mixer
             # Create Sound object directly from array
             try:
                 import pygame.sndarray
 
                 # Make sure array is C-contiguous for pygame
                 audio_array = np.ascontiguousarray(audio_np)
+
+                # Check if pygame mixer was initialized for stereo and adjust accordingly
+                mixer_channels = pygame.mixer.get_init()[2] if pygame.mixer.get_init() else 1
+
+                if mixer_channels == 2 and len(audio_array.shape) == 1:
+                    # Reshape mono audio to stereo by duplicating the channel
+                    audio_array = np.column_stack((audio_array, audio_array))
+                elif mixer_channels == 1 and len(audio_array.shape) > 1:
+                    # Ensure mono format for mono mixer
+                    audio_array = audio_array.flatten()
+
                 self.current_sound = pygame.sndarray.make_sound(audio_array)
                 self.is_playing_flag = True
                 self.stop_requested = False
