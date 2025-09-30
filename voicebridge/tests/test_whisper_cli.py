@@ -13,7 +13,7 @@ import json
 import tempfile
 import unittest
 from pathlib import Path
-from unittest.mock import Mock, patch
+from unittest.mock import patch
 
 from voicebridge.adapters.config import FileConfigRepository, FileProfileRepository
 from voicebridge.adapters.system import PlatformClipboardService
@@ -133,33 +133,58 @@ class TestProfileManagement(unittest.TestCase):
 class TestClipboardFunctionality(unittest.TestCase):
     """Test clipboard functionality."""
 
-    def setUp(self):
-        """Set up test environment."""
-        self.clipboard_service = PlatformClipboardService()
+    def test_copy_text_logic(self):
+        """Test clipboard copy logic (platform-independent)."""
+        clipboard_service = PlatformClipboardService()
 
-    @patch("subprocess.run")
-    def test_copy_text_success(self, mock_run):
-        """Test successful clipboard copy."""
-        mock_run.return_value = Mock(returncode=0)
+        # Mock the platform-specific method based on current platform
+        with patch.object(
+            clipboard_service, "_copy_linux", return_value=True
+        ) as mock_linux:
+            with patch.object(
+                clipboard_service, "_copy_windows", return_value=True
+            ) as mock_windows:
+                with patch.object(
+                    clipboard_service, "_copy_macos", return_value=True
+                ) as mock_macos:
+                    result = clipboard_service.copy_text("test text")
 
-        result = self.clipboard_service.copy_text("test text")
-        self.assertTrue(result)
+                    # Verify that one of the platform methods was called
+                    call_count = (
+                        mock_linux.call_count
+                        + mock_windows.call_count
+                        + mock_macos.call_count
+                    )
+                    self.assertEqual(call_count, 1)
+                    self.assertTrue(result)
 
-    @patch("subprocess.run")
-    def test_copy_text_failure(self, mock_run):
-        """Test clipboard copy failure."""
-        mock_run.side_effect = Exception("Command failed")
+    def test_copy_text_failure(self):
+        """Test clipboard copy failure handling."""
+        clipboard_service = PlatformClipboardService()
 
-        result = self.clipboard_service.copy_text("test text")
-        self.assertFalse(result)
+        # Mock all platform methods to raise exceptions
+        with patch.object(
+            clipboard_service, "_copy_linux", side_effect=Exception("Failed")
+        ):
+            with patch.object(
+                clipboard_service, "_copy_windows", side_effect=Exception("Failed")
+            ):
+                with patch.object(
+                    clipboard_service, "_copy_macos", side_effect=Exception("Failed")
+                ):
+                    result = clipboard_service.copy_text("test text")
+                    self.assertFalse(result)
 
-    @patch("subprocess.run")
-    def test_copy_empty_text(self, mock_run):
+    def test_copy_empty_text(self):
         """Test copying empty text."""
-        mock_run.return_value = Mock(returncode=0)
-        result = self.clipboard_service.copy_text("")
-        # Should handle empty text gracefully
-        self.assertIsInstance(result, bool)
+        clipboard_service = PlatformClipboardService()
+
+        with patch.object(clipboard_service, "_copy_linux", return_value=True):
+            with patch.object(clipboard_service, "_copy_windows", return_value=True):
+                with patch.object(clipboard_service, "_copy_macos", return_value=True):
+                    result = clipboard_service.copy_text("")
+                    # Should handle empty text gracefully
+                    self.assertIsInstance(result, bool)
 
 
 class TestModelConfiguration(unittest.TestCase):

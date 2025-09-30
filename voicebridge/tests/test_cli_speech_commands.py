@@ -133,9 +133,17 @@ class TestSpeechCommands:
         with patch.object(speech_commands, "_build_config") as mock_build_config:
             with patch("voicebridge.cli.commands.speech_commands.typer.echo"):
                 with patch("time.sleep", side_effect=KeyboardInterrupt):
-                    with patch("pynput.keyboard.Listener") as mock_listener:
-                        mock_listener.return_value.start = Mock()
-                        mock_listener.return_value.stop = Mock()
+                    # Mock pynput keyboard module before it's imported
+                    mock_keyboard = Mock()
+                    mock_listener_class = Mock()
+                    mock_keyboard.Listener = mock_listener_class
+                    mock_keyboard.Key = Mock()
+
+                    with patch.dict("sys.modules", {"pynput.keyboard": mock_keyboard}):
+                        mock_listener_instance = Mock()
+                        mock_listener_instance.start = Mock()
+                        mock_listener_instance.stop = Mock()
+                        mock_listener_class.return_value = mock_listener_instance
                         mock_build_config.return_value = Mock()
 
                         try:
