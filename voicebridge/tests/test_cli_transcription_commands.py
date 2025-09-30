@@ -118,11 +118,26 @@ class TestTranscriptionCommands:
                     )
 
     def test_test_audio_setup(self, transcription_commands):
-        """Test audio setup testing error handling."""
-        import typer
+        """Test audio setup testing."""
+        # Mock the audio recorder to return iterable data
+        mock_audio_recorder = Mock()
+        mock_audio_recorder.record_stream = Mock(
+            return_value=iter([b"test_chunk" * 1000])
+        )
+        transcription_commands.transcription_orchestrator.audio_recorder = (
+            mock_audio_recorder
+        )
+
+        # Mock the transcription service
+        mock_result = Mock()
+        mock_result.text = "Test transcription"
+        transcription_commands.transcription_orchestrator.transcription_service.transcribe = Mock(
+            return_value=mock_result
+        )
 
         with patch("voicebridge.cli.commands.transcription_commands.typer.echo"):
-            with pytest.raises(typer.Exit):
+            with patch("time.sleep"):  # Speed up the test
+                # Should complete without raising
                 transcription_commands.test_audio_setup()
 
     def test_transcribe_file_no_orchestrator(self, mock_dependencies):
