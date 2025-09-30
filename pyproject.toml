@@ -1,6 +1,6 @@
 [project]
 name = "voicebridge"
-version = "1.0.0"
+dynamic = ["version"]
 description = "Comprehensive bidirectional voice-text CLI tool with Whisper and VibeVoice"
 authors = [
     {name = "Patrick"},
@@ -128,6 +128,9 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 where = ["."]
 include = ["voicebridge*", "vibevoice*"]
+
+[tool.setuptools.dynamic]
+version = {attr = "voicebridge.__version__"}
 
 [tool.ruff]
 line-length = 88
