@@ -78,34 +78,24 @@ VoiceBridge uses **uv** for fast dependency management. Install uv first if you 
 # Install uv (fast Python package manager)
 curl -LsSf https://astral.sh/uv/install.sh | sh
 
-# Clone the repository
-git clone https://github.com/yourusername/voicebridge.git
-cd voicebridge
-
-# Set up environment (CPU version)
-make prepare
-
-# Or with CUDA support for GPU acceleration
-make prepare-cuda
-
-# Or with system tray support
-make prepare-tray
+# Install with uv
+uv pip install voicebridge
 ```
 
 ### Basic Usage
 
 ```bash
 # Listen for speech and transcribe with hotkeys
-uv run python -m voicebridge stt listen
+voicebridge stt listen
 
 # Transcribe an audio file
-uv run python -m voicebridge stt transcribe audio.mp3 --output transcript.txt
+voicebridge stt transcribe audio.mp3 --output transcript.txt
 
 # Generate speech from text
-uv run python -m voicebridge tts generate "Hello, this is VoiceBridge!"
+voicebridge tts generate "Hello, this is VoiceBridge!"
 
 # Start clipboard monitoring for TTS
-uv run python -m voicebridge tts listen-clipboard
+voicebridge tts listen-clipboard
 ```
 
 ## 📖 Examples
@@ -114,26 +104,26 @@ uv run python -m voicebridge tts listen-clipboard
 
 ```bash
 # Transcribe a podcast episode with timestamps
-uv run python -m voicebridge stt transcribe podcast_episode.mp3 \
+voicebridge stt transcribe podcast_episode.mp3 \
   --format srt \
   --output episode_subtitles.srt \
   --language en
 
 # Analyze transcription quality
-uv run python -m voicebridge stt confidence analyze session_12345 --detailed
+voicebridge stt confidence analyze session_12345 --detailed
 ```
 
 ### 2. Accessibility Content
 
 ```bash
 # Convert article to speech with custom voice
-uv run python -m voicebridge tts generate \
+voicebridge tts generate \
   --voice en-Alice_woman \
   --output article_audio.wav \
   "$(cat article.txt)"
 
 # Batch convert multiple documents
-uv run python -m voicebridge stt batch-transcribe articles/ \
+voicebridge stt batch-transcribe articles/ \
   --output-dir transcripts/ \
   --workers 4
 ```
@@ -142,13 +132,13 @@ uv run python -m voicebridge stt batch-transcribe articles/ \
 
 ```bash
 # Start TTS daemon for background processing
-uv run python -m voicebridge tts daemon start --mode clipboard
+voicebridge tts daemon start --mode clipboard
 
 # Set up webhook notifications
-uv run python -m voicebridge stt webhook add https://api.example.com/transcription-complete
+voicebridge stt webhook add https://api.example.com/transcription-complete
 
 # Real-time transcription with streaming
-uv run python -m voicebridge stt realtime \
+voicebridge stt realtime \
   --chunk-duration 2.0 \
   --output-format live
 ```
@@ -157,12 +147,12 @@ uv run python -m voicebridge stt realtime \
 
 ```bash
 # Process interview recordings with resumable capability
-uv run python -m voicebridge stt listen-resumable interview.wav \
+voicebridge stt listen-resumable interview.wav \
   --session-name "interview-2024-01-15" \
   --language en
 
 # Export results in multiple formats
-uv run python -m voicebridge stt export session session_12345 \
+voicebridge stt export session session_12345 \
   --format json \
   --include-confidence \
   --output transcript.json
@@ -189,7 +179,7 @@ cd voicebridge
 
 # 3. Choose your setup:
 make prepare        # CPU version
-make prepare-cuda   # With CUDA support  
+make prepare-cuda   # With CUDA support
 make prepare-tray   # With system tray support
 
 # 4. Install system dependencies
@@ -262,7 +252,7 @@ VoiceBridge works out-of-the-box with sensible defaults. Configuration can be se
 2. **Command-line flags** (override config file):
    ```bash
    # Generate with custom settings
-   uv run python -m voicebridge tts generate "Hello world" \
+   voicebridge tts generate "Hello world" \
      --voice en-Patrick \
      --streaming \
      --output speech.wav \
@@ -283,13 +273,13 @@ VoiceBridge works out-of-the-box with sensible defaults. Configuration can be se
 
 ```bash
 # Test TTS with default settings
-uv run python -m voicebridge tts generate "Hello, this is VoiceBridge text-to-speech!"
+voicebridge tts generate "Hello, this is VoiceBridge text-to-speech!"
 
 # List available voices
-uv run python -m voicebridge tts voices
+voicebridge tts voices
 
 # Show current TTS configuration
-uv run python -m voicebridge tts config show
+voicebridge tts config show
 ```
 
 ### Development Commands
@@ -314,17 +304,17 @@ make clean          # Clean cache and temporary files
 
 ```bash
 # Show current STT configuration
-uv run python -m voicebridge stt config show
+voicebridge stt config show
 
 # Set STT configuration values
-uv run python -m voicebridge stt config set use_gpu true
+voicebridge stt config set use_gpu true
 
 # Show TTS configuration
-uv run python -m voicebridge tts config show
+voicebridge tts config show
 
 # Set up profiles for different use cases
-uv run python -m voicebridge stt profile save research-setup
-uv run python -m voicebridge stt profile load research-setup
+voicebridge stt profile save research-setup
+voicebridge stt profile load research-setup
 ```
 
 ## 🎮 Usage Guide
@@ -332,151 +322,158 @@ uv run python -m voicebridge stt profile load research-setup
 ### Speech-to-Text (STT) Commands
 
 #### Real-time Recognition
+
 ```bash
 # Listen with hotkeys (F9 to start/stop)
-uv run python -m voicebridge stt listen
+voicebridge stt listen
 
 # Interactive mode (press 'r' to record)
-uv run python -m voicebridge stt interactive
+voicebridge stt interactive
 
 # Global hotkey listener with custom key
-uv run python -m voicebridge stt hotkey --key f9 --mode toggle
+voicebridge stt hotkey --key f9 --mode toggle
 ```
 
 #### File Processing
+
 ```bash
 # Transcribe single file
-uv run python -m voicebridge stt transcribe audio.mp3 --output transcript.txt
+voicebridge stt transcribe audio.mp3 --output transcript.txt
 
 # Batch process directory
-uv run python -m voicebridge stt batch-transcribe /path/to/audio/ --workers 4
+voicebridge stt batch-transcribe /path/to/audio/ --workers 4
 
 # Long file with resume capability
-uv run python -m voicebridge stt listen-resumable large_file.wav --session-name "my-session"
+voicebridge stt listen-resumable large_file.wav --session-name "my-session"
 
 # Real-time streaming
-uv run python -m voicebridge stt realtime --chunk-duration 2.0 --output-format live
+voicebridge stt realtime --chunk-duration 2.0 --output-format live
 ```
 
 #### Session Management
+
 ```bash
 # List all sessions
-uv run python -m voicebridge stt sessions list
+voicebridge stt sessions list
 
 # Resume interrupted session
-uv run python -m voicebridge stt sessions resume --session-name "my-session"
+voicebridge stt sessions resume --session-name "my-session"
 
 # Clean up old sessions
-uv run python -m voicebridge stt sessions cleanup
+voicebridge stt sessions cleanup
 
 # Delete specific session
-uv run python -m voicebridge stt sessions delete session_id
+voicebridge stt sessions delete session_id
 ```
 
 #### Advanced Features
+
 ```bash
 # Add vocabulary words for better recognition
-uv run python -m voicebridge stt vocabulary add "technical,terms,here" --type technical
+voicebridge stt vocabulary add "technical,terms,here" --type technical
 
 # Export with confidence analysis
-uv run python -m voicebridge stt export session session_id --format srt --confidence
+voicebridge stt export session session_id --format srt --confidence
 
 # Set up webhooks for notifications
-uv run python -m voicebridge stt webhook add https://api.example.com/notify
+voicebridge stt webhook add https://api.example.com/notify
 ```
 
 ### Text-to-Speech (TTS) Commands
 
 #### Basic Generation
+
 ```bash
 # Generate speech from text
-uv run python -m voicebridge tts generate "Hello, this is VoiceBridge!"
+voicebridge tts generate "Hello, this is VoiceBridge!"
 
 # Use specific voice and save to file
-uv run python -m voicebridge tts generate "Hello world" --voice en-Alice_woman --output speech.wav
+voicebridge tts generate "Hello world" --voice en-Alice_woman --output speech.wav
 
 # List available voices
-uv run python -m voicebridge tts voices
+voicebridge tts voices
 ```
 
 #### Background Monitoring
+
 ```bash
 # Monitor clipboard for text changes
-uv run python -m voicebridge tts listen-clipboard --streaming
+voicebridge tts listen-clipboard --streaming
 
 # Monitor text selections (use hotkey to trigger)
-uv run python -m voicebridge tts listen-selection
+voicebridge tts listen-selection
 
 # Start TTS daemon for background processing
-uv run python -m voicebridge tts daemon start --mode clipboard
-uv run python -m voicebridge tts daemon status
-uv run python -m voicebridge tts daemon stop
+voicebridge tts daemon start --mode clipboard
+voicebridge tts daemon status
+voicebridge tts daemon stop
 ```
 
 #### Configuration
+
 ```bash
 # Show TTS settings
-uv run python -m voicebridge tts config show
+voicebridge tts config show
 
 # Configure TTS settings
-uv run python -m voicebridge tts config set --default-voice en-Alice_woman --cfg-scale 1.5
+voicebridge tts config set --default-voice en-Alice_woman --cfg-scale 1.5
 ```
 
 ### Audio Processing
 
 ```bash
 # Get audio file information
-uv run python -m voicebridge audio info audio.mp3
+voicebridge audio info audio.mp3
 
 # List supported formats
-uv run python -m voicebridge audio formats
+voicebridge audio formats
 
 # Split large audio file
-uv run python -m voicebridge audio split recording.mp3 \
+voicebridge audio split recording.mp3 \
   --method duration \
   --chunk-duration 300
 
 # Enhance audio quality
-uv run python -m voicebridge audio preprocess input.wav output.wav \
+voicebridge audio preprocess input.wav output.wav \
   --noise-reduction 0.8 \
   --normalize \
   --trim-silence
 
 # Test audio setup
-uv run python -m voicebridge audio test
+voicebridge audio test
 ```
 
 ### System & Performance
 
 ```bash
 # Check GPU status and acceleration
-uv run python -m voicebridge gpu status
+voicebridge gpu status
 
 # Benchmark GPU performance
-uv run python -m voicebridge gpu benchmark --model base
+voicebridge gpu benchmark --model base
 
 # View STT performance statistics
-uv run python -m voicebridge stt performance stats
+voicebridge stt performance stats
 
 # Manage active operations
-uv run python -m voicebridge stt operations list
-uv run python -m voicebridge stt operations cancel operation_id
+voicebridge stt operations list
+voicebridge stt operations cancel operation_id
 ```
 
 ### API Server
 
 ```bash
 # Start API server
-uv run python -m voicebridge api start --host localhost --port 8000
+voicebridge api start --host localhost --port 8000
 
 # Check API status
-uv run python -m voicebridge api status
+voicebridge api status
 
 # Get API information
-uv run python -m voicebridge api info
+voicebridge api info
 
 # Stop API server
-uv run python -m voicebridge api stop
+voicebridge api stop
 ```
 
 ## 📋 Complete Command Reference
@@ -484,6 +481,7 @@ uv run python -m voicebridge api stop
 VoiceBridge uses a hierarchical command structure with five main categories:
 
 ### 🎤 `stt` - Speech-to-Text Commands
+
 ```
 stt listen              # Real-time transcription with hotkeys
 stt interactive         # Press-and-hold 'r' to record mode
@@ -535,6 +533,7 @@ stt profile delete      # Delete profile
 ```
 
 ### 🗣️ `tts` - Text-to-Speech Commands
+
 ```
 tts generate            # Generate speech from text
 tts listen-clipboard    # Monitor clipboard changes
@@ -552,6 +551,7 @@ tts config set          # Configure TTS settings
 ```
 
 ### 🔊 `audio` - Audio Processing Commands
+
 ```
 audio info              # Show audio file information
 audio formats           # List supported formats
@@ -561,12 +561,14 @@ audio test              # Test audio setup
 ```
 
 ### 🖥️ `gpu` - GPU and System Commands
+
 ```
 gpu status              # Show GPU status
 gpu benchmark           # Benchmark GPU performance
 ```
 
 ### 🌐 `api` - API Server Management
+
 ```
 api start               # Start API server
 api stop                # Stop API server
