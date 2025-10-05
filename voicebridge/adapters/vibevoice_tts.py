@@ -106,6 +106,69 @@ class VibeVoiceTTSAdapter(TTSService):
                 logger.error(f"Failed to load VibeVoice model: {e}")
                 raise RuntimeError(f"Failed to load VibeVoice model: {e}") from e
 
+    def _format_text_with_speaker_turns(self, text: str, speaker_name: str = "Speaker 1") -> str:
+        """
+        Format text with multiple speaker turns for the same speaker.
+
+        VibeVoice is trained on conversational data and performs better with
+        natural turn-taking even for single-speaker content. This prevents
+        volume degradation and maintains quality in long-form generation.
+
+        Args:
+            text: Input text to format
+            speaker_name: Speaker label (default: "Speaker 1")
+
+        Returns:
+            Formatted text with speaker turns
+        """
+        import re
+
+        # Split by paragraphs (most natural boundary)
+        paragraphs = re.split(r'\n\n+', text)
+
+        turns = []
+        for para in paragraphs:
+            para = para.strip()
+            if not para:
+                continue
+
+            # Clean up line breaks within paragraph
+            cleaned = para.replace("\n", " ").replace("\r", " ")
+            cleaned = " ".join(cleaned.split())
+
+            # If paragraph is very long (>500 chars), split by sentences
+            if len(cleaned) > 500:
+                sentences = re.split(r'([.!?]+\s+)', cleaned)
+                current_turn = ""
+
+                for i in range(0, len(sentences), 2):
+                    sentence = sentences[i]
+                    if i + 1 < len(sentences):
+                        sentence += sentences[i + 1]
+
+                    sentence = sentence.strip()
+                    if not sentence:
+                        continue
+
+                    # Add to current turn, but start new turn if getting long
+                    if current_turn and len(current_turn) + len(sentence) > 500:
+                        turns.append(f"{speaker_name}: {current_turn.strip()}")
+                        current_turn = sentence
+                    else:
+                        if current_turn:
+                            current_turn += " " + sentence
+                        else:
+                            current_turn = sentence
+
+                if current_turn.strip():
+                    turns.append(f"{speaker_name}: {current_turn.strip()}")
+            else:
+                # Paragraph is short enough, use as one turn
+                turns.append(f"{speaker_name}: {cleaned}")
+
+        # Join all turns with newlines
+        return "\n".join(turns)
+
     def _load_audio(self, audio_path: str) -> np.ndarray:
         """Load audio file and return as numpy array"""
         try:
@@ -148,13 +211,10 @@ class VibeVoiceTTSAdapter(TTSService):
             logger.error(f"Failed to load voice samples: {e}")
             raise RuntimeError(f"Failed to load voice samples: {e}") from e
 
-        # Format text for single speaker, handling line breaks properly
-        # Replace line breaks with spaces to keep all text on one line
-        # This prevents parsing errors in the VibeVoice processor
-        cleaned_text = text.replace("\n", " ").replace("\r", " ")
-        # Remove multiple spaces
-        cleaned_text = " ".join(cleaned_text.split())
-        formatted_text = f"Speaker 1: {cleaned_text}"
+        # Format text with multiple speaker turns for the same speaker
+        # VibeVoice recommends: "chunk your text with multiple speaker turns with same speaker label"
+        # This maintains quality and prevents volume degradation in long-form generation
+        formatted_text = self._format_text_with_speaker_turns(text)
 
         try:
             # Process inputs
@@ -236,10 +296,8 @@ class VibeVoiceTTSAdapter(TTSService):
                     raise FileNotFoundError(f"Voice sample not found: {voice_path}")
                 voice_data.append(self._load_audio(voice_path))
 
-            # Format text for single speaker, handling line breaks properly
-            cleaned_text = text.replace("\n", " ").replace("\r", " ")
-            cleaned_text = " ".join(cleaned_text.split())
-            formatted_text = f"Speaker 1: {cleaned_text}"
+            # Format text with multiple speaker turns for the same speaker
+            formatted_text = self._format_text_with_speaker_turns(text)
 
             # Process inputs
             inputs = self.processor(
