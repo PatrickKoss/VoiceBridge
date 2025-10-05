@@ -250,7 +250,7 @@ uv run python -m voicebridge tts config set --cfg-scale 1.5
 - **Input handling**: pyperclip, pynput for clipboard and hotkeys
 
 ### Configuration
-- Main config stored in `~/.config/whisper-cli/`
+- Main config stored in `~/.config/voicebridge/`
 - Session files stored in local `sessions/` directory
 - TTS voice samples in `demo/voices/` or configured directory
 - Performance metrics kept in memory (last 1000 operations)

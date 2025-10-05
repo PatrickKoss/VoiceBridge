@@ -69,6 +69,106 @@ class TTSCommands(BaseCommands):
         except Exception as e:
             display_error(f"TTS generation error: {e}")
 
+    def tts_generate_file(
+        self,
+        input_file: str,
+        voice: str | None = None,
+        streaming: bool = False,
+        output_file: str | None = None,
+        auto_play: bool = False,
+        cfg_scale: float | None = None,
+        inference_steps: int | None = None,
+        sample_rate: int | None = None,
+        use_gpu: bool | None = None,
+    ):
+        """Generate TTS from a text file."""
+        if not self.tts_orchestrator:
+            display_error("TTS service not available")
+            return
+
+        # Read the input file
+        try:
+            from pathlib import Path
+
+            input_path = Path(input_file)
+            if not input_path.exists():
+                display_error(f"Input file not found: {input_file}")
+                return
+
+            if not input_path.is_file():
+                display_error(f"Input path is not a file: {input_file}")
+                return
+
+            # Read file content with encoding detection
+            try:
+                text = input_path.read_text(encoding="utf-8")
+            except UnicodeDecodeError:
+                # Try with different encodings
+                for encoding in ["latin-1", "cp1252", "iso-8859-1"]:
+                    try:
+                        text = input_path.read_text(encoding=encoding)
+                        display_info(f"File read with {encoding} encoding")
+                        break
+                    except UnicodeDecodeError:
+                        continue
+                else:
+                    display_error("Could not read file with any known encoding")
+                    return
+
+            if not text.strip():
+                display_error("Input file is empty")
+                return
+
+            display_info(f"Read {len(text)} characters from {input_file}")
+
+        except Exception as e:
+            display_error(f"Error reading input file: {e}")
+            return
+
+        # Set default output file if not provided
+        if not output_file:
+            output_file = str(input_path.with_suffix(".wav"))
+            display_info(f"Output file not specified, using: {output_file}")
+
+        # Load config
+        config = self.config_repo.load()
+        tts_config = config.tts_config
+
+        # Override config with command parameters
+        if voice:
+            tts_config.default_voice = voice
+        tts_config.output_file_path = output_file
+        tts_config.output_mode = (
+            TTSOutputMode.SAVE_FILE if not auto_play else TTSOutputMode.BOTH
+        )
+        if cfg_scale is not None:
+            tts_config.cfg_scale = cfg_scale
+        if inference_steps is not None:
+            tts_config.inference_steps = inference_steps
+        if sample_rate is not None:
+            tts_config.sample_rate = sample_rate
+        if use_gpu is not None:
+            tts_config.use_gpu = use_gpu
+
+        tts_config.streaming_mode = (
+            TTSStreamingMode.STREAMING if streaming else TTSStreamingMode.NON_STREAMING
+        )
+        tts_config.auto_play = auto_play
+
+        preview_text = text[:100] + ("..." if len(text) > 100 else "")
+        display_progress(f"Generating TTS for: {preview_text}")
+        display_info(f"Total text length: {len(text)} characters")
+
+        try:
+            success = self.tts_orchestrator.generate_tts_from_text(text, tts_config)
+            if success:
+                display_progress("TTS generation completed", finished=True)
+                display_info(f"Audio saved to: {output_file}")
+            else:
+                display_error("TTS generation failed")
+        except Exception as e:
+            display_error(f"TTS generation error: {e}")
+
     def tts_listen_clipboard(
         self,
         voice: str | None = None,
@@ -353,36 +453,46 @@ class TTSCommands(BaseCommands):
             tts_config = config.tts_config
 
             typer.echo("TTS Configuration:")
-            typer.echo(f"  Default voice: {tts_config.default_voice}")
-            typer.echo(f"  Voice samples path: {tts_config.voice_samples_path}")
             typer.echo(f"  Model path: {tts_config.model_path}")
-            typer.echo(f"  Sample rate: {tts_config.sample_rate}")
+            typer.echo(f"  Voice samples dir: {tts_config.voice_samples_dir}")
+            typer.echo(f"  Default voice: {tts_config.default_voice}")
             typer.echo(f"  CFG scale: {tts_config.cfg_scale}")
             typer.echo(f"  Inference steps: {tts_config.inference_steps}")
-            typer.echo(f"  Auto play: {tts_config.auto_play}")
-            typer.echo(f"  Use GPU: {tts_config.use_gpu}")
+            typer.echo(f"  TTS mode: {tts_config.tts_mode.value}")
+            typer.echo(f"  Streaming mode: {tts_config.streaming_mode.value}")
+            typer.echo(f"  Output mode: {tts_config.output_mode.value}")
+            typer.echo(f"  Toggle hotkey: {tts_config.tts_toggle_key}")
             typer.echo(f"  Generate hotkey: {tts_config.tts_generate_key}")
             typer.echo(f"  Stop hotkey: {tts_config.tts_stop_key}")
-            typer.echo(f"  Output mode: {tts_config.output_mode}")
-            typer.echo(f"  Streaming mode: {tts_config.streaming_mode}")
+            typer.echo(f"  Sample rate: {tts_config.sample_rate}")
+            typer.echo(f"  Output file path: {tts_config.output_file_path or 'None'}")
+            typer.echo(f"  Auto play: {tts_config.auto_play}")
+            typer.echo(f"  Use GPU: {tts_config.use_gpu}")
+            typer.echo(f"  Max text length: {tts_config.max_text_length}")
+            typer.echo(f"  Chunk text threshold: {tts_config.chunk_text_threshold}")
 
         except Exception as e:
             display_error(f"Error loading TTS config: {e}")
 
     def tts_config_set(
         self,
-        default_voice: str | None = None,
-        voice_samples_path: str | None = None,
         model_path: str | None = None,
-        sample_rate: int | None = None,
+        voice_samples_dir: str | None = None,
+        default_voice: str | None = None,
         cfg_scale: float | None = None,
         inference_steps: int | None = None,
-        auto_play: bool | None = None,
-        use_gpu: bool | None = None,
+        tts_mode: str | None = None,
+        streaming_mode: str | None = None,
+        output_mode: str | None = None,
+        toggle_key: str | None = None,
         generate_key: str | None = None,
         stop_key: str | None = None,
-        output_mode: str | None = None,
-        streaming_mode: str | None = None,
+        sample_rate: int | None = None,
+        output_file_path: str | None = None,
+        auto_play: bool | None = None,
+        use_gpu: bool | None = None,
+        max_text_length: int | None = None,
+        chunk_text_threshold: int | None = None,
     ):
         """Configure TTS settings."""
         try:
@@ -391,20 +501,16 @@ class TTSCommands(BaseCommands):
 
             updated = False
 
-            if default_voice is not None:
-                tts_config.default_voice = default_voice
-                updated = True
-
-            if voice_samples_path is not None:
-                tts_config.voice_samples_path = voice_samples_path
-                updated = True
-
             if model_path is not None:
                 tts_config.model_path = model_path
                 updated = True
 
-            if sample_rate is not None:
-                tts_config.sample_rate = sample_rate
+            if voice_samples_dir is not None:
+                tts_config.voice_samples_dir = voice_samples_dir
+                updated = True
+
+            if default_voice is not None:
+                tts_config.default_voice = default_voice
                 updated = True
 
             if cfg_scale is not None:
@@ -415,12 +521,40 @@ class TTSCommands(BaseCommands):
                 tts_config.inference_steps = inference_steps
                 updated = True
 
-            if auto_play is not None:
-                tts_config.auto_play = auto_play
-                updated = True
+            if tts_mode is not None:
+                try:
+                    from voicebridge.domain.models import TTSMode
 
-            if use_gpu is not None:
-                tts_config.use_gpu = use_gpu
+                    tts_config.tts_mode = TTSMode(tts_mode)
+                    updated = True
+                except ValueError:
+                    display_error(
+                        f"Invalid TTS mode: {tts_mode}. Valid values: clipboard, mouse, manual"
+                    )
+                    return
+
+            if streaming_mode is not None:
+                try:
+                    tts_config.streaming_mode = TTSStreamingMode(streaming_mode)
+                    updated = True
+                except ValueError:
+                    display_error(
+                        f"Invalid streaming mode: {streaming_mode}. Valid values: streaming, non_streaming"
+                    )
+                    return
+
+            if output_mode is not None:
+                try:
+                    tts_config.output_mode = TTSOutputMode(output_mode)
+                    updated = True
+                except ValueError:
+                    display_error(
+                        f"Invalid output mode: {output_mode}. Valid values: play, save, both"
+                    )
+                    return
+
+            if toggle_key is not None:
+                tts_config.tts_toggle_key = toggle_key
                 updated = True
 
             if generate_key is not None:
@@ -431,21 +565,29 @@ class TTSCommands(BaseCommands):
                 tts_config.tts_stop_key = stop_key
                 updated = True
 
-            if output_mode is not None:
-                try:
-                    tts_config.output_mode = TTSOutputMode(output_mode)
-                    updated = True
-                except ValueError:
-                    display_error(f"Invalid output mode: {output_mode}")
-                    return
+            if sample_rate is not None:
+                tts_config.sample_rate = sample_rate
+                updated = True
 
-            if streaming_mode is not None:
-                try:
-                    tts_config.streaming_mode = TTSStreamingMode(streaming_mode)
-                    updated = True
-                except ValueError:
-                    display_error(f"Invalid streaming mode: {streaming_mode}")
-                    return
+            if output_file_path is not None:
+                tts_config.output_file_path = output_file_path
+                updated = True
+
+            if auto_play is not None:
+                tts_config.auto_play = auto_play
+                updated = True
+
+            if use_gpu is not None:
+                tts_config.use_gpu = use_gpu
+                updated = True
+
+            if max_text_length is not None:
+                tts_config.max_text_length = max_text_length
+                updated = True
+
+            if chunk_text_threshold is not None:
+                tts_config.chunk_text_threshold = chunk_text_threshold
+                updated = True
 
             if updated:
                 self.config_repo.save(config)

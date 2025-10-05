@@ -378,6 +378,42 @@ def create_app(command_registry: CommandRegistry) -> typer.Typer:
             use_gpu,
         )
 
+    @tts_app.command(name="generate-file")
+    def generate_file(
+        input_file: str = typer.Argument(..., help="Input text file (txt, md, etc.)"),
+        voice: str | None = typer.Option(None, "--voice", help="Voice to use"),
+        streaming: bool = typer.Option(False, "--streaming", help="Use streaming mode"),
+        output: str | None = typer.Option(
+            None, "--output", "-o", help="Output audio file (required)"
+        ),
+        play: bool = typer.Option(
+            False, "--play/--no-play", help="Play generated audio after saving"
+        ),
+        cfg_scale: float | None = typer.Option(None, "--cfg-scale", help="CFG scale"),
+        inference_steps: int | None = typer.Option(
+            None, "--inference-steps", help="Inference steps"
+        ),
+        sample_rate: int | None = typer.Option(
+            None, "--sample-rate", help="Sample rate"
+        ),
+        use_gpu: bool | None = typer.Option(
+            None, "--use-gpu/--no-gpu", help="Use GPU acceleration"
+        ),
+    ):
+        """Generate TTS from a text file."""
+        tts_commands = command_registry.get_command_group("tts")
+        tts_commands.tts_generate_file(
+            input_file,
+            voice,
+            streaming,
+            output,
+            play,
+            cfg_scale,
+            inference_steps,
+            sample_rate,
+            use_gpu,
+        )
+
     @tts_app.command(name="listen-clipboard")
     def tts_listen_clipboard(
         voice: str | None = typer.Option(None, "--voice", help="Voice to use"),

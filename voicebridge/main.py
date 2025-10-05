@@ -48,10 +48,10 @@ def setup_dependencies(config_dir=None):
 
     # Configuration paths
     if config_dir is None:
-        config_dir = Path.home() / ".config" / "whisper-cli"
+        config_dir = Path.home() / ".config" / "voicebridge"
     profiles_dir = config_dir / "profiles"
     sessions_dir = config_dir / "sessions"
-    log_file = config_dir / "whisper.log"
+    log_file = config_dir / "voicebridge.log"
     performance_log = config_dir / "performance.log"
     pid_file = config_dir / "daemon.pid"
 

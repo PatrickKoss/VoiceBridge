@@ -123,15 +123,14 @@ class TTSOrchestrator:
 
         self.last_processed_text = text
 
-        # Check text length
+        # Log warning for very long texts but don't truncate
         if len(text) > config.max_text_length:
             self.logger.warning(
-                f"Text too long ({len(text)} chars), truncating to {config.max_text_length}"
+                f"Processing very long text ({len(text)} chars, exceeds max_text_length of {config.max_text_length}). This may take a while."
             )
-            text = text[: config.max_text_length]
 
         self.logger.info(
-            f"Generating TTS for text: {text[:100]}{'...' if len(text) > 100 else ''}"
+            f"Generating TTS for text: {text[:100]}{'...' if len(text) > 100 else ''} ({len(text)} chars total)"
         )
 
         try:

@@ -223,7 +223,7 @@ VoiceBridge includes comprehensive text-to-speech capabilities powered by VibeVo
 
 VoiceBridge works out-of-the-box with sensible defaults. Configuration can be set via:
 
-1. **Config file** (`~/.config/whisper-cli/config.json`):
+1. **Config file** (`~/.config/voicebridge/config.json`):
 
    ```json
    {
@@ -390,6 +390,10 @@ voicebridge tts generate "Hello, this is VoiceBridge!"
 # Use specific voice and save to file
 voicebridge tts generate "Hello world" --voice en-Alice_woman --output speech.wav
 
+# Generate speech from a text file
+voicebridge tts generate-file document.txt --output document.wav
+voicebridge tts generate-file article.md --voice en-Patrick --streaming
+
 # List available voices
 voicebridge tts voices
 ```
@@ -536,6 +540,7 @@ stt profile delete      # Delete profile
 
 ```
 tts generate            # Generate speech from text
+tts generate-file       # Generate speech from text file (txt, md, etc.)
 tts listen-clipboard    # Monitor clipboard changes
 tts listen-selection    # Monitor text selections with hotkey
 tts voices              # List available voices

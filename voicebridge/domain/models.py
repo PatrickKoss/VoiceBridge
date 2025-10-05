@@ -152,7 +152,7 @@ class TTSConfig:
 
     # Performance settings
     use_gpu: bool = True
-    max_text_length: int = 2000
+    max_text_length: int = 10000
     chunk_text_threshold: int = 500
 
     def to_dict(self) -> dict[str, Any]:

@@ -67,6 +67,114 @@ class TestTTSCommands:
 
         mock_echo.assert_called()
 
+    def test_tts_generate_file_basic(self, tts_commands, tmp_path):
+        """Test TTS generation from file."""
+        # Create a temporary text file
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("This is a test file for TTS generation.")
+
+        output_file = tmp_path / "output.wav"
+
+        with patch("voicebridge.cli.commands.tts_commands.typer.echo") as mock_echo:
+            tts_commands.tts_generate_file(
+                input_file=str(test_file),
+                voice="en-Alice_woman",
+                streaming=False,
+                output_file=str(output_file),
+                auto_play=False,
+                cfg_scale=None,
+                inference_steps=None,
+                sample_rate=None,
+                use_gpu=None,
+            )
+
+        mock_echo.assert_called()
+
+    def test_tts_generate_file_markdown(self, tts_commands, tmp_path):
+        """Test TTS generation from markdown file."""
+        # Create a temporary markdown file
+        test_file = tmp_path / "test.md"
+        test_file.write_text("# Heading\n\nThis is **markdown** content.")
+
+        with patch("voicebridge.cli.commands.tts_commands.typer.echo") as mock_echo:
+            tts_commands.tts_generate_file(
+                input_file=str(test_file),
+                voice=None,
+                streaming=True,
+                output_file=None,  # Should auto-generate output.wav
+                auto_play=True,
+                cfg_scale=1.2,
+                inference_steps=15,
+                sample_rate=24000,
+                use_gpu=True,
+            )
+
+        mock_echo.assert_called()
+
+    def test_tts_generate_file_not_found(self, tts_commands):
+        """Test TTS generation with non-existent file."""
+        import typer
+
+        with patch("voicebridge.cli.commands.tts_commands.typer.echo"):
+            with pytest.raises(typer.Exit):
+                tts_commands.tts_generate_file(
+                    input_file="/nonexistent/file.txt",
+                    voice=None,
+                    streaming=False,
+                    output_file=None,
+                    auto_play=False,
+                    cfg_scale=None,
+                    inference_steps=None,
+                    sample_rate=None,
+                    use_gpu=None,
+                )
+
+    def test_tts_generate_file_empty(self, tts_commands, tmp_path):
+        """Test TTS generation with empty file."""
+        import typer
+
+        # Create empty file
+        test_file = tmp_path / "empty.txt"
+        test_file.write_text("")
+
+        with patch("voicebridge.cli.commands.tts_commands.typer.echo"):
+            with pytest.raises(typer.Exit):
+                tts_commands.tts_generate_file(
+                    input_file=str(test_file),
+                    voice=None,
+                    streaming=False,
+                    output_file=None,
+                    auto_play=False,
+                    cfg_scale=None,
+                    inference_steps=None,
+                    sample_rate=None,
+                    use_gpu=None,
+                )
+
+    def test_tts_generate_file_no_orchestrator(self, mock_dependencies, tmp_path):
+        """Test TTS generate file when orchestrator is None."""
+        import typer
+
+        mock_dependencies["tts_orchestrator"] = None
+        commands = TTSCommands(**mock_dependencies)
+
+        test_file = tmp_path / "test.txt"
+        test_file.write_text("Test content")
+
+        with patch("voicebridge.cli.commands.tts_commands.typer.echo"):
+            with pytest.raises(typer.Exit):
+                commands.tts_generate_file(
+                    input_file=str(test_file),
+                    voice=None,
+                    streaming=False,
+                    output_file=None,
+                    auto_play=False,
+                    cfg_scale=None,
+                    inference_steps=None,
+                    sample_rate=None,
+                    use_gpu=None,
+                )
+
     def test_tts_listen_clipboard(self, tts_commands):
         """Test TTS clipboard listening setup."""
         with patch("voicebridge.cli.commands.tts_commands.typer.echo") as mock_echo:
@@ -172,20 +280,27 @@ class TestTTSCommands:
 
     def test_tts_config_show(self, tts_commands):
         """Test TTS config show."""
+        from voicebridge.domain.models import TTSMode, TTSOutputMode, TTSStreamingMode
+
         mock_config = Mock()
         mock_tts_config = Mock()
-        mock_tts_config.default_voice = "en-Alice_woman"
-        mock_tts_config.voice_samples_path = "/path/to/voices"
         mock_tts_config.model_path = "/path/to/model"
-        mock_tts_config.sample_rate = 22050
+        mock_tts_config.voice_samples_dir = "/path/to/voices"
+        mock_tts_config.default_voice = "en-Alice_woman"
         mock_tts_config.cfg_scale = 1.0
         mock_tts_config.inference_steps = 20
-        mock_tts_config.auto_play = True
-        mock_tts_config.use_gpu = False
+        mock_tts_config.tts_mode = TTSMode.CLIPBOARD
+        mock_tts_config.streaming_mode = TTSStreamingMode.STREAMING
+        mock_tts_config.output_mode = TTSOutputMode.PLAY_AUDIO
+        mock_tts_config.tts_toggle_key = "f11"
         mock_tts_config.tts_generate_key = "f12"
         mock_tts_config.tts_stop_key = "escape"
-        mock_tts_config.output_mode = "play"
-        mock_tts_config.streaming_mode = "streaming"
+        mock_tts_config.sample_rate = 22050
+        mock_tts_config.output_file_path = None
+        mock_tts_config.auto_play = True
+        mock_tts_config.use_gpu = False
+        mock_tts_config.max_text_length = 10000
+        mock_tts_config.chunk_text_threshold = 500
         mock_config.tts_config = mock_tts_config
         tts_commands.config_repo.load.return_value = mock_config
 
@@ -199,18 +314,23 @@ class TestTTSCommands:
         """Test basic TTS config set."""
         with patch("voicebridge.cli.commands.tts_commands.typer.echo") as mock_echo:
             tts_commands.tts_config_set(
-                default_voice="en-Bob_man",
-                voice_samples_path="/path/to/voices",
                 model_path="/path/to/model",
-                sample_rate=24000,
+                voice_samples_dir="/path/to/voices",
+                default_voice="en-Bob_man",
                 cfg_scale=1.2,
                 inference_steps=25,
-                auto_play=True,
-                use_gpu=True,
+                tts_mode="clipboard",
+                streaming_mode="streaming",
+                output_mode="play",
+                toggle_key="f11",
                 generate_key="f11",
                 stop_key="f12",
-                output_mode="play",
-                streaming_mode="streaming",
+                sample_rate=24000,
+                output_file_path=None,
+                auto_play=True,
+                use_gpu=True,
+                max_text_length=5000,
+                chunk_text_threshold=1000,
             )
 
         tts_commands.config_repo.save.assert_called_once()
@@ -333,18 +453,23 @@ class TestTTSCommands:
         with patch("voicebridge.cli.commands.tts_commands.typer.echo"):
             # Test with boolean False values
             tts_commands.tts_config_set(
-                default_voice="en-Test_voice",
-                voice_samples_path="",
                 model_path="",
-                sample_rate=8000,  # Low sample rate
+                voice_samples_dir="",
+                default_voice="en-Test_voice",
                 cfg_scale=0.1,  # Low CFG scale
                 inference_steps=1,  # Minimal steps
-                auto_play=False,
-                use_gpu=False,
+                tts_mode="manual",
+                streaming_mode="non_streaming",
+                output_mode="save",
+                toggle_key="escape",
                 generate_key="escape",
                 stop_key="space",
-                output_mode="save",
-                streaming_mode="non_streaming",
+                sample_rate=8000,  # Low sample rate
+                output_file_path=None,
+                auto_play=False,
+                use_gpu=False,
+                max_text_length=1000,
+                chunk_text_threshold=100,
             )
 
         tts_commands.config_repo.save.assert_called_once()
