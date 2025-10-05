@@ -114,25 +114,48 @@ class TTSOrchestrator:
 
     def _chunk_text(self, text: str, chunk_size: int = 500) -> list[str]:
         """
-        Split text into chunks at natural boundaries (sentences, paragraphs).
+        Split text into chunks at natural boundaries (paragraphs, then sentences).
+        Prioritizes semantic boundaries over character count for better speech flow.
 
         Args:
             text: Text to split
-            chunk_size: Target chunk size in characters
+            chunk_size: Maximum chunk size in characters (soft limit for natural boundaries)
 
         Returns:
             List of text chunks
         """
-        # First try to split by double newlines (paragraphs)
+        chunks = []
+
+        # Split by paragraphs first (most natural boundary)
         paragraphs = re.split(r'\n\n+', text)
 
-        chunks = []
         current_chunk = ""
 
         for para in paragraphs:
-            # If paragraph alone exceeds chunk_size, split by sentences
-            if len(para) > chunk_size:
-                # Split by sentence boundaries
+            para = para.strip()
+            if not para:
+                continue
+
+            # If paragraph is small enough, try to combine with current chunk
+            if len(para) <= chunk_size:
+                # Check if adding this paragraph exceeds chunk_size
+                if current_chunk and len(current_chunk) + len(para) + 2 > chunk_size:
+                    # Save current chunk and start new one
+                    chunks.append(current_chunk.strip())
+                    current_chunk = para
+                else:
+                    # Add to current chunk
+                    if current_chunk:
+                        current_chunk += "\n\n" + para
+                    else:
+                        current_chunk = para
+            else:
+                # Paragraph is too long, split by sentences
+                if current_chunk:
+                    chunks.append(current_chunk.strip())
+                    current_chunk = ""
+
+                # Split paragraph into sentences
                 sentences = re.split(r'([.!?]+\s+)', para)
 
                 for i in range(0, len(sentences), 2):
@@ -140,21 +163,26 @@ class TTSOrchestrator:
                     if i + 1 < len(sentences):
                         sentence += sentences[i + 1]
 
-                    if len(current_chunk) + len(sentence) > chunk_size and current_chunk:
-                        chunks.append(current_chunk.strip())
-                        current_chunk = sentence
+                    sentence = sentence.strip()
+                    if not sentence:
+                        continue
+
+                    # If sentence is too long on its own, just add it as a chunk
+                    if len(sentence) > chunk_size:
+                        if current_chunk:
+                            chunks.append(current_chunk.strip())
+                            current_chunk = ""
+                        chunks.append(sentence)
                     else:
-                        current_chunk += sentence
-            else:
-                # Add paragraph to current chunk
-                if len(current_chunk) + len(para) + 2 > chunk_size and current_chunk:
-                    chunks.append(current_chunk.strip())
-                    current_chunk = para
-                else:
-                    if current_chunk:
-                        current_chunk += "\n\n" + para
-                    else:
-                        current_chunk = para
+                        # Try to combine sentences up to chunk_size
+                        if current_chunk and len(current_chunk) + len(sentence) + 1 > chunk_size:
+                            chunks.append(current_chunk.strip())
+                            current_chunk = sentence
+                        else:
+                            if current_chunk:
+                                current_chunk += " " + sentence
+                            else:
+                                current_chunk = sentence
 
         # Add remaining chunk
         if current_chunk.strip():
