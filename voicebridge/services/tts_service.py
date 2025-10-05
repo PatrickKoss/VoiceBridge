@@ -1,4 +1,5 @@
 import os
+import re
 import signal
 import sys
 import threading
@@ -110,6 +111,56 @@ class TTSOrchestrator:
 
         self.current_config = None
 
+    def _chunk_text(self, text: str, chunk_size: int = 500) -> list[str]:
+        """
+        Split text into chunks at natural boundaries (sentences, paragraphs).
+
+        Args:
+            text: Text to split
+            chunk_size: Target chunk size in characters
+
+        Returns:
+            List of text chunks
+        """
+        # First try to split by double newlines (paragraphs)
+        paragraphs = re.split(r'\n\n+', text)
+
+        chunks = []
+        current_chunk = ""
+
+        for para in paragraphs:
+            # If paragraph alone exceeds chunk_size, split by sentences
+            if len(para) > chunk_size:
+                # Split by sentence boundaries
+                sentences = re.split(r'([.!?]+\s+)', para)
+
+                for i in range(0, len(sentences), 2):
+                    sentence = sentences[i]
+                    if i + 1 < len(sentences):
+                        sentence += sentences[i + 1]
+
+                    if len(current_chunk) + len(sentence) > chunk_size and current_chunk:
+                        chunks.append(current_chunk.strip())
+                        current_chunk = sentence
+                    else:
+                        current_chunk += sentence
+            else:
+                # Add paragraph to current chunk
+                if len(current_chunk) + len(para) + 2 > chunk_size and current_chunk:
+                    chunks.append(current_chunk.strip())
+                    current_chunk = para
+                else:
+                    if current_chunk:
+                        current_chunk += "\n\n" + para
+                    else:
+                        current_chunk = para
+
+        # Add remaining chunk
+        if current_chunk.strip():
+            chunks.append(current_chunk.strip())
+
+        return chunks
+
     def generate_tts_from_text(self, text: str, config: TTSConfig) -> bool:
         """Generate TTS from provided text"""
         if not text.strip():
@@ -139,6 +190,11 @@ class TTSOrchestrator:
             if not voice_samples:
                 self.logger.error("No voice samples available")
                 return False
+
+            # For long texts, chunk and process separately
+            if len(text) > config.chunk_text_threshold:
+                self.logger.info(f"Text exceeds chunk threshold ({config.chunk_text_threshold} chars), processing in chunks")
+                return self._handle_chunked_tts(text, voice_samples, config)
 
             if config.streaming_mode == TTSStreamingMode.STREAMING:
                 return self._handle_streaming_tts(text, voice_samples, config)
@@ -333,6 +389,59 @@ class TTSOrchestrator:
             self.logger.info("TTS selection mode ready (trigger with hotkeys)")
         except Exception as e:
             self.logger.error(f"Failed to start hotkey monitoring: {e}")
+
+    def _handle_chunked_tts(
+        self, text: str, voice_samples: list[str], config: TTSConfig
+    ) -> bool:
+        """Handle TTS generation for long texts by chunking"""
+        try:
+            # Split text into chunks
+            chunks = self._chunk_text(text, config.chunk_text_threshold)
+            self.logger.info(f"Split text into {len(chunks)} chunks")
+
+            all_audio_data = []
+            total_generation_time = 0
+
+            for i, chunk in enumerate(chunks, 1):
+                self.logger.info(f"Processing chunk {i}/{len(chunks)} ({len(chunk)} chars)")
+
+                # Generate audio for this chunk
+                result = self.tts_service.generate_speech(chunk, voice_samples, config)
+                all_audio_data.append(result.audio_data)
+                total_generation_time += result.generation_time
+
+                self.logger.info(
+                    f"Chunk {i}/{len(chunks)} generated: {len(result.audio_data)} bytes in {result.generation_time:.2f}s"
+                )
+
+            # Merge all audio chunks
+            complete_audio = b"".join(all_audio_data)
+            self.logger.info(
+                f"Merged {len(chunks)} chunks: {len(complete_audio)} total bytes in {total_generation_time:.2f}s"
+            )
+
+            # Handle output based on config
+            if config.output_mode in [TTSOutputMode.SAVE_FILE, TTSOutputMode.BOTH]:
+                if config.output_file_path:
+                    self.audio_playback_service.save_audio(
+                        complete_audio, config.sample_rate, config.output_file_path
+                    )
+                    self.logger.info(f"Saved merged audio to {config.output_file_path}")
+
+            if config.output_mode in [TTSOutputMode.PLAY_AUDIO, TTSOutputMode.BOTH]:
+                if config.auto_play:
+                    self.audio_playback_service.play_audio(
+                        complete_audio, config.sample_rate
+                    )
+                    self.logger.info("Started playback of merged audio")
+
+            return True
+
+        except Exception as e:
+            self.logger.error(f"Chunked TTS failed: {e}")
+            import traceback
+            self.logger.error(traceback.format_exc())
+            return False
 
     def _handle_non_streaming_tts(
         self, text: str, voice_samples: list[str], config: TTSConfig

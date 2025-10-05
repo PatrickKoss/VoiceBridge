@@ -169,14 +169,12 @@ class VibeVoiceTTSAdapter(TTSService):
             # Set inference steps
             self.model.set_ddpm_inference_steps(num_steps=config.inference_steps)
 
-            # Generate audio with high max_new_tokens to prevent truncation
-            # The model defaults to max_position_embeddings - input_length when None,
-            # which causes truncation for long inputs. We set it very high to ensure
-            # full generation regardless of input length.
-            # Note: This is for audio tokens, not text characters
+            # Generate audio with reasonable max_new_tokens
+            # We use 8192 which is sufficient for chunk_text_threshold (500 chars)
+            # Long texts are handled by chunking in the service layer
             outputs = self.model.generate(
                 **inputs,
-                max_new_tokens=32768,  # Very high limit to prevent any truncation
+                max_new_tokens=8192,  # Sufficient for chunked generation
                 cfg_scale=config.cfg_scale,
                 tokenizer=self.processor.tokenizer,
                 generation_config={"do_sample": False},
@@ -331,7 +329,7 @@ class VibeVoiceTTSAdapter(TTSService):
 
             _outputs = self.model.generate(
                 **inputs,
-                max_new_tokens=32768,  # Very high limit to prevent any truncation
+                max_new_tokens=8192,  # Sufficient for chunked generation
                 cfg_scale=cfg_scale,
                 tokenizer=self.processor.tokenizer,
                 generation_config={"do_sample": False},
