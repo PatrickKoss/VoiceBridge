@@ -455,21 +455,19 @@ class TTSOrchestrator:
 
                 # Aggressively trim silence to eliminate pauses between chunks
                 if config.trim_silence:
-                    # For middle chunks: trim both start and end
-                    # For first chunk: only trim end
-                    # For last chunk: only trim start
+                    # For first chunk: only trim end (trim_start=False)
+                    # For middle chunks: trim both start and end (trim_start=True)
+                    # For last chunk: only trim start (trim_start=True)
                     trim_start = i > 1
-                    trim_end = i < len(chunks)
 
-                    if trim_end:
-                        processed_audio = self._trim_silence(
-                            processed_audio,
-                            threshold=300,  # More aggressive threshold
-                            sample_rate=config.sample_rate,
-                            trim_start=trim_start
-                        )
-                        bytes_removed = len(result.audio_data) - len(processed_audio)
-                        self.logger.debug(f"Chunk {i}: Trimmed {bytes_removed} bytes of silence")
+                    processed_audio = self._trim_silence(
+                        processed_audio,
+                        threshold=300,  # More aggressive threshold
+                        sample_rate=config.sample_rate,
+                        trim_start=trim_start
+                    )
+                    bytes_removed = len(result.audio_data) - len(processed_audio)
+                    self.logger.debug(f"Chunk {i}: Trimmed {bytes_removed} bytes of silence (trim_start={trim_start})")
 
                 all_audio_data.append(processed_audio)
 
