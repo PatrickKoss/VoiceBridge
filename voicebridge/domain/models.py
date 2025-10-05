@@ -152,8 +152,8 @@ class TTSConfig:
 
     # Performance settings
     use_gpu: bool = True
-    max_text_length: int = 10000
-    chunk_text_threshold: int = 500
+    max_text_length: int = 100000  # Very high limit, no practical restriction
+    chunk_text_threshold: int = 100000  # Disable chunking by default - model handles long texts
     trim_silence: bool = True  # Remove silence between chunks for smooth playback
 
     def to_dict(self) -> dict[str, Any]:
