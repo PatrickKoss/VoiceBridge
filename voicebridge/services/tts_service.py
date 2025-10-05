@@ -391,59 +391,15 @@ class TTSOrchestrator:
         except Exception as e:
             self.logger.error(f"Failed to start hotkey monitoring: {e}")
 
-    def _adjust_speed(self, audio_data: bytes, speed_multiplier: float, sample_rate: int = 24000) -> bytes:
+    def _trim_silence(self, audio_data: bytes, threshold: int = 300, sample_rate: int = 24000, trim_start: bool = False) -> bytes:
         """
-        Adjust audio playback speed by resampling.
+        Trim silence from audio data more aggressively.
 
         Args:
             audio_data: Raw 16-bit PCM audio bytes
-            speed_multiplier: Speed adjustment (1.0 = normal, 1.1 = 10% faster)
+            threshold: Silence threshold (amplitude) - lower = more aggressive
             sample_rate: Audio sample rate
-
-        Returns:
-            Speed-adjusted audio bytes
-        """
-        if abs(speed_multiplier - 1.0) < 0.01:  # No adjustment needed
-            return audio_data
-
-        if len(audio_data) < 4:
-            return audio_data
-
-        # Convert bytes to 16-bit integers
-        audio_samples = list(struct.unpack(f'<{len(audio_data)//2}h', audio_data))
-
-        # Simple linear interpolation resampling
-        num_samples = len(audio_samples)
-        new_num_samples = int(num_samples / speed_multiplier)
-
-        if new_num_samples <= 0:
-            return audio_data
-
-        resampled = []
-        for i in range(new_num_samples):
-            # Calculate position in original audio
-            pos = i * speed_multiplier
-            idx = int(pos)
-            frac = pos - idx
-
-            if idx + 1 < num_samples:
-                # Linear interpolation between samples
-                sample = int(audio_samples[idx] * (1 - frac) + audio_samples[idx + 1] * frac)
-            else:
-                sample = audio_samples[idx]
-
-            resampled.append(sample)
-
-        return struct.pack(f'<{len(resampled)}h', *resampled)
-
-    def _trim_silence(self, audio_data: bytes, threshold: int = 500, sample_rate: int = 24000) -> bytes:
-        """
-        Trim trailing silence from audio data.
-
-        Args:
-            audio_data: Raw 16-bit PCM audio bytes
-            threshold: Silence threshold (amplitude)
-            sample_rate: Audio sample rate
+            trim_start: Also trim silence from the beginning
 
         Returns:
             Trimmed audio bytes
@@ -454,18 +410,27 @@ class TTSOrchestrator:
         # Convert bytes to 16-bit integers
         audio_samples = struct.unpack(f'<{len(audio_data)//2}h', audio_data)
 
+        start_idx = 0
+        end_idx = len(audio_samples) - 1
+
+        # Trim from start if requested
+        if trim_start:
+            for i in range(len(audio_samples)):
+                if abs(audio_samples[i]) > threshold:
+                    start_idx = i
+                    break
+
         # Find last non-silent sample (working backwards)
-        last_sound = len(audio_samples) - 1
-        for i in range(len(audio_samples) - 1, -1, -1):
+        for i in range(len(audio_samples) - 1, start_idx, -1):
             if abs(audio_samples[i]) > threshold:
-                last_sound = i
-                # Keep a small buffer after last sound (50ms)
-                buffer_samples = int(sample_rate * 0.05)
-                last_sound = min(last_sound + buffer_samples, len(audio_samples) - 1)
+                end_idx = i
+                # Keep only a tiny buffer (10ms) to avoid clicks
+                buffer_samples = int(sample_rate * 0.01)
+                end_idx = min(end_idx + buffer_samples, len(audio_samples) - 1)
                 break
 
         # Convert back to bytes
-        trimmed_samples = audio_samples[:last_sound + 1]
+        trimmed_samples = audio_samples[start_idx:end_idx + 1]
         return struct.pack(f'<{len(trimmed_samples)}h', *trimmed_samples)
 
     def _handle_chunked_tts(
@@ -486,22 +451,25 @@ class TTSOrchestrator:
                 # Generate audio for this chunk
                 result = self.tts_service.generate_speech(chunk, voice_samples, config)
 
-                # Process audio: trim silence and adjust speed
                 processed_audio = result.audio_data
 
-                # Trim silence from the end of each chunk (except the last one)
-                # to reduce pauses between chunks
-                if i < len(chunks):
-                    processed_audio = self._trim_silence(processed_audio, sample_rate=config.sample_rate)
-                    self.logger.debug(f"Trimmed {len(result.audio_data) - len(processed_audio)} bytes of silence")
+                # Aggressively trim silence to eliminate pauses between chunks
+                if config.trim_silence:
+                    # For middle chunks: trim both start and end
+                    # For first chunk: only trim end
+                    # For last chunk: only trim start
+                    trim_start = i > 1
+                    trim_end = i < len(chunks)
 
-                # Apply speed adjustment if configured
-                if config.speed_multiplier != 1.0:
-                    processed_audio = self._adjust_speed(
-                        processed_audio,
-                        config.speed_multiplier,
-                        config.sample_rate
-                    )
+                    if trim_end:
+                        processed_audio = self._trim_silence(
+                            processed_audio,
+                            threshold=300,  # More aggressive threshold
+                            sample_rate=config.sample_rate,
+                            trim_start=trim_start
+                        )
+                        bytes_removed = len(result.audio_data) - len(processed_audio)
+                        self.logger.debug(f"Chunk {i}: Trimmed {bytes_removed} bytes of silence")
 
                 all_audio_data.append(processed_audio)
 

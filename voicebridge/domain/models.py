@@ -154,7 +154,7 @@ class TTSConfig:
     use_gpu: bool = True
     max_text_length: int = 10000
     chunk_text_threshold: int = 500
-    speed_multiplier: float = 1.05  # 1.0 = normal, 1.05 = 5% faster (subtle speedup)
+    trim_silence: bool = True  # Remove silence between chunks for smooth playback
 
     def to_dict(self) -> dict[str, Any]:
         result = {}
